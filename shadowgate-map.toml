@@ -147,11 +147,40 @@ source = "Observed in the per-letter step, 2026-11-06"
 verified = false
 
 [[ram]]
+addr = 0x0087
+size = 2
+name = "text_read_pointer"
+doc = "Address of the next packed text byte to read, low byte first. Advanced by one after each byte is loaded."
+source = "Read in the one-bit reader at $C5FE; decoded real text from it, 2026-11-06"
+verified = true
+
+[[ram]]
+addr = 0x00EE
+name = "text_bit_count"
+doc = "Bits already used from the current packed byte (0-7). 0 means load a new byte."
+source = "Read in the one-bit reader at $C5FE, 2026-11-06"
+verified = true
+
+[[ram]]
+addr = 0x00EF
+name = "text_bit_buffer"
+doc = "The packed byte being read; shifted left one bit per read."
+source = "Read in the one-bit reader at $C5FE, 2026-11-06"
+verified = true
+
+[[ram]]
+addr = 0x04FE
+name = "text_code_build"
+doc = "Where each 5-bit code is assembled, one bit at a time."
+source = "Read in the code reader at $C5E4, 2026-11-06"
+verified = true
+
+[[ram]]
 addr = 0x0058
 size = 2
-name = "text_source_pointer"
-doc = "Candidate pointer to the stored (packed) message, low byte first; read $AC1E during a message."
-source = "Memory snapshot during a message, 2026-11-06"
+name = "unknown_pointer_58"
+doc = "Changes while text prints (moved 8 bytes per letter). Not the text pointer; possibly graphics or music."
+source = "Memory snapshots during a message, 2026-11-06"
 verified = false
 
 # Code locations (addresses only):
@@ -162,6 +191,10 @@ verified = false
 #   $C82A  per-letter step: sends $0626-$0628 to the screen (via $EEEE), waits
 #          4 short steps ($CA37) unless $0090 is set, then writes 0xDF/upper
 #          row and the tile into the text buffer
+#   $C5BC  print one packed string: reads 5-bit codes until 0x1F; 0x1E means
+#          "next code + 0x20"; each code is printed via $C760
+#   $C5E4  read one 5-bit code (calls $C5FE five times) into $04FE
+#   $C5FE  read one bit from the packed text at $0087/$0088
 #   $C3F1  ROM table of where each line starts in the buffer
 #   $C7AD  ROM table: letter code -> tile
 
@@ -216,6 +249,20 @@ source = "Data Crystal text table; A1 found 2026-11-05"
 0xC8 = "X"
 0xC9 = "Y"
 0xCA = "Z"
+
+[text.packed]
+# How the game stores text in the ROM (worked out 2026-11-06, checked by
+# decoding real strings). A continuous bit stream read highest bit first,
+# 5 bits per code. Codes 0x00-0x19 are A-Z. The game turns codes into tiles
+# with its own table at $C7AD, which our code reads from the player's ROM.
+bits_per_code = 5
+bit_order = "msb_first"
+letters = [0x00, 0x19]    # A = 0x00 ... Z = 0x19
+space = 0x1A
+shift = 0x1E              # the next code + 0x20 is printed instead
+end = 0x1F
+# Short strings seen in 8-byte slots (words such as object names), so a
+# message is probably built from several strings. Not yet confirmed.
 
 [text.layout]
 # Worked out 2026-11-06 by matching a buffer snapshot to the message on screen.
