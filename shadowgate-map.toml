@@ -147,6 +147,35 @@ source = "Observed in the per-letter step, 2026-11-06"
 verified = false
 
 [[ram]]
+addr = 0x0000
+size = 2
+name = "message_read_pointer"
+doc = "Address of the next byte of the message being printed, low byte first (the outer stream; words are read separately via $0087)."
+source = "Read in the message loop at $C49E and the 0x1E handler, 2026-11-06"
+verified = false
+
+[[ram]]
+addr = 0x00EB
+name = "message_bit_count"
+doc = "Bits already used from the current message byte. Reset to 0 when a message starts."
+source = "Message loop at $C49E, 2026-11-06"
+verified = false
+
+[[ram]]
+addr = 0x00EC
+name = "message_bit_buffer"
+doc = "The message byte being read, shifted one bit per read (expected from the snapshot; not yet seen in code)."
+source = "Memory snapshot at a word insert, 2026-11-06"
+verified = false
+
+[[ram]]
+addr = 0x00ED
+name = "message_byte_build"
+doc = "Where an 8-bit value inside a message (a word number) is assembled."
+source = "Read in $C448, 2026-11-06"
+verified = true
+
+[[ram]]
 addr = 0x0087
 size = 2
 name = "text_read_pointer"
@@ -191,6 +220,17 @@ verified = false
 #   $C82A  per-letter step: sends $0626-$0628 to the screen (via $EEEE), waits
 #          4 short steps ($CA37) unless $0090 is set, then writes 0xDF/upper
 #          row and the tile into the text buffer
+#   $C49E  print a message: reads 5-bit codes from the message stream until
+#          0x1F; 0x1B, 0x1C and 0x1D are control codes (handled at $C63D,
+#          $C650, $C64C; not yet known); 0x1E is an escape whose next code is
+#          handled by $C517; anything else is a letter, printed via $C760
+#   $C517  escape handler: 0x1C = word from list A, 0x1D = word from list B
+#          (both with an 8-bit word number from the message), 0x1E = word from
+#          list A whose number is in RAM at a 2-byte address in the message,
+#          0x1F -> $C627 (not yet known)
+#   $C430  read one 5-bit code from the message stream
+#   $C448  read one 8-bit value from the message stream (8 calls to $C460) into $00ED
+#   $EAD9  swap in a ROM bank (A = 4 before reading the word lists); $EAF3 swaps back
 #   $C5BC  print one packed string: reads 5-bit codes until 0x1F; 0x1E means
 #          "next code + 0x20"; each code is printed via $C760
 #   $C5E4  read one 5-bit code (calls $C5FE five times) into $04FE
@@ -261,8 +301,16 @@ letters = [0x00, 0x19]    # A = 0x00 ... Z = 0x19
 space = 0x1A
 shift = 0x1E              # the next code + 0x20 is printed instead
 end = 0x1F
-# Short strings seen in 8-byte slots (words such as object names), so a
-# message is probably built from several strings. Not yet confirmed.
+# Messages and words use the same 5-bit codes. A message can insert words,
+# which are stored one per 8-byte slot in two lists while ROM bank 4 is
+# swapped in: word n of list A is at $B000 + 8n, of list B at $B800 + 8n
+# (CPU addresses). Example: list B word 6 is the "THIS " that starts the
+# wooden door message.
+escape = 0x1E             # in a message: the next code selects a word insert
+word_list_a = 0xB000
+word_list_b = 0xB800
+word_slot_bytes = 8
+word_bank = 4
 
 [text.layout]
 # Worked out 2026-11-06 by matching a buffer snapshot to the message on screen.
