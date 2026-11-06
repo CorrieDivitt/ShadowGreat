@@ -45,22 +45,29 @@ verified = false
 [[ram]]
 addr = 0x00AD
 name = "cursor_button"
-doc = "Which button the cursor is on. Verbs and MOVE use 0x74 + 4 * button number (LOOK 0x74 ... SPEAK 0x90, MOVE 0x94). See [buttons.play]."
+doc = "Which button the cursor is on. Verbs and MOVE use 0x74 + 4 * button number (LOOK 0x74 ... SPEAK 0x90, MOVE 0x94; UP 0xA0, DOWN 0xA4, goods slots 0xA2-0xBA, torches 0xAC/0xB0). In the scene it reflects the part of the picture under the cursor. See [buttons.play]."
 source = "Data Crystal RAM map; values recorded with the d-pad 2026-11-06"
 verified = true
 
 [[ram]]
 addr = 0x00AF
 name = "hovered_id"
-doc = "ID of the thing under the cursor; changes as the cursor moves over each button, without pressing A. Verbs 0x00-0x07, MOVE 0x13."
+doc = "ID of the thing under the cursor; changes as the cursor moves over each button, without pressing A. 0x00-0x07 verbs, 0x08 UP, 0x09 DOWN, 0x0A SELF, 0x0B SAVE, 0x0C-0x12 goods slots 1-7, 0x13 MOVE, 0x14/0x15 left/right torch, 0x16 scene entered from the verbs, 0x17 scene entered from MOVE."
 source = "Data Crystal RAM map; values recorded with the d-pad 2026-11-06"
 verified = true
 
 [[ram]]
 addr = 0x00B2
 name = "selected_command"
-doc = "Selected command, set when A is pressed: 0 LOOK, 1 OPEN, 2 USE, 3 LEAVE, 4 TAKE, 5 CLOSE, 6 HIT, 7 SPEAK, 8 MOVE. 0xFF = nothing selected. For verbs it equals hovered_id; MOVE is translated (hovered 0x13 -> command 0x08). Data Crystal also lists $B5."
+doc = "Selected command, set when A is pressed: 0 LOOK, 1 OPEN, 2 USE, 3 LEAVE, 4 TAKE, 5 CLOSE, 6 HIT, 7 SPEAK, 8 MOVE. 0xFF = nothing selected. For verbs it equals hovered_id; MOVE is translated (hovered 0x13 -> command 0x08). Goods slots do not set it: items are used with a verb."
 source = "Data Crystal RAM map; values recorded with the d-pad 2026-11-06"
+verified = true
+
+[[ram]]
+addr = 0x00B5
+name = "inventory_page"
+doc = "Which list the inventory shows: 0x08 goods (set by UP), 0x09 spells (set by DOWN). Slot IDs are the same on both pages."
+source = "Recorded with the d-pad 2026-11-06"
 verified = true
 
 [[ram]]
@@ -207,12 +214,13 @@ GOODS_3    = [0x9B, 0x4C]
 GOODS_4    = [0x9B, 0x5C]
 GOODS_5    = [0x9B, 0x6C]
 GOODS_6    = [0x9B, 0x7C]
-GOODS_7    = [0x9B, 0x8A]   # 8A, not 8C: worth re-checking
+GOODS_7    = [0x9B, 0x8C]
 
 # ------------------------------------------------------------------ buttons
 # Everything the game sets when the cursor is on a button, recorded with the
 # d-pad on 2026-11-06. snap = ($AB, $AC); ad = $AD; af = $AF while hovering;
-# command = $B2 after pressing A. System and inventory values still to record.
+# command = $B2 after pressing A (verbs and MOVE only).
+# SELF and SAVE: no $AD value recorded; writing X/Y alone was enough in the snapping test.
 
 [buttons.play]
 LOOK  = { snap = [0x63, 0xAC], ad = 0x74, af = 0x00, command = 0x00 }
@@ -224,3 +232,22 @@ CLOSE = { snap = [0x93, 0xBC], ad = 0x88, af = 0x05, command = 0x05 }
 HIT   = { snap = [0x93, 0xCC], ad = 0x8C, af = 0x06, command = 0x06 }
 SPEAK = { snap = [0x93, 0xDC], ad = 0x90, af = 0x07, command = 0x07 }
 MOVE  = { snap = [0x23, 0xA4], ad = 0x94, af = 0x13, command = 0x08 }
+UP      = { snap = [0xC3, 0xAC], ad = 0xA0, af = 0x08 }   # shows the goods page
+DOWN    = { snap = [0xC3, 0xBC], ad = 0xA4, af = 0x09 }   # shows the spell page
+SELF    = { snap = [0xC3, 0xCC], af = 0x0A }
+SAVE    = { snap = [0xC3, 0xDC], af = 0x0B }
+SLOT_1  = { snap = [0x9B, 0x2C], ad = 0xA2, af = 0x0C }
+SLOT_2  = { snap = [0x9B, 0x3C], ad = 0xA6, af = 0x0D }
+SLOT_3  = { snap = [0x9B, 0x4C], ad = 0xAA, af = 0x0E }
+SLOT_4  = { snap = [0x9B, 0x5C], ad = 0xAE, af = 0x0F }
+SLOT_5  = { snap = [0x9B, 0x6C], ad = 0xB2, af = 0x10 }
+SLOT_6  = { snap = [0x9B, 0x7C], ad = 0xB6, af = 0x11 }
+SLOT_7  = { snap = [0x9B, 0x8C], ad = 0xBA, af = 0x12 }
+TORCH_L = { snap = [0x93, 0x1C], ad = 0xAC, af = 0x14 }
+TORCH_R = { snap = [0xEB, 0x1C], ad = 0xB0, af = 0x15 }
+
+[buttons.scene]
+# The scene is free movement: the game works out which object is under the
+# cursor itself (it shows up in $AD). $AF depends on where the cursor came from.
+af_from_verbs = 0x16
+af_from_move = 0x17
