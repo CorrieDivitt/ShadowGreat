@@ -1,0 +1,172 @@
+# shadowgate-map.toml -- what we know about where things are in Shadowgate (USA).
+#
+# Addresses, positions and meanings ONLY. Never bytes copied from the ROM.
+# Every entry says where it came from; see PROVENANCE.md.
+#   verified = true   we tested it ourselves in Mesen or nesrecomp
+#   verified = false  from Data Crystal or a guess, not tested yet
+# Addresses are NES CPU addresses in hex ($0000-$07FF is RAM).
+
+[rom]
+name = "Shadowgate (USA)"
+mapper = 4            # MMC3
+sha1_full = "1af2c83b4724efbfac7fca00fab7f7a8e100caca"
+sha1_body = "e7869c683bd93275cde4536cd2ddf37f230dd8d0"   # with the 16-byte header removed
+
+# ------------------------------------------------------------------ RAM
+
+[[ram]]
+addr = 0x00AB
+name = "cursor_x"
+doc = "Cursor X position. Writing it moves the cursor."
+source = "Data Crystal RAM map; tested 2026-11-05"
+verified = true
+
+[[ram]]
+addr = 0x00AC
+name = "cursor_y"
+doc = "Cursor Y position. Writing it moves the cursor."
+source = "Data Crystal RAM map; tested 2026-11-05"
+verified = true
+
+[[ram]]
+addr = 0x0076
+name = "cursor_x_copy"
+doc = "Copy of cursor X."
+source = "Data Crystal RAM map"
+verified = false
+
+[[ram]]
+addr = 0x0077
+name = "cursor_y_copy"
+doc = "Copy of cursor Y."
+source = "Data Crystal RAM map"
+verified = false
+
+[[ram]]
+addr = 0x00AD
+name = "cursor_selection"
+doc = "Which list item the cursor is on."
+source = "Data Crystal RAM map"
+verified = false
+
+[[ram]]
+addr = 0x00AF
+name = "pointed_item"
+doc = "Item the cursor is pointing at."
+source = "Data Crystal RAM map"
+verified = false
+
+[[ram]]
+addr = 0x00B2
+name = "selected_command"
+doc = "Selected command: 0 LOOK, 1 OPEN, 2 USE, 3 LEAVE, 4 TAKE, 5 CLOSE, 6 HIT, 7 SPEAK, 8 MOVE. Data Crystal also lists $B5."
+source = "Data Crystal RAM map"
+verified = false
+
+[[ram]]
+addr = 0x00E5
+name = "screen_id"
+doc = "Which screen is showing. Known: 0x12 title, 0x11 load, 0x13 save."
+source = "Data Crystal RAM map"
+verified = false
+
+[[ram]]
+addr = 0x0500
+name = "current_room"
+source = "Data Crystal RAM map"
+verified = false
+
+[[ram]]
+addr = 0x0512
+name = "previous_room"
+source = "Data Crystal RAM map"
+verified = false
+
+[[ram]]
+addr = 0x0630
+size = 0xD0
+name = "text_buffer"
+doc = "Text buffer ($0630-$06FF). Message text seen starting at $0640."
+source = "Data Crystal RAM map; message decoded at $0640 on 2026-11-05"
+verified = true
+
+# Candidates still to confirm with breakpoints (Phase 4):
+#   $EB/$EC and $58/$59 change in step with text printing (possible pointers)
+#   $ED, $EE/$EF also change while printing
+
+# ------------------------------------------------------------------ text table
+# How letters are encoded. Byte value -> character.
+
+[text]
+end_marker = "unknown"   # A1 (.) ends the message seen so far; to confirm
+source = "Data Crystal text table; A1 found 2026-11-05"
+
+[text.chars]
+0x7F = " "
+0x80 = "0"
+0x81 = "1"
+0x82 = "2"
+0x83 = "3"
+0x84 = "4"
+0x85 = "5"
+0x86 = "6"
+0x87 = "7"
+0x88 = "8"
+0x89 = "9"
+0x8A = "!"
+0xA1 = "."
+0xB1 = "A"
+0xB2 = "B"
+0xB3 = "C"
+0xB4 = "D"
+0xB5 = "E"
+0xB6 = "F"
+0xB7 = "G"
+0xB8 = "H"
+0xB9 = "I"
+0xBA = "J"
+0xBB = "K"
+0xBC = "L"
+0xBD = "M"
+0xBE = "N"
+0xBF = "O"
+0xC0 = "P"
+0xC1 = "Q"
+0xC2 = "R"
+0xC3 = "S"
+0xC4 = "T"
+0xC5 = "U"
+0xC6 = "V"
+0xC7 = "W"
+0xC8 = "X"
+0xC9 = "Y"
+0xCA = "Z"
+
+# ------------------------------------------------------------------ cursor snap points
+# Cursor values ($AB, $AC) the game uses for each list item. Measured 2026-11-05.
+# Hit boxes (whole-word rectangles in screen pixels) get added beside these later.
+
+[snap]
+scene_bounds = [0x0F, 0x20, 0x7F, 0x90]   # left, top, right, bottom: free movement inside
+
+[snap.play]
+MOVE       = [0x23, 0xA4]
+LOOK       = [0x63, 0xAC]
+OPEN       = [0x63, 0xBC]
+USE        = [0x63, 0xCC]
+LEAVE      = [0x63, 0xDC]
+TAKE       = [0x93, 0xAC]
+CLOSE      = [0x93, 0xBC]
+HIT        = [0x93, 0xCC]
+SPEAK      = [0x93, 0xDC]
+CARD_UP    = [0xC3, 0xAC]
+CARD_DOWN  = [0xC3, 0xBC]
+SELF       = [0xC3, 0xCC]
+SAVE       = [0xC3, 0xDC]
+GOODS_1    = [0x9B, 0x2C]
+GOODS_2    = [0x9B, 0x3C]
+GOODS_3    = [0x9B, 0x4C]
+GOODS_4    = [0x9B, 0x5C]
+GOODS_5    = [0x9B, 0x6C]
+GOODS_6    = [0x9B, 0x7C]
+GOODS_7    = [0x9B, 0x8A]   # 8A, not 8C: worth re-checking

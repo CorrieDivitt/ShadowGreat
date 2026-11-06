@@ -29,6 +29,7 @@ Add a line whenever a new fact or source is used.
 | Path | What it is | Origin |
 |---|---|---|
 | `game.toml` | nesrecomp settings for this game | Written for this project |
+| `shadowgate-map.toml` | Addresses, text table and cursor positions (no game bytes) | Data Crystal plus our own measurements, per entry |
 | `.gitignore`, `.gitattributes`, `.githooks/pre-commit` | Repository safety rules | Written for this project |
 | `README.md`, `LEGAL.md`, `PROVENANCE.md` | Documentation | Written for this project |
 
