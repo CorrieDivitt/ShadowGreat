@@ -44,24 +44,24 @@ verified = false
 
 [[ram]]
 addr = 0x00AD
-name = "cursor_selection"
-doc = "Which list item the cursor is on."
-source = "Data Crystal RAM map"
-verified = false
+name = "cursor_button"
+doc = "Which button the cursor is on. Verbs and MOVE use 0x74 + 4 * button number (LOOK 0x74 ... SPEAK 0x90, MOVE 0x94). See [buttons.play]."
+source = "Data Crystal RAM map; values recorded with the d-pad 2026-11-06"
+verified = true
 
 [[ram]]
 addr = 0x00AF
-name = "pointed_item"
-doc = "Item the cursor is pointing at."
-source = "Data Crystal RAM map"
-verified = false
+name = "hovered_id"
+doc = "ID of the thing under the cursor; changes as the cursor moves over each button, without pressing A. Verbs 0x00-0x07, MOVE 0x13."
+source = "Data Crystal RAM map; values recorded with the d-pad 2026-11-06"
+verified = true
 
 [[ram]]
 addr = 0x00B2
 name = "selected_command"
-doc = "Selected command: 0 LOOK, 1 OPEN, 2 USE, 3 LEAVE, 4 TAKE, 5 CLOSE, 6 HIT, 7 SPEAK, 8 MOVE. Data Crystal also lists $B5."
-source = "Data Crystal RAM map"
-verified = false
+doc = "Selected command, set when A is pressed: 0 LOOK, 1 OPEN, 2 USE, 3 LEAVE, 4 TAKE, 5 CLOSE, 6 HIT, 7 SPEAK, 8 MOVE. 0xFF = nothing selected. For verbs it equals hovered_id; MOVE is translated (hovered 0x13 -> command 0x08). Data Crystal also lists $B5."
+source = "Data Crystal RAM map; values recorded with the d-pad 2026-11-06"
+verified = true
 
 [[ram]]
 addr = 0x00E5
@@ -208,3 +208,19 @@ GOODS_4    = [0x9B, 0x5C]
 GOODS_5    = [0x9B, 0x6C]
 GOODS_6    = [0x9B, 0x7C]
 GOODS_7    = [0x9B, 0x8A]   # 8A, not 8C: worth re-checking
+
+# ------------------------------------------------------------------ buttons
+# Everything the game sets when the cursor is on a button, recorded with the
+# d-pad on 2026-11-06. snap = ($AB, $AC); ad = $AD; af = $AF while hovering;
+# command = $B2 after pressing A. System and inventory values still to record.
+
+[buttons.play]
+LOOK  = { snap = [0x63, 0xAC], ad = 0x74, af = 0x00, command = 0x00 }
+OPEN  = { snap = [0x63, 0xBC], ad = 0x78, af = 0x01, command = 0x01 }
+USE   = { snap = [0x63, 0xCC], ad = 0x7C, af = 0x02, command = 0x02 }
+LEAVE = { snap = [0x63, 0xDC], ad = 0x80, af = 0x03, command = 0x03 }
+TAKE  = { snap = [0x93, 0xAC], ad = 0x84, af = 0x04, command = 0x04 }
+CLOSE = { snap = [0x93, 0xBC], ad = 0x88, af = 0x05, command = 0x05 }
+HIT   = { snap = [0x93, 0xCC], ad = 0x8C, af = 0x06, command = 0x06 }
+SPEAK = { snap = [0x93, 0xDC], ad = 0x90, af = 0x07, command = 0x07 }
+MOVE  = { snap = [0x23, 0xA4], ad = 0x94, af = 0x13, command = 0x08 }
