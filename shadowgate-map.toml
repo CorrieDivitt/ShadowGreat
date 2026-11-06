@@ -86,9 +86,36 @@ verified = false
 addr = 0x0630
 size = 0xD0
 name = "text_buffer"
-doc = "Text buffer ($0630-$06FF). Message text seen starting at $0640."
-source = "Data Crystal RAM map; message decoded at $0640 on 2026-11-05"
+doc = "Text buffer ($0630-$06FF). Holds the message box as 4 lines; see [text.layout]."
+source = "Data Crystal RAM map; layout worked out from a buffer snapshot on 2026-11-06"
 verified = true
+
+[[ram]]
+addr = 0x0624
+name = "text_column"
+doc = "Position within the current line while a message prints. Reset to 0 when a message starts."
+source = "Observed with a write breakpoint, 2026-11-06"
+verified = false
+
+[[ram]]
+addr = 0x0625
+name = "text_line"
+doc = "Current line (0-3) while a message prints. Reset to 0 when a message starts."
+source = "Observed with a write breakpoint, 2026-11-06"
+verified = false
+
+[[ram]]
+addr = 0x0092
+name = "text_box_ready"
+doc = "Flag checked when a message starts; set to 0xFF after the text box is first prepared."
+source = "Observed with a write breakpoint, 2026-11-06"
+verified = false
+
+# Code locations (addresses only):
+#   $C721  a new message starts: clears the text buffer with 0xDF
+#   $C83F  per-letter step: draws the letter on screen, then writes 0xDF at
+#          the letter's upper-row position
+#   $C3F1  ROM table of where each line starts in the buffer
 
 # Candidates still to confirm with breakpoints (Phase 4):
 #   $EB/$EC and $58/$59 change in step with text printing (possible pointers)
@@ -98,7 +125,7 @@ verified = true
 # How letters are encoded. Byte value -> character.
 
 [text]
-end_marker = "unknown"   # A1 (.) ends the message seen so far; to confirm
+end_marker = "none seen"   # messages end with . (A1) and the line is padded with spaces
 source = "Data Crystal text table; A1 found 2026-11-05"
 
 [text.chars]
@@ -141,6 +168,17 @@ source = "Data Crystal text table; A1 found 2026-11-05"
 0xC8 = "X"
 0xC9 = "Y"
 0xCA = "Z"
+
+[text.layout]
+# Worked out 2026-11-06 by matching a buffer snapshot to the message on screen.
+# Each text line takes 0x34 (52) bytes: 26 upper-row tiles, then 26 letters.
+# Upper-row tiles are 0xDF (blank) for normal letters.
+lines = 4
+columns = 26
+line_stride = 0x34
+first_letter = 0x064A     # line n's letters start at first_letter + n * line_stride
+blank_tile = 0xDF         # unprinted position / upper row
+pad = 0x7F                # space; the rest of a line is padded with it after printing
 
 # ------------------------------------------------------------------ cursor snap points
 # Cursor values ($AB, $AC) the game uses for each list item. Measured 2026-11-05.
