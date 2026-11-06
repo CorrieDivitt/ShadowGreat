@@ -1,0 +1,4 @@
+[game]
+output_prefix = "shadowgate"
+name = "Shadowgate"
+cycle_accurate = true

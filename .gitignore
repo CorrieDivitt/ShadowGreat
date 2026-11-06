@@ -1,0 +1,50 @@
+# Shadowgate port: files that must NEVER be committed.
+# See LEGAL.md. The pre-commit check in .githooks/ enforces the same rules.
+
+# ROMs and disk images, in any form
+*.nes
+*.unf
+*.unif
+*.fds
+*.qd
+*.zip
+*.7z
+*.rar
+
+# Build output: contains code generated from the ROM
+build/
+build-*/
+build_*/
+generated/
+out/
+
+# Personal saves, save states and config written beside the program
+saves/
+*.sav
+*.state
+*.cycstate
+config.ini
+keybinds.ini
+
+# Screenshots and pictures of the game (they are the game's graphics)
+*.png
+*.bmp
+*.gif
+*.jpg
+*.jpeg
+
+# Memory dumps and traces from Mesen or nesrecomp (can contain game data)
+*.dmp
+*.bin
+*.log
+*.trace
+*.mss
+*.mst
+
+# Editor and OS clutter
+.vs/
+.vscode/
+*.user
+*.suo
+Thumbs.db
+desktop.ini
