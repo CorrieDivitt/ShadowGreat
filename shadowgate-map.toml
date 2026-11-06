@@ -150,16 +150,16 @@ verified = false
 addr = 0x0000
 size = 2
 name = "message_read_pointer"
-doc = "Address of the next byte of the message being printed, low byte first (the outer stream; words are read separately via $0087)."
-source = "Read in the message loop at $C49E and the 0x1E handler, 2026-11-06"
-verified = false
+doc = "Address of the next byte of the message being printed, low byte first (the outer stream; words are read separately via $0087). Points at the start of the message when $C49E begins."
+source = "Read in the message loop at $C49E; a whole message decoded from it, 2026-11-06"
+verified = true
 
 [[ram]]
 addr = 0x00EB
 name = "message_bit_count"
 doc = "Bits already used from the current message byte. Reset to 0 when a message starts."
-source = "Message loop at $C49E, 2026-11-06"
-verified = false
+source = "Message loop at $C49E; consistent with a full decode, 2026-11-06"
+verified = true
 
 [[ram]]
 addr = 0x00EC
@@ -221,8 +221,8 @@ verified = false
 #          4 short steps ($CA37) unless $0090 is set, then writes 0xDF/upper
 #          row and the tile into the text buffer
 #   $C49E  print a message: reads 5-bit codes from the message stream until
-#          0x1F; 0x1B, 0x1C and 0x1D are control codes (handled at $C63D,
-#          $C650, $C64C; not yet known); 0x1E is an escape whose next code is
+#          0x1F; control codes 0x1D = new line ($C64C), 0x1B (seen just before
+#          the end; handled at $C63D) and 0x1C ($C650) not yet known; 0x1E is an escape whose next code is
 #          handled by $C517; anything else is a letter, printed via $C760
 #   $C517  escape handler: 0x1C = word from list A, 0x1D = word from list B
 #          (both with an 8-bit word number from the message), 0x1E = word from
@@ -311,6 +311,11 @@ word_list_a = 0xB000
 word_list_b = 0xB800
 word_slot_bytes = 8
 word_bank = 4
+new_line = 0x1D           # in a message
+# In a message, escape + a code below 0x1C prints character (code + 0x20):
+# escape + 0x00 is the full stop. Confirmed by decoding the wooden door
+# message from the user's ROM: [list B word 6] WOODEN DOOR IS / REINFORCED
+# WITH HEAVY / SHEETS OF STEEL. then 0x1B, then end.
 
 [text.layout]
 # Worked out 2026-11-06 by matching a buffer snapshot to the message on screen.
