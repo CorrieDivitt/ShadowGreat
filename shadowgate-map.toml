@@ -118,14 +118,55 @@ doc = "Flag checked when a message starts; set to 0xFF after the text box is fir
 source = "Observed with a write breakpoint, 2026-11-06"
 verified = false
 
+[[ram]]
+addr = 0x0622
+name = "text_char_code"
+doc = "Code of the letter being printed, before translation to a tile (seen 0x07 for H, so codes look alphabetical from A = 0)."
+source = "Observed with a write breakpoint on $0628, 2026-11-06"
+verified = false
+
+[[ram]]
+addr = 0x0628
+name = "text_char_tile"
+doc = "Tile of the letter being printed (text table value). Copied into the text buffer and sent to the screen with $0626-$0627."
+source = "Observed with write breakpoints, 2026-11-06"
+verified = true
+
+[[ram]]
+addr = 0x062E
+name = "text_line_width"
+doc = "Number of columns the message-start clear loop covers (expected 26)."
+source = "Observed in the message-start clear loop, 2026-11-06"
+verified = false
+
+[[ram]]
+addr = 0x0090
+name = "text_fast"
+doc = "When non-zero, the pause between letters is skipped. Probably set while A is held."
+source = "Observed in the per-letter step, 2026-11-06"
+verified = false
+
+[[ram]]
+addr = 0x0058
+size = 2
+name = "text_source_pointer"
+doc = "Candidate pointer to the stored (packed) message, low byte first; read $AC1E during a message."
+source = "Memory snapshot during a message, 2026-11-06"
+verified = false
+
 # Code locations (addresses only):
-#   $C721  a new message starts: clears the text buffer with 0xDF
-#   $C83F  per-letter step: draws the letter on screen, then writes 0xDF at
-#          the letter's upper-row position
+#   $C721  a new message starts: fills the 4 lines with 0xDF (upper rows) and
+#          0x7F (letter rows), $062E columns wide
+#   $C760  letter lookup: translates the code in $0622 into a tile via the
+#          ROM table at $C7AD and stores it in $0628
+#   $C82A  per-letter step: sends $0626-$0628 to the screen (via $EEEE), waits
+#          4 short steps ($CA37) unless $0090 is set, then writes 0xDF/upper
+#          row and the tile into the text buffer
 #   $C3F1  ROM table of where each line starts in the buffer
+#   $C7AD  ROM table: letter code -> tile
 
 # Candidates still to confirm with breakpoints (Phase 4):
-#   $EB/$EC and $58/$59 change in step with text printing (possible pointers)
+#   $EB/$EC change in step with text printing ($58/$59 now listed above)
 #   $ED, $EE/$EF also change while printing
 
 # ------------------------------------------------------------------ text table
