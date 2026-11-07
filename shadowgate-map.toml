@@ -397,6 +397,22 @@ first_letter = 0x064A     # line n's letters start at first_letter + n * line_st
 blank_tile = 0xDF         # unprinted position / upper row
 pad = 0x7F                # space; the rest of a line is padded with it after printing
 
+# ------------------------------------------------------------------ cursor to screen
+# Measured 2026-11-07 in Mesen with overscan off (full 256 x 240 picture),
+# at three cursor positions (0x40,0x40), (0x60,0x70), (0x20,0x30).
+# The fingertip of the cursor is exactly at screen pixel ($AB, $AC): one
+# cursor step is one pixel and there is no offset. The hand picture's
+# top-left corner is at ($AB - 3, $AC). So screen pixels and cursor values
+# are the same numbers, and hit boxes can be written in either.
+
+[cursor]
+screen_width = 256
+screen_height = 240
+scale = 1
+offset_x = 0              # pixel x = $AB + offset_x
+offset_y = 0              # pixel y = $AC + offset_y
+sprite_left_of_tip = 3    # the hand picture starts 3 pixels left of the tip
+
 # ------------------------------------------------------------------ cursor snap points
 # Cursor values ($AB, $AC) the game uses for each list item. Measured 2026-11-05.
 # Hit boxes (whole-word rectangles in screen pixels) get added beside these later.
