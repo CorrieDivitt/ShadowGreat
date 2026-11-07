@@ -108,30 +108,37 @@ verified = false
 
 [[ram]]
 addr = 0x00F0
-name = "text_wait_state"
-doc = "Reported: normally 1, becomes 3 on the first frame that pressing A will close the text box. Candidate 'waiting for A' signal."
-source = "TASVideos submission 1651S notes (https://tasvideos.org/1651S); not yet tested"
-verified = false
+name = "input_state"
+doc = "0x01 while a message is printing (seen at the message start, $C49E); 0x03 when the game is waiting for the player: normal play, and a fully printed message waiting for A. It stays 0x03 after the message is closed. A change from 0x01 to 0x03 marks the end of printing."
+source = "TASVideos 1651S; tested in Mesen 2026-11-07"
+verified = true
 
 [[ram]]
 addr = 0x00F5
-name = "text_starting_flag"
-doc = "Reported: normally 128 (0x80), becomes 0 on the frame before a text box appears, then returns to 128. Note: Data Crystal lists $F5 as player 1 controller bits, so this needs checking."
-source = "TASVideos submission 1651S notes (https://tasvideos.org/1651S); conflicts with Data Crystal; not yet tested"
-verified = false
+name = "buttons_pressed"
+doc = "Buttons newly pressed this frame: shows a button's value for one frame when it is pressed, then goes back to 0x00 (seen 0x04 for Down). Same bit order as buttons_held. It read 0x80 (A) at the message start because the A press that chose the target starts the message. TASVideos 1651S described it as 128 normally and 0 before a text box, which fits only while A is being pressed."
+source = "Observed in Mesen 2026-11-07; TASVideos 1651S; Data Crystal lists $F5 as controller bits"
+verified = true
+
+[[ram]]
+addr = 0x00F7
+name = "buttons_held"
+doc = "Buttons held down right now, one bit each: 0x80 A, 0x40 B, 0x20 Select, 0x10 Start, 0x08 Up, 0x04 Down, 0x02 Left, 0x01 Right. Several buttons add together."
+source = "Observed in Mesen 2026-11-07 (every button checked)"
+verified = true
 
 [[ram]]
 addr = 0x04F4
 name = "torch_left_charges"
-doc = "Reported: how much the left torch has left (a new torch has 60). Only some rooms drain it."
-source = "TASVideos submission 1651S notes (https://tasvideos.org/1651S); not yet tested"
-verified = false
+doc = "How much the left torch has left; goes down by one with each action (seen 0x14 = 20). Reported: a new torch has 60, and only some rooms drain it."
+source = "TASVideos 1651S; tested in Mesen 2026-11-07"
+verified = true
 
 [[ram]]
 addr = 0x04F7
 name = "torch_right_charges"
-doc = "Reported: how much the right torch has left."
-source = "TASVideos submission 1651S notes (https://tasvideos.org/1651S); not yet tested"
+doc = "How much the right torch has left. 0x00 when no right torch is held (seen 2026-11-07); counting down not yet seen."
+source = "TASVideos 1651S; partly tested in Mesen 2026-11-07"
 verified = false
 
 [[ram]]
