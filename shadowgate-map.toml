@@ -34,16 +34,16 @@ verified = true
 
 [[ram]]
 addr = 0x0076
-name = "cursor_x_copy"
-doc = "Copy of cursor X."
-source = "Data Crystal RAM map"
+name = "cursor_x_work"
+doc = "Working copy of cursor X used by the play-screen input loop ($A27C). When the loop starts ($A268) the game copies $AB/$AC into $76/$77; while it runs, moves change $76/$77 and $A636 copies them back to $AB/$AC. So a write to $AB/$AC alone can be overwritten while the loop is running: the mouse code should write both pairs (to test)."
+source = "Data Crystal RAM map; write breakpoint on $AB, 2026-11-07"
 verified = false
 
 [[ram]]
 addr = 0x0077
-name = "cursor_y_copy"
-doc = "Copy of cursor Y."
-source = "Data Crystal RAM map"
+name = "cursor_y_work"
+doc = "Working copy of cursor Y (see cursor_x_work)."
+source = "Data Crystal RAM map; write breakpoint on $AB, 2026-11-07"
 verified = false
 
 [[ram]]
@@ -56,7 +56,7 @@ verified = true
 [[ram]]
 addr = 0x00AF
 name = "hovered_id"
-doc = "ID of the thing under the cursor; changes as the cursor moves over each button, without pressing A. 0x00-0x07 verbs, 0x08 UP, 0x09 DOWN, 0x0A SELF, 0x0B SAVE, 0x0C-0x12 goods slots 1-7, 0x13 MOVE, 0x14/0x15 left/right torch, 0x16 scene entered from the verbs, 0x17 scene entered from MOVE."
+doc = "ID of the thing under the cursor; changes as the cursor moves over each button, without pressing A. 0x00-0x07 verbs, 0x08 UP, 0x09 DOWN, 0x0A SELF, 0x0B SAVE, 0x0C-0x12 goods slots 1-7, 0x13 MOVE, 0x14/0x15 left/right torch, 0x16 scene entered from the verbs, 0x17 scene entered from MOVE, 0x19 small map (free movement; seen in the input code $A2E8). It also selects the input mode: below 0x16 = buttons, 0x16/0x17 = scene, 0x19 = map."
 source = "Data Crystal RAM map; values recorded with the d-pad 2026-11-06"
 verified = true
 
@@ -260,7 +260,7 @@ verified = false
 [[ram]]
 addr = 0x0075
 name = "yes_no_choice"
-doc = "Highlighted choice on the save confirm screen ($E5 = 0x13: 0x00 YES, 0x01 NO) and the game over screen ($E5 = 0x12: 0x00 CONTINUE, 0x01 QUIT)."
+doc = "Highlighted choice on the save confirm screen ($E5 = 0x13: 0x00 YES, 0x01 NO) and the game over screen ($E5 = 0x12: 0x00 CONTINUE, 0x01 QUIT). On the play screen the input loop uses it as a flag instead: set to 0x00 when the loop starts and 0x01 when A is pressed on something (selection made)."
 source = "Seen changing in step with the choice in Mesen 2026-11-07; write test pending"
 verified = false
 
@@ -337,6 +337,37 @@ verified = false
 #   $C5E4  read one 5-bit code (calls $C5FE five times) into $04FE
 #   $C5FE  read one bit from the packed text at $0087/$0088
 #   $C3F1  ROM table of where each line starts in the buffer
+#   $A636  (bank holding ROM offset 0x1A636) copies $76/$77 into $AB/$AC.
+#          Reached from $EC30 -> $EC9C; $EC30 is called from $CEF3, which is
+#          called from the main loop near $E65B. Seen when pressing Right in
+#          the scene and Down in the verb list, 2026-11-07.
+#   $A268  play-screen input setup: $75 = 0, copies $AB/$AC into $76/$77,
+#          then calls the input loop at $A27C (the call sits at $A276).
+#   $A27C  play-screen input loop: on buttons (hotspot $AF below 0x16) it
+#          plays a short repeat delay; then waits for input via $EB4A,
+#          reading $F7 (held) and $F5 (pressed). Directions held -> $A2E8.
+#          A -> $A2C7 (sound 0x23 via $F3D2, $75 = 1, return; ignored when
+#          $0501 = 0x7B and $AF = 0x0B). B -> $A2DE. Select/Start -> $A59F.
+#          This matches TCRF's message-debug Game Genie codes, which change
+#          the call at $A276 from $A27C to $A4D5: they swap out these controls.
+#   $A2E8  direction handling, by mode ($AF):
+#          - buttons ($AF below 0x16): direction -> index 0-3 via ROM table
+#            $A42B (4 = not allowed, e.g. diagonals); new $AF from the
+#            neighbour table $A46F (4 bytes per hotspot: one per direction,
+#            0xFF = nothing that way), then snap with $A3EF.
+#          - scene ($AF 0x16/0x17) -> $A32D: free move via $A39A (room
+#            $0500 = 0x28 is handled differently, via $A5DD). Leaving the
+#            scene: X reaching 0x7F jumps to a goods slot chosen by Y (ROM
+#            table $A4C7); Y reaching 0x94 jumps to MOVE (X below 0x40) or
+#            LOOK.
+#          - small map ($AF = 0x19) -> $A315: free move via $A5DD. X reaching
+#            0x48 jumps to a verb row chosen by Y (thresholds 0xBA/0xC4/0xCE,
+#            ROM table $A4D0); Y going above 0xB0 jumps to MOVE.
+#   $A3EF  list snap: sets $76/$77 from the ROM table at $A43B, two bytes
+#          per hotspot, indexed by $AF.
+#   These routines are in the 8 KB bank at ROM offsets 0x1A000-0x1BFFF
+#   (mapped at $A000). A hook replacing the cursor logic would go at $A27C
+#   or around the input wait at $A299-$A2A7.
 #   $C7AD  ROM table: letter code -> tile
 
 # Candidates still to confirm with breakpoints (Phase 4):
@@ -571,4 +602,7 @@ click_needs = ["cursor_x", "cursor_y", "press A"]
 # The small map under MOVE also lets the cursor move freely, and exit squares
 # sit in different places per room. Treated like the scene (write X/Y, press
 # A; the game decides). Judged from watching it in Mesen, 2026-11-07, not a
-# write test; revisit if map clicks misbehave.
+# write test; revisit if map clicks misbehave. The input code ($A2E8) shows
+# the map is its own mode with $AF = 0x19, so a map click will probably need
+# $AF = 0x19 written as well as X/Y (check in Phase 6 testing).
+map_af = 0x19
