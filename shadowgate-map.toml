@@ -66,7 +66,7 @@ verified = true
 [[ram]]
 addr = 0x00B5
 name = "inventory_page"
-doc = "Which list the inventory shows: 0x08 goods (set by UP), 0x09 spells (set by DOWN). Slot IDs are the same on both pages."
+doc = "Seen 0x08 after UP (goods) and 0x09 after DOWN (spells), with fewer than 7 goods. Slot IDs are the same on both pages. Reported: with more goods the game adds more cards (pages) that UP/DOWN scroll through, so this may be the last arrow pressed rather than the page; to check with more than 7 goods."
 source = "Recorded with the d-pad 2026-11-06"
 verified = true
 
@@ -88,7 +88,7 @@ verified = false
 addr = 0x0496
 size = 0x45
 name = "inventory"
-doc = "Reported: item IDs, one byte per item, from $0496 up to $04DA. Normal items are 0x00-0x67. Possibly the same numbers as word list A (item names); to check."
+doc = "Reported: item IDs, one byte per item, from $0496 up to $04DA. Normal items are 0x00-0x67."
 source = "TASVideos 3185S and 3248S notes"
 verified = false
 
@@ -451,8 +451,7 @@ TORCH_R = { snap = [0xEB, 0x1C], ad = 0xB0, af = 0x15 }
 
 [buttons.scene]
 # The scene is free movement: when A is pressed the game works out which
-# object is under the cursor itself, from a per-room table we have not found
-# yet, and stores the result in $AD. $AF depends on where the cursor came from.
+# object is under the cursor itself and stores the result in $AD. $AF depends on where the cursor came from.
 af_from_verbs = 0x16
 af_from_move = 0x17
 # Tested 2026-11-06: with LOOK selected and the cursor still on LOOK, writing
