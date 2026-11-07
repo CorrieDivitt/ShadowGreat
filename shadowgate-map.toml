@@ -45,7 +45,7 @@ verified = false
 [[ram]]
 addr = 0x00AD
 name = "cursor_button"
-doc = "Which button the cursor is on. Verbs and MOVE use 0x74 + 4 * button number (LOOK 0x74 ... SPEAK 0x90, MOVE 0x94; UP 0xA0, DOWN 0xA4, goods slots 0xA2-0xBA, torches 0xAC/0xB0). In the scene it reflects the part of the picture under the cursor. See [buttons.play]."
+doc = "Which button the cursor is on. Verbs and MOVE use 0x74 + 4 * button number (LOOK 0x74 ... SPEAK 0x90, MOVE 0x94; UP 0xA0, DOWN 0xA4, goods slots 0xA2-0xBA, torches 0xAC/0xB0). In the scene it is set when A is pressed, not while moving: wooden door 0x80, small metal door 0x87, rug 0x9C, empty scenery 0xA3 (first room). Values overlap the button values (LEAVE is also 0x80), so it is probably a position in a table of hotspots, not a unique ID. See [buttons.play]."
 source = "Data Crystal RAM map; values recorded with the d-pad 2026-11-06"
 verified = true
 
@@ -450,7 +450,8 @@ TORCH_L = { snap = [0x93, 0x1C], ad = 0xAC, af = 0x14 }
 TORCH_R = { snap = [0xEB, 0x1C], ad = 0xB0, af = 0x15 }
 
 [buttons.scene]
-# The scene is free movement: the game works out which object is under the
-# cursor itself (it shows up in $AD). $AF depends on where the cursor came from.
+# The scene is free movement: when A is pressed the game works out which
+# object is under the cursor itself, from a per-room table we have not found
+# yet, and stores the result in $AD. $AF depends on where the cursor came from.
 af_from_verbs = 0x16
 af_from_move = 0x17
