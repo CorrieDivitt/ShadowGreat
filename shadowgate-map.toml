@@ -251,6 +251,20 @@ source = "Found and write-tested in Mesen 2026-11-07"
 verified = true
 
 [[ram]]
+addr = 0x001C
+name = "menu_variant"
+doc = "Tells the two $E5 = 0x11 screens apart: 0xB2 on file select, 0xAD on file options. Low zero-page byte, possibly half of a pointer, so only trust it while $E5 = 0x11, and act only when it is exactly one of these two values."
+source = "Observed in Mesen 2026-11-07; steadiness still to confirm"
+verified = false
+
+[[ram]]
+addr = 0x0075
+name = "yes_no_choice"
+doc = "Highlighted choice on the save confirm screen ($E5 = 0x13: 0x00 YES, 0x01 NO) and the game over screen ($E5 = 0x12: 0x00 CONTINUE, 0x01 QUIT)."
+source = "Seen changing in step with the choice in Mesen 2026-11-07; write test pending"
+verified = false
+
+[[ram]]
 addr = 0x0084
 name = "file_options_choice"
 doc = "Highlighted choice on the file options screen: 0x00 CONTINUE, 0x01 EXIT, 0x02 NEW GAME. NOT range-checked: writing 0x03 moved the highlight to an empty spot and pressing A crashed the game."
@@ -418,6 +432,9 @@ pad = 0x7F                # space; the rest of a line is padded with it after pr
 # ------------------------------------------------------------------ screens
 # Checked 2026-11-07 by visiting every screen in Mesen. cursor = whether
 # $AB/$AC move on that screen. Choices are what the player can pick.
+# Menus only take A to confirm: Start does not proceed and B does not go back.
+# Not yet tested (user's choice, 2026-11-07; check during Phase 6 testing):
+# writing $84 and $75 with valid values, and $1C staying steady.
 
 [screens.title]
 id = 0x10
@@ -430,12 +447,17 @@ cursor = false
 choices = ["FILE 1", "FILE 2", "FILE 3"]
 choice_byte = 0x00E7      # verified: write the choice, then press A
 confirm = "A"
+variant_byte = 0x001C
+variant_value = 0xB2
 
 [screens.file_options]
-id = 0x11                 # same id as file_select; another byte must tell them apart
+id = 0x11                 # same id as file_select; told apart by $001C
 cursor = false
 choices = ["CONTINUE", "EXIT", "NEW GAME"]
-choice_byte = 0x0084      # candidate, not yet write-tested
+choice_byte = 0x0084      # candidate, not yet write-tested with a valid value
+confirm = "A"
+variant_byte = 0x001C
+variant_value = 0xAD
 
 [screens.play]
 id = 0x65
@@ -450,12 +472,16 @@ choices = []              # A closes or advances the message
 [screens.game_over]
 id = 0x12
 cursor = false
-choices = ["CONTINUE", "END"]
+choices = ["CONTINUE", "QUIT"]
+choice_byte = 0x0075      # candidate, not yet write-tested
+confirm = "A"
 
 [screens.save_confirm]
 id = 0x13
 cursor = false
 choices = ["YES", "NO"]
+choice_byte = 0x0075      # candidate, not yet write-tested
+confirm = "A"
 
 # ------------------------------------------------------------------ cursor to screen
 # Measured 2026-11-07 in Mesen with overscan off (full 256 x 240 picture),
