@@ -18,14 +18,14 @@ sha1_body = "e7869c683bd93275cde4536cd2ddf37f230dd8d0"   # with the 16-byte head
 addr = 0x00AB
 name = "cursor_x"
 doc = "Cursor X position. Writing it moves the cursor."
-source = "Data Crystal RAM map; online research (user, 2026-11-06); tested 2026-11-05"
+source = "Data Crystal RAM map; TASVideos 1651S; tested 2026-11-05"
 verified = true
 
 [[ram]]
 addr = 0x00AC
 name = "cursor_y"
 doc = "Cursor Y position. Writing it moves the cursor."
-source = "Data Crystal RAM map; online research (user, 2026-11-06); tested 2026-11-05"
+source = "Data Crystal RAM map; TASVideos 1651S; tested 2026-11-05"
 verified = true
 
 [[ram]]
@@ -78,31 +78,60 @@ source = "Data Crystal RAM map"
 verified = false
 
 [[ram]]
+addr = 0x0035
+name = "event_random"
+doc = "Reported: decides the Sphinx's riddle and the number of lightning strikes in the final fight; changes a few frames after the event starts. The game's randomness runs on a global timer."
+source = "TASVideos 1651S and 3185S notes"
+verified = false
+
+[[ram]]
+addr = 0x0496
+size = 0x45
+name = "inventory"
+doc = "Reported: item IDs, one byte per item, from $0496 up to $04DA. Normal items are 0x00-0x67. Possibly the same numbers as word list A (item names); to check."
+source = "TASVideos 3185S and 3248S notes"
+verified = false
+
+[[ram]]
+addr = 0x04DE
+name = "state_04de"
+doc = "Reported: game-state byte changed by particular stones, the sphere in the lake and key 3 (used by the glasses trick)."
+source = "TASVideos 3185S notes"
+verified = false
+
+[[ram]]
+addr = 0x04ED
+name = "talisman_placed"
+doc = "Reported: 1 when the talisman (or the crest) has been placed in its slot."
+source = "TASVideos 3248S notes"
+verified = false
+
+[[ram]]
 addr = 0x00F0
 name = "text_wait_state"
 doc = "Reported: normally 1, becomes 3 on the first frame that pressing A will close the text box. Candidate 'waiting for A' signal."
-source = "Online research supplied by the user, 2026-11-06 (source link to add); not yet tested"
+source = "TASVideos submission 1651S notes (https://tasvideos.org/1651S); not yet tested"
 verified = false
 
 [[ram]]
 addr = 0x00F5
 name = "text_starting_flag"
 doc = "Reported: normally 128 (0x80), becomes 0 on the frame before a text box appears, then returns to 128. Note: Data Crystal lists $F5 as player 1 controller bits, so this needs checking."
-source = "Online research supplied by the user, 2026-11-06 (source link to add); conflicts with Data Crystal; not yet tested"
+source = "TASVideos submission 1651S notes (https://tasvideos.org/1651S); conflicts with Data Crystal; not yet tested"
 verified = false
 
 [[ram]]
 addr = 0x04F4
 name = "torch_left_charges"
-doc = "Reported: how much the left torch has left."
-source = "Online research supplied by the user, 2026-11-06 (source link to add); not yet tested"
+doc = "Reported: how much the left torch has left (a new torch has 60). Only some rooms drain it."
+source = "TASVideos submission 1651S notes (https://tasvideos.org/1651S); not yet tested"
 verified = false
 
 [[ram]]
 addr = 0x04F7
 name = "torch_right_charges"
 doc = "Reported: how much the right torch has left."
-source = "Online research supplied by the user, 2026-11-06 (source link to add); not yet tested"
+source = "TASVideos submission 1651S notes (https://tasvideos.org/1651S); not yet tested"
 verified = false
 
 [[ram]]
@@ -258,6 +287,11 @@ verified = false
 #          0x1F -> $C627 (not yet known)
 #   $C430  read one 5-bit code from the message stream
 #   $C448  read one 8-bit value from the message stream (8 calls to $C460) into $00ED
+#   $A277  (bank not known) patched by the TCRF message-debug Game Genie codes
+#          SINZYXGY + KZNXAZXZ, which turn the controls into a message viewer
+#          (message index 00-FF, library 0-2). Decoded: the call target there
+#          changes from $A27C to $A4D5, so $A4D5 is probably the debug viewer.
+#          Unverified deduction; a lead for finding the message-number table.
 #   $EAD9  swap in a ROM bank (A = 4 before reading the word lists); $EAF3 swaps back
 #   $C5BC  print one packed string: reads 5-bit codes until 0x1F; 0x1E means
 #          "next code + 0x20"; each code is printed via $C760

@@ -11,7 +11,10 @@ Add a line whenever a new fact or source is used.
 | [Data Crystal: Shadowgate RAM map](https://datacrystal.tcrf.net/wiki/Shadowgate/RAM_map) | Cursor, selection, command, room, screen and text buffer addresses | Entries marked unverified until tested |
 | Data Crystal: Shadowgate text table | Letter mapping (`7F` space, `80`-`89` digits, `8A` !, `B1`-`CA` A-Z) | |
 | [nesdev wiki](https://www.nesdev.org/wiki/) | General NES hardware behaviour | |
-| Online notes found by the user (link to add) | `$AB`/`$AC` cursor; `$F0` text wait state; `$F5` text starting flag; `$04F4`/`$04F7` torch charges | Unverified until tested; `$F5` conflicts with Data Crystal |
+| [TASVideos submission 1651S](https://tasvideos.org/1651S) (Randil) | `$AB`/`$AC` cursor; `$F0` text wait state; `$F5` text starting flag; `$04F4`/`$04F7` torch charges; `$0035` event randomness | Unverified until tested; `$F5` conflicts with Data Crystal |
+| [TASVideos submission 3185S](https://tasvideos.org/3185S) (Randil, ZenicReverie) | Inventory `$0496`-`$04DA`, item IDs `00`-`67`, `$04DE`, timer-based randomness | Unverified |
+| [TASVideos submission 3248S](https://tasvideos.org/3248S) (Randil) | `$04ED` talisman flag; item ID behaviour | Unverified |
+| [TCRF: Shadowgate (NES)](https://www.tcrf.net/Shadowgate_(NES)) | Message-debug Game Genie codes (message index + library 0-2); decoded by us to the patch site `$A277` | Unverified |
 | [mstan/nesrecomp](https://github.com/mstan/nesrecomp) | Recompiler and runtime (dependency, not copied) | PolyForm Noncommercial 1.0.0 |
 | [troyedwardsjr/z2rs](https://github.com/troyedwardsjr/z2rs) | Ideas for this policy, the commit check and this file | No code copied |
 
