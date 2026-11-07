@@ -455,3 +455,8 @@ TORCH_R = { snap = [0xEB, 0x1C], ad = 0xB0, af = 0x15 }
 # yet, and stores the result in $AD. $AF depends on where the cursor came from.
 af_from_verbs = 0x16
 af_from_move = 0x17
+# Tested 2026-11-06: with LOOK selected and the cursor still on LOOK, writing
+# only $AB/$AC onto an object and pressing A works. The game sets $AD itself
+# and $AF does not need changing. First room: wooden door at (0x47, 0x70)
+# -> $AD 0x80, rug at (0x47, 0x88), plain wall at (0x47, 0x2C) -> 0xA3.
+click_needs = ["cursor_x", "cursor_y", "press A"]
