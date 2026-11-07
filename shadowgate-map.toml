@@ -73,9 +73,9 @@ verified = true
 [[ram]]
 addr = 0x00E5
 name = "screen_id"
-doc = "Which screen is showing. Known: 0x12 title, 0x11 load, 0x13 save."
-source = "Data Crystal RAM map"
-verified = false
+doc = "Which screen is showing; see [screens]. 0x10 title, 0x11 file select and file options, 0x65 play, 0x6C play with a message box, 0x12 game over, 0x13 save confirm."
+source = "Data Crystal RAM map (its values were partly wrong); every screen checked in Mesen 2026-11-07"
+verified = true
 
 [[ram]]
 addr = 0x0035
@@ -396,6 +396,45 @@ line_stride = 0x34
 first_letter = 0x064A     # line n's letters start at first_letter + n * line_stride
 blank_tile = 0xDF         # unprinted position / upper row
 pad = 0x7F                # space; the rest of a line is padded with it after printing
+
+# ------------------------------------------------------------------ screens
+# Checked 2026-11-07 by visiting every screen in Mesen. cursor = whether
+# $AB/$AC move on that screen. Choices are what the player can pick.
+
+[screens.title]
+id = 0x10
+cursor = false
+choices = []              # waits for Start
+
+[screens.file_select]
+id = 0x11
+cursor = false
+choices = ["FILE 1", "FILE 2", "FILE 3"]
+
+[screens.file_options]
+id = 0x11                 # same id as file_select; another byte must tell them apart
+cursor = false
+choices = ["CONTINUE", "EXIT", "NEW GAME"]
+
+[screens.play]
+id = 0x65
+cursor = true
+choices = "see [buttons.play], plus the scene and the small map"
+
+[screens.message]
+id = 0x6C
+cursor = false
+choices = []              # A closes or advances the message
+
+[screens.game_over]
+id = 0x12
+cursor = false
+choices = ["CONTINUE", "END"]
+
+[screens.save_confirm]
+id = 0x13
+cursor = false
+choices = ["YES", "NO"]
 
 # ------------------------------------------------------------------ cursor to screen
 # Measured 2026-11-07 in Mesen with overscan off (full 256 x 240 picture),
