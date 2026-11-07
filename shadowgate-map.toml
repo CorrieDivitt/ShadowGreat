@@ -18,14 +18,14 @@ sha1_body = "e7869c683bd93275cde4536cd2ddf37f230dd8d0"   # with the 16-byte head
 addr = 0x00AB
 name = "cursor_x"
 doc = "Cursor X position. Writing it moves the cursor."
-source = "Data Crystal RAM map; tested 2026-11-05"
+source = "Data Crystal RAM map; online research (user, 2026-11-06); tested 2026-11-05"
 verified = true
 
 [[ram]]
 addr = 0x00AC
 name = "cursor_y"
 doc = "Cursor Y position. Writing it moves the cursor."
-source = "Data Crystal RAM map; tested 2026-11-05"
+source = "Data Crystal RAM map; online research (user, 2026-11-06); tested 2026-11-05"
 verified = true
 
 [[ram]]
@@ -75,6 +75,34 @@ addr = 0x00E5
 name = "screen_id"
 doc = "Which screen is showing. Known: 0x12 title, 0x11 load, 0x13 save."
 source = "Data Crystal RAM map"
+verified = false
+
+[[ram]]
+addr = 0x00F0
+name = "text_wait_state"
+doc = "Reported: normally 1, becomes 3 on the first frame that pressing A will close the text box. Candidate 'waiting for A' signal."
+source = "Online research supplied by the user, 2026-11-06 (source link to add); not yet tested"
+verified = false
+
+[[ram]]
+addr = 0x00F5
+name = "text_starting_flag"
+doc = "Reported: normally 128 (0x80), becomes 0 on the frame before a text box appears, then returns to 128. Note: Data Crystal lists $F5 as player 1 controller bits, so this needs checking."
+source = "Online research supplied by the user, 2026-11-06 (source link to add); conflicts with Data Crystal; not yet tested"
+verified = false
+
+[[ram]]
+addr = 0x04F4
+name = "torch_left_charges"
+doc = "Reported: how much the left torch has left."
+source = "Online research supplied by the user, 2026-11-06 (source link to add); not yet tested"
+verified = false
+
+[[ram]]
+addr = 0x04F7
+name = "torch_right_charges"
+doc = "Reported: how much the right torch has left."
+source = "Online research supplied by the user, 2026-11-06 (source link to add); not yet tested"
 verified = false
 
 [[ram]]
