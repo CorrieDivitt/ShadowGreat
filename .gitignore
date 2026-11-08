@@ -25,6 +25,7 @@ saves/
 *.cycstate
 config.ini
 keybinds.ini
+launcher.ini
 
 # Screenshots and pictures of the game (they are the game's graphics)
 *.png
