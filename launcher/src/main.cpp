@@ -1,14 +1,18 @@
 // main.cpp - the Shadowgreat launcher (Phase 8).
 //
-// Milestone A: the window, picking the player's ROM, checking it is
-// Shadowgate (USA), and remembering it. Later milestones fill in the build,
-// the downloads (build tools; the optional narrator voice), the options and
-// Play. The launcher contains no game data; it only stores a checksum.
+// Picks the player's ROM and checks it is Shadowgate (USA) (milestone A),
+// builds the game on this PC and starts it (milestone B). Still to come: the
+// downloads (build tools; the optional narrator voice) and the options.
+// The launcher contains no game data; it only stores a checksum.
 //
 // Dear ImGui over SDL2's renderer, the same toolkit as the in-game menu.
 
+#include "build_job.h"
 #include "launcher_settings.h"
+#include "paths.h"
+#include "child_process.h"
 #include "rom_check.h"
+#include "utf8_file.h"
 
 #include <SDL.h>
 #include "imgui.h"
@@ -32,6 +36,7 @@ const ImVec4 kAccent   = ImVec4(0.86f, 0.24f, 0.20f, 1.0f);   // the menu's red 
 const ImVec4 kGood     = ImVec4(0.45f, 0.80f, 0.45f, 1.0f);
 const ImVec4 kBad      = ImVec4(0.95f, 0.55f, 0.35f, 1.0f);
 const ImVec4 kMuted    = ImVec4(0.60f, 0.60f, 0.62f, 1.0f);
+float g_scale = 1.0f;
 
 void apply_style(float scale)
 {
@@ -103,7 +108,34 @@ struct State {
     LauncherSettings settings;
     RomCheck check;
     bool checked = false;
+    Folders folders;
+    Tools tools;
+    bool built = false;             // shadowgate.exe is there
+    BuildStage last_stage = BuildStage::Idle;
+    bool show_details = false;
+    size_t log_lines_seen = 0;
+    std::string play_message;
 };
+
+// The game's own pre-game screen (nesrecomp) remembers the ROM in rom.cfg
+// beside shadowgate.exe: one line, the path. Fill it in with the ROM chosen
+// here so the player never has to pick it twice.
+void write_rom_cfg(const State &st)
+{
+    std::string path = st.settings.rom_path;
+    for (char &c : path) if (c == '/') c = '\\';
+    if (FILE *f = utf8_fopen((st.folders.game + "/rom.cfg").c_str(), "w")) {
+        std::fprintf(f, "%s\n", path.c_str());
+        std::fclose(f);
+    }
+}
+
+void look_around(State &st)
+{
+    st.folders = find_folders(st.settings);
+    st.tools = find_tools(st.folders.tools);
+    st.built = file_exists(game_exe(st.folders));
+}
 
 void check_rom(State &st)
 {
@@ -122,13 +154,98 @@ void step_header(int number, const char *title, bool active)
     if (!active) ImGui::PopStyleColor();
 }
 
+void draw_log(State &st)
+{
+    ImGui::BeginChild("##log", ImVec2(0, 220.0f * g_scale), ImGuiChildFlags_Borders,
+                      ImGuiWindowFlags_HorizontalScrollbar);
+    build_with_log([&](const std::vector<std::string> &lines) {
+        ImGuiListClipper clip;
+        clip.Begin((int)lines.size());
+        while (clip.Step())
+            for (int i = clip.DisplayStart; i < clip.DisplayEnd; ++i)
+                ImGui::TextUnformatted(lines[i].c_str());
+        // Follow new output while scrolled to the bottom.
+        if (lines.size() != st.log_lines_seen && ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - 4.0f)
+            ImGui::SetScrollHereY(1.0f);
+        st.log_lines_seen = lines.size();
+    });
+    ImGui::EndChild();
+}
+
+void draw_build(State &st, bool rom_ok)
+{
+    BuildProgress p = build_progress();
+    bool running = build_running();
+
+    // A build just ended: remember it, and look for the new shadowgate.exe.
+    if (p.stage != st.last_stage) {
+        if (p.stage == BuildStage::Finished) {
+            st.settings.built_rom_sha1 = st.check.sha1_body;
+            launcher_settings_save(st.settings);
+        }
+        if (p.stage == BuildStage::Failed) st.show_details = true;
+        if (!running) st.built = file_exists(game_exe(st.folders));
+        st.last_stage = p.stage;
+    }
+
+    if (!st.folders.ok()) {
+        ImGui::TextColored(kBad, "Can't find %s.", st.folders.missing.c_str());
+        ImGui::TextColored(kMuted, "Their places can be set in launcher.ini beside the launcher.");
+        return;
+    }
+    if (!st.tools.ok()) {
+        ImGui::TextColored(kBad, "Missing build tools: %s.", st.tools.missing.c_str());
+        ImGui::TextColored(kMuted, "Looked in %s. (A later update downloads them for you.)", st.folders.tools.c_str());
+        return;
+    }
+    if (!rom_ok) {
+        ImGui::TextColored(kMuted, "Choose your ROM first.");
+        return;
+    }
+
+    if (running) {
+        bool counting = p.stage == BuildStage::Compiling && p.total > 0;
+        char overlay[64] = "";
+        if (counting) std::snprintf(overlay, sizeof overlay, "%d of %d", p.done, p.total);
+        float fraction = counting ? (float)p.done / (float)p.total : -1.0f * (float)ImGui::GetTime();
+        float cancel_w = ImGui::CalcTextSize("Cancel").x + ImGui::GetStyle().FramePadding.x * 2;
+        ImGui::ProgressBar(fraction, ImVec2(ImGui::GetContentRegionAvail().x - cancel_w - ImGui::GetStyle().ItemSpacing.x, 0),
+                           counting ? overlay : nullptr);
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel")) build_cancel();
+        ImGui::TextColored(kMuted, "%s", p.message.c_str());
+    } else {
+        const char *label = st.built ? "Rebuild" : "Build";
+        if (ImGui::Button(label)) {
+            look_around(st);
+            if (st.folders.ok() && st.tools.ok()) {
+                st.play_message.clear();
+                build_start(st.folders, st.tools, st.settings.rom_path);
+            }
+        }
+        ImGui::SameLine();
+        if (p.stage == BuildStage::Failed || p.stage == BuildStage::Cancelled)
+            ImGui::TextColored(kBad, "%s", p.message.c_str());
+        else if (st.built)
+            ImGui::TextColored(kGood, "%s", p.stage == BuildStage::Finished ? p.message.c_str() : "Built and ready to play.");
+        else
+            ImGui::TextColored(kMuted, "Builds shadowgate.exe on this PC (a few minutes; only needed once).");
+    }
+
+    if (running || p.stage != BuildStage::Idle) {
+        ImGui::Checkbox("Show details", &st.show_details);
+        if (st.show_details) draw_log(st);
+    }
+}
+
 void draw(State &st, SDL_Window *win)
 {
     ImGuiIO &io = ImGui::GetIO();
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowSize(io.DisplaySize);
     ImGui::Begin("##launcher", nullptr,
-                 ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings);
+                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse |
+                 ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBringToFrontOnFocus);
 
     ImGui::PushStyleColor(ImGuiCol_Text, kAccent);
     ImGui::SetWindowFontScale(1.6f);
@@ -164,10 +281,11 @@ void draw(State &st, SDL_Window *win)
     ImGui::Unindent();
     ImGui::Spacing();
 
-    // 2-4: coming in the next milestones
     bool rom_ok = st.checked && st.check.ok;
     step_header(2, "Build the game", rom_ok);
-    ImGui::Indent(); ImGui::TextColored(kMuted, "Coming next: builds Shadowgate.exe on this PC."); ImGui::Unindent();
+    ImGui::Indent();
+    draw_build(st, rom_ok);
+    ImGui::Unindent();
     ImGui::Spacing();
     step_header(3, "Narrator voice (optional)", false);
     ImGui::Indent(); ImGui::TextColored(kMuted, "Coming soon: download the voice, or skip it."); ImGui::Unindent();
@@ -175,14 +293,31 @@ void draw(State &st, SDL_Window *win)
     step_header(4, "Options", false);
     ImGui::Indent(); ImGui::TextColored(kMuted, "Coming soon: mouse, hand pointer, narration."); ImGui::Unindent();
 
-    // Play, bottom right
+    // Play, bottom right (below everything when the window is short)
     const char *play = "Play";
-    ImVec2 play_size(ImGui::CalcTextSize(play).x + 60.0f * io.FontGlobalScale + ImGui::GetStyle().FramePadding.x * 2,
+    const ImGuiStyle &style = ImGui::GetStyle();
+    ImVec2 play_size(ImGui::CalcTextSize(play).x + 60.0f * g_scale + style.FramePadding.x * 2,
                      ImGui::GetFrameHeight() * 1.4f);
-    ImGui::SetCursorPos(ImVec2(ImGui::GetWindowWidth() - play_size.x - ImGui::GetStyle().WindowPadding.x,
-                               ImGui::GetWindowHeight() - play_size.y - ImGui::GetStyle().WindowPadding.y));
-    ImGui::BeginDisabled(true);
-    ImGui::Button(play, play_size);
+    float bottom = ImGui::GetWindowHeight() - play_size.y - style.WindowPadding.y;
+    if (!st.play_message.empty()) {
+        float y = bottom + (play_size.y - ImGui::GetTextLineHeight()) * 0.5f;
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() > y ? ImGui::GetCursorPosY() : y);
+        ImGui::TextColored(kBad, "%s", st.play_message.c_str());
+        ImGui::SameLine();
+    }
+    ImGui::SetCursorPos(ImVec2(ImGui::GetWindowWidth() - play_size.x - style.WindowPadding.x,
+                               ImGui::GetCursorPosY() > bottom ? ImGui::GetCursorPosY() : bottom));
+    bool can_play = rom_ok && st.built && !build_running();
+    ImGui::BeginDisabled(!can_play);
+    ImGui::PushStyleColor(ImGuiCol_Button, can_play ? ImVec4(0.62f, 0.17f, 0.14f, 1.0f) : style.Colors[ImGuiCol_Button]);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.74f, 0.22f, 0.18f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.84f, 0.26f, 0.21f, 1.0f));
+    if (ImGui::Button(play, play_size)) {
+        write_rom_cfg(st);
+        st.play_message = start_program(game_exe(st.folders), st.folders.game)
+                        ? std::string() : "Couldn't start shadowgate.exe.";
+    }
+    ImGui::PopStyleColor(3);
     ImGui::EndDisabled();
 
     ImGui::End();
@@ -201,6 +336,7 @@ int main(int argc, char **argv)
     float dpi = 96.0f;
     if (SDL_GetDisplayDPI(0, &dpi, nullptr, nullptr) != 0 || dpi < 48.0f) dpi = 96.0f;
     float scale = dpi / 96.0f;
+    g_scale = scale;
     SDL_Window *win = SDL_CreateWindow("Shadowgreat", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                        (int)(860 * scale), (int)(600 * scale),
                                        SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
@@ -223,6 +359,7 @@ int main(int argc, char **argv)
     State st;
     st.settings = launcher_settings_load();
     check_rom(st);
+    look_around(st);
 
     bool running = true;
     while (running) {
@@ -243,6 +380,7 @@ int main(int argc, char **argv)
         SDL_RenderPresent(ren);
     }
 
+    build_shutdown();
     launcher_settings_save(st.settings);
     ImGui_ImplSDLRenderer2_Shutdown();
     ImGui_ImplSDL2_Shutdown();

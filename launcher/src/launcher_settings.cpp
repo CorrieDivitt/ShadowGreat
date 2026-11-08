@@ -4,7 +4,6 @@
 
 #include <SDL.h>
 #include <cstdio>
-#include <cstring>
 
 static std::string ini_path()
 {
@@ -22,6 +21,19 @@ static std::string trim(const std::string &s)
     return a == std::string::npos ? std::string() : s.substr(a, b - a + 1);
 }
 
+namespace {
+struct Key { const char *name; std::string LauncherSettings::*field; };
+const Key kKeys[] = {
+    { "RomPath",         &LauncherSettings::rom_path },
+    { "SourceFolder",    &LauncherSettings::source_folder },
+    { "NesrecompFolder", &LauncherSettings::nesrecomp_folder },
+    { "RecompUiFolder",  &LauncherSettings::recomp_ui_folder },
+    { "ToolsFolder",     &LauncherSettings::tools_folder },
+    { "GameFolder",      &LauncherSettings::game_folder },
+    { "BuiltRomSha1",    &LauncherSettings::built_rom_sha1 },
+};
+}
+
 LauncherSettings launcher_settings_load()
 {
     LauncherSettings s;
@@ -33,7 +45,8 @@ LauncherSettings launcher_settings_load()
         size_t eq = l.find('=');
         if (eq == std::string::npos || l[0] == '#' || l[0] == ';') continue;
         std::string key = trim(l.substr(0, eq)), value = trim(l.substr(eq + 1));
-        if (key == "RomPath") s.rom_path = value;
+        for (const Key &k : kKeys)
+            if (key == k.name) s.*k.field = value;
     }
     std::fclose(f);
     return s;
@@ -43,7 +56,8 @@ void launcher_settings_save(const LauncherSettings &s)
 {
     FILE *f = utf8_fopen(ini_path().c_str(), "wb");
     if (!f) return;
-    std::fprintf(f, "# Shadowgreat launcher settings\n");
-    std::fprintf(f, "RomPath = %s\n", s.rom_path.c_str());
+    std::fprintf(f, "# Shadowgreat launcher settings.\n"
+                    "# The folders are found automatically when left empty.\n");
+    for (const Key &k : kKeys) std::fprintf(f, "%s = %s\n", k.name, (s.*k.field).c_str());
     std::fclose(f);
 }
