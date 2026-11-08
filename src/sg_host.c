@@ -24,6 +24,7 @@
 /* ---- the feature list: add new features here ---- */
 static SgFeature *const s_features[] = {
     &sg_feature_mouse,
+    &sg_feature_hand,       /* after mouse: uses its pointer position */
     &sg_feature_narration,
     &sg_feature_torch,
 };
@@ -130,6 +131,17 @@ static void event(void *ctx, const void *sdl_event, int player)
         if (s_features[i]->enabled && s_features[i]->event) s_features[i]->event(sdl_event);
 }
 
+static const uint32_t *present(void *ctx, int *width, int *height)
+{
+    (void)ctx;
+    for (size_t i = 0; i < SG_FEATURE_COUNT; ++i)
+        if (s_features[i]->enabled && s_features[i]->present) {
+            const uint32_t *p = s_features[i]->present(width, height);
+            if (p) return p;
+        }
+    return NULL;   /* the host shows the game's own picture */
+}
+
 static CycHostExtras s_extras;
 
 const CycHostExtras *cyc_host_extras(void)
@@ -144,6 +156,7 @@ const CycHostExtras *cyc_host_extras(void)
         s_extras.frame_end     = frame_end;
         s_extras.input         = input;
         s_extras.event         = event;
+        s_extras.present       = present;
         ready = true;
     }
     return &s_extras;

@@ -627,6 +627,22 @@ click_needs = ["cursor_x", "cursor_y", "press A"]
 # while $AF = 0x19 sets $AF back to 0x16 (0x17 when $B2 = MOVE) - to test.
 map_af = 0x19
 
+# ------------------------------------------------------------------ hand cursor
+# The game's hand, recorded by the user in Mesen's sprite viewer 2026-11-08
+# (hand on LOOK: OAM X 0x5E, Y 0xAB for cursor $AB/$AC = 0x63/0xAC).
+# CMakeLists.txt reads these 4 tiles from the player's ROM into the build
+# folder so feat_hand.c can draw the hand as the mouse pointer everywhere.
+
+[hand_cursor]
+oam_slots = [1, 2, 3, 4]       # on the play screen
+tiles = [0x7A, 0x7B, 0x7C, 0x7D]  # 8 x 8 each, laid out 7A 7B / 7C 7D (16 x 16), no flips
+chr_offset = 0x17A0            # tile 0x7A inside CHR-ROM; the 4 tiles are 64 bytes in a row
+palette = 2                    # sprite palette 2
+colors = [0x0F, 0x0F, 0x30, 0x30]  # pixel values 0-3 (0 = see-through); Mesen showed 0x26 last, but the hand is white on screen (user, 2026-11-08)
+tip = [5, 0]                   # fingertip inside the 16 x 16 picture = cursor ($AB, $AC)
+# Correction: the hand picture starts 5 pixels left of the fingertip, not 3
+# as estimated in [cursor] (checked by drawing the tiles from the ROM).
+
 # ------------------------------------------------------------------ hit boxes
 # Rectangles the mouse can click, in screen pixels of the 256 x 240 picture
 # (the same numbers as cursor values, see [cursor]). Each entry is a list of

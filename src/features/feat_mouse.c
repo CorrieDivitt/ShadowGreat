@@ -31,6 +31,7 @@
 #endif
 
 static int         s_x = -1, s_y = -1;   /* game pixel under the mouse, -1 = off */
+int sg_pointer_x = -1, sg_pointer_y = -1;  /* shared copy (sg_features.h) */
 static const char *s_over;               /* hit box under the mouse, or NULL */
 static bool        s_click_pending;      /* a left click waiting for the frame */
 static int         s_click_x, s_click_y;
@@ -183,14 +184,14 @@ static void apply_click(int x, int y)
     } else if (!box) {
         /* empty space: write nothing */
     } else if (sg_game.screen == SG_SCREEN_PLAY && !strcmp(box, "SCENE")) {
-        /* Tested: X/Y onto the object, then A; the game works out the
-         * object itself, whatever button $AF names. The one exception we
-         * know of is map mode ($AF = 0x19), which reads X/Y as a map square,
-         * so leave it for the scene mode the game itself would use. */
+        /* X/Y onto the object, and $AF set to the scene mode the d-pad
+         * would give ($17 when MOVE is the command, else $16). Leaving $AF
+         * on the last button made A press that button instead: after B
+         * cancelled TAKE, a scene click re-highlighted TAKE without
+         * selecting it (found by the user 2026-11-08). */
         put_cursor(clamp(x, SCENE_LEFT, SCENE_RIGHT), clamp(y, SCENE_TOP, SCENE_BOTTOM));
-        if (cyc_mod_peek(RAM_HOVERED) == AF_MAP)
-            poke(RAM_HOVERED, cyc_mod_peek(RAM_COMMAND) == COMMAND_MOVE
-                                  ? AF_SCENE_FROM_MOVE : AF_SCENE_FROM_VERBS);
+        poke(RAM_HOVERED, cyc_mod_peek(RAM_COMMAND) == COMMAND_MOVE
+                              ? AF_SCENE_FROM_MOVE : AF_SCENE_FROM_VERBS);
         what = "scene: cursor moved";
         act = true;
     } else if (sg_game.screen == SG_SCREEN_PLAY && !strcmp(box, "MAP")) {
@@ -251,6 +252,8 @@ static void mouse_frame(void)
 #if defined(CYC_WITH_SDL)
     pointer_in_game(&s_x, &s_y);
 #endif
+    sg_pointer_x = s_x;
+    sg_pointer_y = s_y;
     bool moved = s_x != prev_x || s_y != prev_y;
     prev_x = s_x;
     prev_y = s_y;

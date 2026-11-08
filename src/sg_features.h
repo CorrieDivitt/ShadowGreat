@@ -29,11 +29,18 @@ typedef struct SgFeature {
     void (*frame)(void);                      /* end of every frame        */
     void (*input)(uint8_t buttons[2]);        /* may add NES button presses */
     void (*event)(const void *sdl_event);     /* raw window events (mouse) */
+    /* The picture to show instead of the game's (NULL = the game's). */
+    const uint32_t *(*present)(int *width, int *height);
 } SgFeature;
 
 extern SgFeature sg_feature_mouse;
+extern SgFeature sg_feature_hand;
 extern SgFeature sg_feature_narration;
 extern SgFeature sg_feature_torch;
+
+/* Where the Windows pointer is, in game pixels (0-255, 0-239), or -1 when
+ * it is off the picture. Updated by the mouse feature every frame. */
+extern int sg_pointer_x, sg_pointer_y;
 
 /* Append one line to shadowgate.log (beside where the game was started). */
 void sg_log(const char *fmt, ...);
