@@ -15,6 +15,12 @@ length = 16
 crc32  = 0x9B4D6BA3
 
 [[mod_function_hook]]
+id     = "shadowgate.narration.message-continue"  # feat_narration.c
+addr   = 0xC494                           # second way in: automatic story scenes
+length = 16
+crc32  = 0x31E0841C
+
+[[mod_function_hook]]
 id     = "shadowgate.mouse.text-a"        # feat_mouse.c
 addr   = 0xC7F4                           # LDA $F5: A check while a message prints
 length = 16

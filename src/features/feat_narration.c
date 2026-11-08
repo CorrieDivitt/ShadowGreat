@@ -17,7 +17,12 @@
 
 #include <string.h>
 
-#define HOOK_ID "shadowgate.narration.message"
+#define HOOK_ID   "shadowgate.narration.message"
+/* Second way in ($C494): used for automatic story scenes, e.g. the
+ * "That pitiful wizard Lakmir" speech on first entering the hall. It
+ * skips $C49E's box-clearing and jumps straight into the same print
+ * loop, so the message pointer and format are the same. Found 2026-11-08. */
+#define HOOK_ID_2 "shadowgate.narration.message-continue"
 
 static char     s_spoken[4096];
 static char     s_logged[6144];
@@ -45,13 +50,16 @@ NES_MOD_CONSTRUCTOR(sg_register_narration_hook)
 {
     nes_mod_register_function_entry_plugin(HOOK_ID, SG_CODE_PRINT_MESSAGE,
                                            on_message_start);
+    nes_mod_register_function_entry_plugin(HOOK_ID_2, SG_CODE_PRINT_MESSAGE_2,
+                                           on_message_start);
 }
 
 static void narration_start(void)
 {
     sg_text_forget_words();     /* re-read after each power-on / reset */
     s_messages = 0;
-    if (nes_mod_set_function_hook_enabled(HOOK_ID, 1))
+    if (nes_mod_set_function_hook_enabled(HOOK_ID, 1) &&
+        nes_mod_set_function_hook_enabled(HOOK_ID_2, 1))
         sg_log("narration: listening for messages");
     else
         sg_log("narration: could not switch on the message hook");

@@ -324,6 +324,10 @@ verified = false
 #          0x1F; control codes 0x1D = new line ($C64C), 0x1B (seen just before
 #          the end; handled at $C63D) and 0x1C ($C650) not yet known; 0x1E is an escape whose next code is
 #          handled by $C517; anything else is a letter, printed via $C760
+#   $C494  second way into the print loop (sets $EB = 0, JSR $C537 sets $8F = 2,
+#          then JMP $C4A8; no box clear). Reached via $C418 from $C40D, which
+#          takes the pointer from a table at $BE00. Used for automatic story
+#          scenes ("That pitiful wizard Lakmir..."). Found 2026-11-08.
 #   $C517  escape handler: 0x1C = word from list A, 0x1D = word from list B
 #          (both with an 8-bit word number from the message), 0x1E = word from
 #          list A whose number is in RAM at a 2-byte address in the message,

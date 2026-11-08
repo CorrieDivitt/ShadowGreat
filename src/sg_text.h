@@ -12,6 +12,7 @@
 
 /* Code locations and tables (addresses only; see shadowgate-map.toml) */
 #define SG_CODE_PRINT_MESSAGE  0xC49E   /* hook site: a message starts      */
+#define SG_CODE_PRINT_MESSAGE_2 0xC494  /* hook site: story-scene messages  */
 #define SG_CODE_BANK_SWAP      0xEAD9   /* swap in a ROM bank (A = bank)    */
 #define SG_TABLE_CODE_TO_TILE  0xC7AD   /* the game's code -> tile table    */
 #define SG_RAM_MESSAGE_PTR     0x0000   /* 2 bytes: where the message is    */
