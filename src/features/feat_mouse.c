@@ -4,10 +4,15 @@
  * p6-coords: turn the Windows mouse position into game pixels (0-255
  * across, 0-239 down) whatever the window size or fullscreen, and find the
  * hit box under it.
- * p6-write (this step): a left click writes what selects that thing - the
- * cursor position, the button bytes, or a menu's choice byte - using only
- * values from shadowgate-map.toml (via sg_hitboxes.c). It does NOT press A
- * yet (p6-click). Everything written is listed in shadowgate.log.
+ * p6-write: a left click writes what selects that thing - the cursor
+ * position, the button bytes, or a menu's choice byte - using only values
+ * from shadowgate-map.toml (via sg_hitboxes.c).
+ * p6-click: then it holds the NES A button for a couple of frames, so the
+ * game acts on that selection.
+ * p6-message: in a message box any left click just presses A (advance the
+ * text); on the title screen it presses Start.
+ * Right click presses B, anywhere (user's request, 2026-11-08).
+ * Everything is logged to shadowgate.log.
  */
 #include "../sg_features.h"
 #include "../sg_game.h"
@@ -26,6 +31,22 @@ static int         s_x = -1, s_y = -1;   /* game pixel under the mouse, -1 = off
 static const char *s_over;               /* hit box under the mouse, or NULL */
 static bool        s_click_pending;      /* a left click waiting for the frame */
 static int         s_click_x, s_click_y;
+static uint8_t     s_press_buttons;      /* NES buttons we are holding */
+static int         s_press_frames;       /* frames left to hold them */
+
+/* NES controller byte bits (nesrecomp's cyc_host.c) */
+#define NES_BUTTON_A      0x80
+#define NES_BUTTON_B      0x40
+#define NES_BUTTON_START  0x10
+/* Hold a button this many frames. The game reads the pad once a frame and
+ * acts on a new press; two frames make sure it is seen. */
+#define HOLD_FRAMES 2
+
+static void press(uint8_t buttons)
+{
+    s_press_buttons |= buttons;
+    s_press_frames = HOLD_FRAMES;
+}
 
 /* RAM addresses (see shadowgate-map.toml) */
 #define RAM_CURSOR_X       0x00AB
@@ -95,6 +116,10 @@ static void mouse_event(const void *e)
         s_click_x = x;
         s_click_y = y;
         s_click_pending = true;
+    } else if (ev->type == SDL_MOUSEBUTTONDOWN && ev->button.button == SDL_BUTTON_RIGHT) {
+        press(NES_BUTTON_B);
+        sg_log("frame %6u  mouse: right click: pressing B  [screen: %s]",
+               (unsigned)sg_game.frame, sg_screen_name(sg_game.screen));
     }
 #else
     (void)e;
@@ -139,12 +164,19 @@ static void apply_click(int x, int y)
 {
     const char *box = screen_box(x, y);
     const char *what = "nothing to do";
+    bool act = false;
+    uint8_t a_press = 0;      /* a button to press without selecting anything */
     s_wrote[0] = 0;
 
     if (sg_game.busy) {
         what = "ignored: the game is changing screen";
     } else if (sg_game.screen == SG_SCREEN_MESSAGE) {
-        what = "ignored: message box (clicks will advance text in p6-message)";
+        /* Hit boxes are ignored here, so skipping text never picks a verb. */
+        what = "message box: advance";
+        a_press = NES_BUTTON_A;
+    } else if (sg_game.screen == SG_SCREEN_TITLE) {
+        what = "title screen: start";
+        a_press = NES_BUTTON_START;
     } else if (!box) {
         /* empty space: write nothing */
     } else if (sg_game.screen == SG_SCREEN_PLAY && !strcmp(box, "SCENE")) {
@@ -157,6 +189,7 @@ static void apply_click(int x, int y)
             poke(RAM_HOVERED, cyc_mod_peek(RAM_COMMAND) == COMMAND_MOVE
                                   ? AF_SCENE_FROM_MOVE : AF_SCENE_FROM_VERBS);
         what = "scene: cursor moved";
+        act = true;
     } else if (sg_game.screen == SG_SCREEN_PLAY && !strcmp(box, "MAP")) {
         /* The map is its own input mode: X/Y alone is ignored until $AF is
          * 0x19 (found by the user 2026-11-08: map clicks only worked after
@@ -164,6 +197,7 @@ static void apply_click(int x, int y)
         put_cursor((uint8_t)x, (uint8_t)y);
         poke(RAM_HOVERED, AF_MAP);
         what = "map: cursor moved";
+        act = true;
     } else if (sg_game.screen == SG_SCREEN_PLAY) {
         const SgButton *b = find_button(box);
         if (b) {
@@ -171,18 +205,24 @@ static void apply_click(int x, int y)
             if (b->ad >= 0) poke(RAM_BUTTON, (uint8_t)b->ad);
             poke(RAM_HOVERED, b->af);
             what = "button selected";
+            act = true;
         }
     } else {
         const SgChoice *c = find_choice(sg_game.screen, box);
         if (c) {
             poke(c->byte, c->value);
             what = "menu choice";
+            act = true;
         }
     }
-    sg_log("frame %6u  mouse: click at (%d,%d) on %s [%s]: %s%s%s  ($AF now %02X)",
+    if (act) a_press = NES_BUTTON_A;
+    if (a_press) press(a_press);         /* held in mouse_input from next frame */
+    sg_log("frame %6u  mouse: click at (%d,%d) on %s [%s]: %s%s%s%s  ($AF now %02X)",
            (unsigned)sg_game.frame, x, y, box ? box : "nothing",
            sg_screen_name(sg_game.screen), what,
-           s_wrote[0] ? "; wrote " : "", s_wrote, cyc_mod_peek(RAM_HOVERED));
+           s_wrote[0] ? "; wrote " : "", s_wrote,
+           a_press == NES_BUTTON_A ? "; pressing A" : a_press ? "; pressing Start" : "",
+           cyc_mod_peek(RAM_HOVERED));
 }
 
 /* Once a frame: act on a click, and log when the box under the mouse changes. */
@@ -203,11 +243,23 @@ static void mouse_frame(void)
     s_over = box;
 }
 
+/* Every frame, before the game reads its controller: add our presses to
+ * whatever the keyboard or pad is pressing. */
+static void mouse_input(uint8_t buttons[2])
+{
+    if (s_press_frames > 0) {
+        buttons[0] |= s_press_buttons;
+        if (--s_press_frames == 0) s_press_buttons = 0;
+    }
+}
+
 static void mouse_start(void)
 {
     s_over = NULL;
     s_click_pending = false;
-    sg_log("mouse: clicks select things (no A press yet)");
+    s_press_buttons = 0;
+    s_press_frames = 0;
+    sg_log("mouse: point and click (left = select + A, right = B)");
 }
 
 SgFeature sg_feature_mouse = {
@@ -216,4 +268,5 @@ SgFeature sg_feature_mouse = {
     .start = mouse_start,
     .frame = mouse_frame,
     .event = mouse_event,
+    .input = mouse_input,
 };
