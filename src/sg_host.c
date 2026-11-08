@@ -15,6 +15,7 @@
  */
 #include "cyc_host_extras.h"
 #include "sg_features.h"
+#include "sg_game.h"
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -89,6 +90,7 @@ static void power_on(void *ctx)
 {
     (void)ctx;
     sg_log("--- Shadowgate started ---");
+    sg_game_reset();
     for (size_t i = 0; i < SG_FEATURE_COUNT; ++i) {
         SgFeature *f = s_features[i];
         sg_log("%-13s %s%s", f->key, f->enabled ? "On" : "Off",
@@ -97,9 +99,19 @@ static void power_on(void *ctx)
     }
 }
 
+static bool any_feature_on(void)
+{
+    for (size_t i = 0; i < SG_FEATURE_COUNT; ++i)
+        if (s_features[i]->enabled) return true;
+    return false;
+}
+
 static void frame_end(void *ctx)
 {
     (void)ctx;
+    /* With every feature Off we don't even read the game's memory. */
+    if (!any_feature_on()) return;
+    sg_game_update();   /* refresh sg_game (screen etc.) for the features */
     for (size_t i = 0; i < SG_FEATURE_COUNT; ++i)
         if (s_features[i]->enabled && s_features[i]->frame) s_features[i]->frame();
 }

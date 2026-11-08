@@ -22,6 +22,7 @@ include("${NESRECOMP_ROOT}/runner/cyc/project.cmake")
 
 set(SHADOWGATE_FEATURES
     src/sg_host.c
+    src/sg_game.c
     src/features/feat_mouse.c
     src/features/feat_narration.c
     src/features/feat_torch.c

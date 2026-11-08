@@ -78,7 +78,11 @@ verified = true
 addr = 0x00E5
 name = "screen_id"
 doc = "Which screen is showing; see [screens]. 0x10 title, 0x11 file select and file options, 0x65 play, 0x6C play with a message box, 0x12 game over, 0x13 save confirm."
-source = "Data Crystal RAM map (its values were partly wrong); every screen checked in Mesen 2026-11-07"
+source = "Data Crystal RAM map (its values were partly wrong); every screen checked in Mesen 2026-11-07; logged frame by frame by our own build 2026-11-08"
+# Between screens $E5 passes through other values for 1-35 frames (seen 2026-11-08):
+# 0x00, 0x14, 0xF0 at power-on/reset; 0x17, 0x58, 0x60, 0x61, 0x62, 0x63, 0x66, 0x67, 0x69, 0x6B, 0x6D
+# around play/message changes. 0x14 holds for about 220 frames before the title screen.
+# Code must treat any value not in [screens] as "busy" and do nothing.
 verified = true
 
 [[ram]]
@@ -254,8 +258,8 @@ verified = true
 addr = 0x001C
 name = "menu_variant"
 doc = "Tells the two $E5 = 0x11 screens apart: 0xB2 on file select, 0xAD on file options. Low zero-page byte, possibly half of a pointer, so only trust it while $E5 = 0x11, and act only when it is exactly one of these two values."
-source = "Observed in Mesen 2026-11-07; steadiness still to confirm"
-verified = false
+source = "Observed in Mesen 2026-11-07; steadiness confirmed 2026-11-08 by frame log: holds 0xB2 / 0xAD for the whole time each screen is up; passes 0x00/0x40/0x15/0x95/0xAA/0x74 for 1-4 frames while switching"
+verified = true
 
 [[ram]]
 addr = 0x0075
@@ -465,7 +469,7 @@ pad = 0x7F                # space; the rest of a line is padded with it after pr
 # $AB/$AC move on that screen. Choices are what the player can pick.
 # Menus only take A to confirm: Start does not proceed and B does not go back.
 # Not yet tested (user's choice, 2026-11-07; check during Phase 6 testing):
-# writing $84 and $75 with valid values, and $1C staying steady.
+# writing $84 and $75 with valid values. ($1C staying steady: confirmed 2026-11-08.)
 
 [screens.title]
 id = 0x10
