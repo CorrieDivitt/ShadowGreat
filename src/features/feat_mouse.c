@@ -70,7 +70,8 @@ static uint32_t s_msg_click_frame;
 
 static int give_saved_click(uint16_t addr)
 {
-    if (!s_msg_click) return 0;
+    if (sg_feature_narration.enabled) sg_narration_print_site(addr);   /* page tracking */
+    if (!sg_feature_mouse.enabled || !s_msg_click) return 0;
     s_msg_click = false;
     if (sg_game.frame - s_msg_click_frame > CLICK_KEEP_FRAMES) return 0;
     cyc_mod_poke(RAM_PAD_PRESSED, (uint8_t)(cyc_mod_peek(RAM_PAD_PRESSED) | 0x80));

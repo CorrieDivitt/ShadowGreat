@@ -698,3 +698,7 @@ END      = [[100, 141, 134, 152]]
 [hitboxes.save_confirm]
 YES      = [[125, 135, 154, 147]]
 NO       = [[125, 148, 154, 160]]
+
+[text.not_narration]
+# Messages the printer draws that are NOT the narration box (the voice skips them).
+inventory_heading = 0xBE00   # $BE00-$BEFF: "GOODS" / "SPELL" / "KEY 1" / "TORCH" inventory headings (seen at $BE08 and $BE0D). Narration is only spoken once $E5 = $6C (box up)

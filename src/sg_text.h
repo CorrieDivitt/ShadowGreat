@@ -27,7 +27,8 @@ bool sg_text_load_words(void);
 void sg_text_forget_words(void);
 
 /* Decode the message that starts at CPU address `addr`.
- * `spoken` gets clean text for the voice (lines joined with spaces);
+ * `spoken` gets clean text for the voice (lines joined with spaces, and
+ * '\f' at each page end, where the game waits for A);
  * `logged` gets the same with " / " at line breaks and {..} for codes we
  * don't understand yet. Returns false if the message looked wrong. */
 bool sg_text_decode(uint16_t addr, char *spoken, size_t spoken_size,

@@ -141,7 +141,8 @@ bool sg_text_decode(uint16_t addr, char *spoken, size_t spoken_size,
         switch (c) {
         case 0x1A: put(&s, " "); put(&l, " "); break;      /* space */
         case 0x1D: put(&s, " "); put(&l, " / "); break;    /* new line */
-        case 0x1B: put(&s, " "); put(&l, " // "); break;   /* end of a page: the game waits for A */
+        case 0x1B: put(&s, "\f"); put(&l, " // "); break; /* end of a page: the game waits for A
+                                                             (\f tells the voice to wait too) */
         case 0x1C: put(&l, "{1C}"); break;                 /* follows some page ends; not known yet */
         case 0x1E: {                                       /* escape */
             unsigned e = read_bits(&b, 5);

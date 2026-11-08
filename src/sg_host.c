@@ -10,6 +10,7 @@
  *     Mouse = On
  *     Narration = On
  *     TorchTracker = Off
+ *     NarratorVoice = Narrator      (a feature's own extra lines)
  *
  * The launcher (Phase 8) will edit these same lines.
  */
@@ -46,7 +47,7 @@ void sg_log(const char *fmt, ...)
 /* ---- settings ---- */
 static bool s_settings_seen[SG_FEATURE_COUNT];
 
-static bool same_word(const char *a, const char *b)
+bool sg_same_word(const char *a, const char *b)
 {
     for (; *a && *b; ++a, ++b) {
         char x = *a, y = *b;
@@ -59,10 +60,10 @@ static bool same_word(const char *a, const char *b)
 
 static bool parse_on(const char *value, bool fallback)
 {
-    if (same_word(value, "on") || same_word(value, "true") ||
-        same_word(value, "yes") || same_word(value, "1")) return true;
-    if (same_word(value, "off") || same_word(value, "false") ||
-        same_word(value, "no") || same_word(value, "0")) return false;
+    if (sg_same_word(value, "on") || sg_same_word(value, "true") ||
+        sg_same_word(value, "yes") || sg_same_word(value, "1")) return true;
+    if (sg_same_word(value, "off") || sg_same_word(value, "false") ||
+        sg_same_word(value, "no") || sg_same_word(value, "0")) return false;
     return fallback;   /* anything else: keep the default */
 }
 
@@ -71,11 +72,14 @@ static void load_setting(void *ctx, const char *key, const char *value)
     (void)ctx;
     for (size_t i = 0; i < SG_FEATURE_COUNT; ++i) {
         SgFeature *f = s_features[i];
-        if (same_word(key, f->key)) {
+        if (sg_same_word(key, f->key)) {
             f->enabled = parse_on(value, f->default_on);
             s_settings_seen[i] = true;
+            return;
         }
     }
+    for (size_t i = 0; i < SG_FEATURE_COUNT; ++i)
+        if (s_features[i]->setting && s_features[i]->setting(key, value)) return;
 }
 
 static void save_settings(void *ctx, FILE *out)
@@ -84,6 +88,8 @@ static void save_settings(void *ctx, FILE *out)
     for (size_t i = 0; i < SG_FEATURE_COUNT; ++i)
         fprintf(out, "%s = %s\n", s_features[i]->key,
                 s_features[i]->enabled ? "On" : "Off");
+    for (size_t i = 0; i < SG_FEATURE_COUNT; ++i)
+        if (s_features[i]->save) s_features[i]->save(out);
 }
 
 /* ---- passing calls on to the features that are On ---- */
@@ -142,6 +148,16 @@ static const uint32_t *present(void *ctx, int *width, int *height)
     return NULL;   /* the host shows the game's own picture */
 }
 
+/* The game's sound, just before it goes to the speakers. */
+#define SG_AUDIO_RATE 48000
+static void audio_mix(void *ctx, int16_t *samples, size_t count)
+{
+    (void)ctx;
+    for (size_t i = 0; i < SG_FEATURE_COUNT; ++i)
+        if (s_features[i]->enabled && s_features[i]->audio)
+            s_features[i]->audio(samples, count, SG_AUDIO_RATE);
+}
+
 static CycHostExtras s_extras;
 
 const CycHostExtras *cyc_host_extras(void)
@@ -157,6 +173,8 @@ const CycHostExtras *cyc_host_extras(void)
         s_extras.input         = input;
         s_extras.event         = event;
         s_extras.present       = present;
+        s_extras.audio_rate    = SG_AUDIO_RATE;   /* nesrecomp's own default too */
+        s_extras.audio_mix     = audio_mix;
         ready = true;
     }
     return &s_extras;
