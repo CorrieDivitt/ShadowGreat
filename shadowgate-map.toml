@@ -260,7 +260,7 @@ verified = false
 [[ram]]
 addr = 0x0075
 name = "yes_no_choice"
-doc = "Highlighted choice on the save confirm screen ($E5 = 0x13: 0x00 YES, 0x01 NO) and the game over screen ($E5 = 0x12: 0x00 CONTINUE, 0x01 QUIT). On the play screen the input loop uses it as a flag instead: set to 0x00 when the loop starts and 0x01 when A is pressed on something (selection made)."
+doc = "Highlighted choice on the save confirm screen ($E5 = 0x13: 0x00 YES, 0x01 NO) and the game over screen ($E5 = 0x12: 0x00 CONTINUE, 0x01 END). On the play screen the input loop uses it as a flag instead: set to 0x00 when the loop starts and 0x01 when A is pressed on something (selection made)."
 source = "Seen changing in step with the choice in Mesen 2026-11-07; write test pending"
 verified = false
 
@@ -503,7 +503,7 @@ choices = []              # A closes or advances the message
 [screens.game_over]
 id = 0x12
 cursor = false
-choices = ["CONTINUE", "QUIT"]
+choices = ["CONTINUE", "END"]
 choice_byte = 0x0075      # candidate, not yet write-tested
 confirm = "A"
 
@@ -606,3 +606,55 @@ click_needs = ["cursor_x", "cursor_y", "press A"]
 # the map is its own mode with $AF = 0x19, so a map click will probably need
 # $AF = 0x19 written as well as X/Y (check in Phase 6 testing).
 map_af = 0x19
+
+# ------------------------------------------------------------------ hit boxes
+# Rectangles the mouse can click, in screen pixels of the 256 x 240 picture
+# (the same numbers as cursor values, see [cursor]). Each entry is a list of
+# [left, top, right, bottom] rectangles, edges included; the torches use two
+# (flame and handle) to follow their shape. Names match [buttons.play] and the
+# choices in [screens]. Measured by the user in Paint, 2026-11-08; every snap
+# point lies inside its own box and no two items overlap (checked).
+
+[hitboxes.play]
+SCENE    = [[16, 32, 128, 144]]
+MOVE     = [[31, 159, 73, 169]]
+MAP      = [[32, 176, 72, 216]]
+LOOK     = [[94, 165, 139, 180]]
+OPEN     = [[94, 181, 139, 196]]
+USE      = [[94, 197, 139, 212]]
+LEAVE    = [[94, 213, 139, 225]]
+TAKE     = [[140, 165, 184, 180]]
+CLOSE    = [[140, 181, 184, 196]]
+HIT      = [[140, 197, 184, 212]]
+SPEAK    = [[140, 213, 184, 225]]
+UP       = [[190, 166, 209, 180]]
+DOWN     = [[190, 181, 209, 194]]
+SELF     = [[190, 197, 233, 210]]
+SAVE     = [[190, 211, 233, 225]]
+SLOT_1   = [[151, 39, 230, 49]]
+SLOT_2   = [[151, 50, 230, 65]]
+SLOT_3   = [[151, 66, 230, 81]]
+SLOT_4   = [[151, 82, 230, 97]]
+SLOT_5   = [[151, 98, 230, 113]]
+SLOT_6   = [[151, 114, 230, 129]]
+SLOT_7   = [[151, 130, 230, 145]]
+TORCH_L  = [[143, 23, 152, 36], [145, 37, 150, 48]]
+TORCH_R  = [[231, 23, 240, 36], [234, 37, 238, 48]]
+
+[hitboxes.file_select]
+FILE_1   = [[107, 115, 172, 130]]
+FILE_2   = [[107, 131, 172, 147]]
+FILE_3   = [[107, 148, 172, 170]]
+
+[hitboxes.file_options]
+CONTINUE = [[103, 126, 170, 138]]
+EXIT     = [[103, 139, 170, 154]]
+NEW_GAME = [[103, 155, 170, 170]]
+
+[hitboxes.game_over]
+CONTINUE = [[100, 125, 170, 140]]
+END      = [[100, 141, 134, 152]]
+
+[hitboxes.save_confirm]
+YES      = [[125, 135, 154, 147]]
+NO       = [[125, 148, 154, 160]]
