@@ -11,6 +11,9 @@
  * game acts on that selection.
  * p6-message: in a message box any left click just presses A (advance the
  * text); on the title screen it presses Start.
+ * p6-hover: on menu screens, moving the pointer onto a choice moves the
+ * game's highlight there (the play screen has no hover: verbs only light
+ * up once selected).
  * Right click presses B, anywhere (user's request, 2026-11-08).
  * Everything is logged to shadowgate.log.
  */
@@ -225,18 +228,39 @@ static void apply_click(int x, int y)
            cyc_mod_peek(RAM_HOVERED));
 }
 
-/* Once a frame: act on a click, and log when the box under the mouse changes. */
+/* p6-hover. Write a menu's choice byte when the pointer has MOVED onto a
+ * different choice. Only on movement, so the keyboard and pad still work
+ * while the mouse sits still; only on a new choice, so we never fight the
+ * player's own key presses; never over empty space; only listed values. */
+static void hover(const char *box, bool moved)
+{
+    if (!moved || !box || sg_game.busy) return;
+    const SgChoice *c = find_choice(sg_game.screen, box);   /* menus only */
+    if (!c || cyc_mod_peek(c->byte) == c->value) return;
+    cyc_mod_poke(c->byte, c->value);
+    sg_log("frame %6u  mouse: hover highlights %s [%s]; wrote $%02X=%02X",
+           (unsigned)sg_game.frame, box, sg_screen_name(sg_game.screen),
+           c->byte, c->value);
+}
+
+/* Once a frame: act on a click, highlight menu choices under the pointer,
+ * and log when the box under the mouse changes. */
 static void mouse_frame(void)
 {
+    static int prev_x = -1, prev_y = -1;
 #if defined(CYC_WITH_SDL)
     pointer_in_game(&s_x, &s_y);
 #endif
+    bool moved = s_x != prev_x || s_y != prev_y;
+    prev_x = s_x;
+    prev_y = s_y;
     if (s_click_pending) {
         s_click_pending = false;
         apply_click(s_click_x, s_click_y);
     }
     const char *box = screen_box(s_x, s_y);
     if (box == s_over) return;
+    hover(box, moved);
     sg_log("frame %6u  mouse: (%d,%d) over %s  [screen: %s]",
            (unsigned)sg_game.frame, s_x, s_y, box ? box : "nothing",
            sg_screen_name(sg_game.screen));
