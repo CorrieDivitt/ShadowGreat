@@ -22,6 +22,7 @@
 #include "../sg_features.h"
 #include "../sg_game.h"
 #include "../sg_hitboxes.h"
+#include "../sg_settings_link.h"
 #include "cyc_mod.h"
 #include "mod_function_hooks.h"
 #include "mod_runtime.h"
@@ -213,7 +214,10 @@ static void apply_click(int x, int y)
     uint8_t a_press = 0;      /* a button to press without selecting anything */
     s_wrote[0] = 0;
 
-    if (sg_game.busy) {
+    if (sg_settings_link_hit(x, y)) {
+        what = sg_settings_link_open() ? "SETTINGS: opened the Shadowgreat options"
+                                       : "SETTINGS: the in-game menu is not available";
+    } else if (sg_game.busy) {
         what = "ignored: the game is changing screen";
     } else if (sg_game.screen == SG_SCREEN_MESSAGE) {
         /* Hit boxes are ignored here, so skipping text never picks a verb.
@@ -358,6 +362,7 @@ SgFeature sg_feature_mouse = {
     .default_on = true,
     .start = mouse_start,
     .stop = mouse_stop,
+    .draw = sg_settings_link_draw,
     .frame = mouse_frame,
     .event = mouse_event,
     .input = mouse_input,

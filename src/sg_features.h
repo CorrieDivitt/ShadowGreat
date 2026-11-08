@@ -32,8 +32,10 @@ typedef struct SgFeature {
     void (*frame)(void);                      /* end of every frame        */
     void (*input)(uint8_t buttons[2]);        /* may add NES button presses */
     void (*event)(const void *sdl_event);     /* raw window events (mouse) */
-    /* The picture to show instead of the game's (NULL = the game's). */
-    const uint32_t *(*present)(int *width, int *height);
+    /* Draw on top of the game's picture (a copy; width x height, the game's
+     * 256-pixel picture starting at column x0). Called in feature order, so
+     * later features draw on top (the hand comes last). */
+    void (*draw)(uint32_t *buf, int width, int height, int x0);
     /* Extra config.ini [Game] lines of its own (e.g. NarratorVoice):
      * setting() returns true if the key was one of them; save() writes
      * them back. Called whether the feature is On or Off. */

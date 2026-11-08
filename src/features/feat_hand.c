@@ -9,7 +9,7 @@
  *    folder (CMakeLists.txt -> generated/sg_hand_tiles.h). Nothing from the
  *    game is in the project; the tile location is in shadowgate-map.toml.
  *  - Every frame we hand the window our own copy of the picture
- *    (host "present"), with the hand drawn on top at the mouse position:
+ *    (sg_host.c composes it; this feature draws last), with the hand on top at the mouse position:
  *    title, menus, message boxes, screen changes - everywhere, above all
  *    sprites. The Windows pointer is hidden while it is over the picture.
  *  - Where the game draws its own hand (OAM tiles $7A-$7D, palette 2) we
@@ -48,8 +48,6 @@ static const uint8_t s_chr[64] = SG_HAND_CHR_BYTES;
 static uint8_t  s_hand[16][16];        /* pixel values 0-3, 0 = see-through */
 static bool     s_mouse_mode;          /* true: our hand; false: the game's */
 static int      s_prev_x = -1, s_prev_y = -1;
-static uint32_t *s_buf;
-static size_t   s_buf_len;
 static uint32_t s_bg[256 * 240];
 
 static void decode_hand(void)
@@ -109,23 +107,11 @@ static void draw_hand(uint32_t *out, int width, int height, int x0, int tip_x, i
         }
 }
 
-static const uint32_t *hand_present(int *width, int *height)
+static void hand_draw(uint32_t *buf, int width, int height, int x0)
 {
-    if (!sg_feature_mouse.enabled || !s_mouse_mode) return NULL;   /* game's own picture */
-    const uint32_t *src = cyc_render_present(width, height);
-    if (!src || *width < 256 || *height < 240) return NULL;
-    size_t n = (size_t)*width * (size_t)*height;
-    if (n > s_buf_len) {
-        uint32_t *p = (uint32_t *)realloc(s_buf, n * sizeof *p);
-        if (!p) return NULL;
-        s_buf = p;
-        s_buf_len = n;
-    }
-    memcpy(s_buf, src, n * sizeof *s_buf);
-    int x0 = cyc_render_native_origin(*width);
-    erase_game_hand(s_buf, *width, x0);
-    if (sg_pointer_x >= 0) draw_hand(s_buf, *width, *height, x0, sg_pointer_x, sg_pointer_y);
-    return s_buf;
+    if (!sg_feature_mouse.enabled || !s_mouse_mode) return;   /* the game's own hand */
+    erase_game_hand(buf, width, x0);
+    if (sg_pointer_x >= 0) draw_hand(buf, width, height, x0, sg_pointer_x, sg_pointer_y);
 }
 
 static void hand_frame(void)
@@ -173,5 +159,5 @@ SgFeature sg_feature_hand = {
     .stop = hand_stop,
     .frame = hand_frame,
     .input = hand_input,
-    .present = hand_present,
+    .draw = hand_draw,
 };

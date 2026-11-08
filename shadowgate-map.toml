@@ -702,3 +702,11 @@ NO       = [[125, 148, 154, 160]]
 [text.not_narration]
 # Messages the printer draws that are NOT the narration box (the voice skips them).
 inventory_heading = 0xBE00   # $BE00-$BEFF: "GOODS" / "SPELL" / "KEY 1" / "TORCH" inventory headings (seen at $BE08 and $BE0D). Narration is only spoken once $E5 = $6C (box up)
+
+[settings_link]
+# Our clickable SETTINGS line (src/sg_settings_link.c), drawn with the game's own letters.
+# The file select and save screens use their own letter set, not the message box's and not
+# in A-Z order. Tile numbers found 2026-11-08 by matching on-screen letters against the CHR.
+letters = { S = 0xB6, E = 0x9F, T = 0x58, I = 0x59, N = 0x4B, G = 0xC1, F = 0x5A, L = 0xB4, A = 0xF6, V = 0x5D, Y = 0xB5, O = 0x4A }
+file_select  = { x = 112, y = 176, check = "FILE at tile (14,15)" }   # below FILE 3 / NEW
+save_confirm = { x = 112, y = 168, check = "SAVE at tile (14,14)" }   # below NO; doorway dark area is x 80-175

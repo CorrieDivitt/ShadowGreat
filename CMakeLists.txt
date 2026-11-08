@@ -50,6 +50,7 @@ set(SHADOWGATE_FEATURES
     src/sg_text.c
     src/sg_voice.c
     src/sg_menu.c
+    src/sg_settings_link.c
     src/sg_hitboxes.c
     src/features/feat_mouse.c
     src/features/feat_hand.c

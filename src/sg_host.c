@@ -17,6 +17,9 @@
 #include "cyc_host_extras.h"
 #include "sg_features.h"
 #include "sg_game.h"
+#include "cyc_render.h"
+
+#include <stdlib.h>
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -137,15 +140,33 @@ static void event(void *ctx, const void *sdl_event, int player)
         if (s_features[i]->enabled && s_features[i]->event) s_features[i]->event(sdl_event);
 }
 
+/* The picture for the window: a copy of the game's, with whatever the
+ * features that are On draw on top (the SETTINGS line, the hand). */
+static uint32_t *s_picture;
+static size_t    s_picture_len;
+
 static const uint32_t *present(void *ctx, int *width, int *height)
 {
     (void)ctx;
+    bool any = false;
     for (size_t i = 0; i < SG_FEATURE_COUNT; ++i)
-        if (s_features[i]->enabled && s_features[i]->present) {
-            const uint32_t *p = s_features[i]->present(width, height);
-            if (p) return p;
-        }
-    return NULL;   /* the host shows the game's own picture */
+        if (s_features[i]->enabled && s_features[i]->draw) any = true;
+    if (!any) return NULL;                       /* the game's own picture */
+    const uint32_t *src = cyc_render_present(width, height);
+    if (!src || *width < 256 || *height < 240) return NULL;
+    size_t n = (size_t)*width * (size_t)*height;
+    if (n > s_picture_len) {
+        uint32_t *p = (uint32_t *)realloc(s_picture, n * sizeof *p);
+        if (!p) return NULL;
+        s_picture = p;
+        s_picture_len = n;
+    }
+    memcpy(s_picture, src, n * sizeof *s_picture);
+    int x0 = cyc_render_native_origin(*width);
+    for (size_t i = 0; i < SG_FEATURE_COUNT; ++i)
+        if (s_features[i]->enabled && s_features[i]->draw)
+            s_features[i]->draw(s_picture, *width, *height, x0);
+    return s_picture;
 }
 
 /* The game's sound, just before it goes to the speakers. */
