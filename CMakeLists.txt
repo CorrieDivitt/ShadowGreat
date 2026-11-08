@@ -23,6 +23,7 @@ include("${NESRECOMP_ROOT}/runner/cyc/project.cmake")
 set(SHADOWGATE_FEATURES
     src/sg_host.c
     src/sg_game.c
+    src/sg_text.c
     src/features/feat_mouse.c
     src/features/feat_narration.c
     src/features/feat_torch.c
@@ -38,4 +39,5 @@ nesrecomp_add_cycle_game(shadowgate
     GAME_CONFIG "${CMAKE_SOURCE_DIR}/game.toml"
     HOST_EXTRAS ${SHADOWGATE_FEATURES}
     ${_sg_options})
-target_include_directories(shadowgate PRIVATE "${CMAKE_SOURCE_DIR}/src")
+target_include_directories(shadowgate PRIVATE "${CMAKE_SOURCE_DIR}/src"
+    "${NESRECOMP_ROOT}/runner/include")

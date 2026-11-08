@@ -2,3 +2,14 @@
 output_prefix = "shadowgate"
 name = "Shadowgate"
 cycle_accurate = true
+
+# Hook sites: places in the game's code where our features get called.
+# Each is identified by a CRC-32 checksum of 16 bytes of the player's ROM at
+# that address, never by the bytes themselves (see LEGAL.md). 16 bytes, so
+# the checksum cannot be turned back into the bytes.
+
+[[mod_function_hook]]
+id     = "shadowgate.narration.message"   # feat_narration.c
+addr   = 0xC49E                           # a message starts printing
+length = 16
+crc32  = 0x9B4D6BA3
