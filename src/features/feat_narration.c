@@ -10,6 +10,8 @@
  *   NarratorVoice    = Narrator       Narrator, Grim or Plain
  *   VoiceVolume      = 100            0-100
  *   MusicWhileSpeaking = 40           0-100: game sound level while the voice talks
+ *   QuotePause       = 0.8            seconds of quiet after a closing quote
+ *   ExclaimPause     = 0.6            seconds of quiet after "!"
  *   VoiceModelFolder = kokoro-multi-lang-v1_0   (beside the .exe, or a full path)
  *
  * The hook site is declared in game.toml as "shadowgate.narration.message".
@@ -61,6 +63,8 @@ static SgScreen s_last_screen;
 static int  s_preset;                       /* index into sg_voice_presets */
 static int  s_volume = 100;
 static int  s_music = 40;
+static float s_quote_pause = 0.8f;
+static float s_exclaim_pause = 0.6f;
 
 /* A message is only spoken once the narration box is really on screen
  * ($E5 = $6C, shadowgate-map.toml). Things like the inventory headings
@@ -89,7 +93,8 @@ static int on_message_start(uint16_t addr)
     s_at_page_end = false;
     s_waiting_for_box = false;
     if ((msg & 0xFF00) == (SG_MSG_INVENTORY_HEADING & 0xFF00)) return 0;  /* inventory headings */
-    s_waiting_for_box = true;            /* spoken from narration_frame, once the box shows */
+    sg_voice_say(s_spoken);              /* made now, played once the box shows */
+    s_waiting_for_box = true;
     s_message_frame = sg_game.frame;
     return 0;   /* 0 = let the game print it as normal */
 }
@@ -114,15 +119,17 @@ static void narration_frame(void)
     if (s_waiting_for_box) {
         if (cyc_mod_peek(SG_RAM_SCREEN_ID) == SG_RAM_SCREEN_ID_BOX) {
             s_waiting_for_box = false;
-            sg_voice_say(s_spoken);
-            if (s_page > 0) sg_voice_page(s_page);   /* the player was quick */
+            sg_voice_release();
         } else if (sg_game.frame - s_message_frame > BOX_WAIT_FRAMES) {
             s_waiting_for_box = false;
+            sg_voice_stop();
             sg_log("narration: no message box for message #%u - not spoken", s_messages);
         }
     }
     if (sg_game.screen != s_last_screen) {
-        if (s_last_screen == SG_SCREEN_MESSAGE) sg_voice_stop();
+        /* (not while a new message waits for its box: that one is
+         * already handled by the wait above) */
+        if (s_last_screen == SG_SCREEN_MESSAGE && !s_waiting_for_box) sg_voice_stop();
         s_last_screen = sg_game.screen;
     }
 }
@@ -140,6 +147,7 @@ static void narration_start(void)
     sg_text_forget_words();     /* re-read after each power-on / reset */
     s_messages = 0;
     s_waiting_for_box = false;
+    sg_voice_set_pauses(s_quote_pause, s_exclaim_pause);
     sg_voice_start(s_preset, s_model_dir, s_volume, s_music);
     s_last_screen = SG_SCREEN_UNKNOWN;
     if (nes_mod_set_function_hook_enabled(HOOK_ID, 1) &&
@@ -165,6 +173,8 @@ static bool narration_setting(const char *key, const char *value)
         s_volume = v < 0 ? 0 : v > 100 ? 100 : v;
         return true;
     }
+    if (sg_same_word(key, "QuotePause"))   { s_quote_pause = (float)atof(value); return true; }
+    if (sg_same_word(key, "ExclaimPause")) { s_exclaim_pause = (float)atof(value); return true; }
     if (sg_same_word(key, "MusicWhileSpeaking")) {
         int v = atoi(value);
         s_music = v < 0 ? 0 : v > 100 ? 100 : v;
@@ -182,6 +192,8 @@ static void narration_save(FILE *f)
     fprintf(f, "NarratorVoice = %s\n", sg_voice_presets[s_preset].name);
     fprintf(f, "VoiceVolume = %d\n", s_volume);
     fprintf(f, "MusicWhileSpeaking = %d\n", s_music);
+    fprintf(f, "QuotePause = %.2f\n", s_quote_pause);
+    fprintf(f, "ExclaimPause = %.2f\n", s_exclaim_pause);
     fprintf(f, "VoiceModelFolder = %s\n", s_model_dir);
 }
 

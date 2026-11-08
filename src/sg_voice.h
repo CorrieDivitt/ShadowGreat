@@ -38,9 +38,18 @@ bool sg_voice_built_in(void);
  * the voice is talking. Calling it again (game reset) just stops speech. */
 void sg_voice_start(int preset, const char *model_dir, int volume, int music);
 
-/* Say this, cutting off anything still being said. '\f' marks a page
- * end: the voice stops there until sg_voice_page() lets it go on. */
+/* Get ready to say this, cutting off anything still being said. The
+ * speech is made at once but stays silent until sg_voice_release().
+ * '\f' marks a page end: the voice stops there until sg_voice_page()
+ * lets it go on. */
 void sg_voice_say(const char *text);
+
+/* Extra pauses, in seconds as heard: after the closing quote of spoken
+ * dialogue, and after an exclamation mark. Call before sg_voice_start(). */
+void sg_voice_set_pauses(float quote_seconds, float exclaim_seconds);
+
+/* The message box is on screen: start playing what sg_voice_say() got. */
+void sg_voice_release(void);
 
 /* The game is now showing page `page` (0 = first) of the message. The
  * voice goes on to that page, skipping whatever of the earlier pages it
