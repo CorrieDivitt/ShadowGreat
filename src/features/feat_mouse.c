@@ -9,8 +9,10 @@
  * from shadowgate-map.toml (via sg_hitboxes.c).
  * p6-click: then it holds the NES A button for a couple of frames, so the
  * game acts on that selection.
- * p6-message: in a message box any left click just presses A (advance the
- * text); on the title screen it presses Start.
+ * p6-message: in a message box a left click is SAVED and handed to the
+ * game exactly when it next checks for A (two hook sites, see below), so
+ * no click is ever lost: while printing it finishes the page, on a finished
+ * page it moves on. Title screen: a click presses Start.
  * p6-hover: on menu screens, moving the pointer onto a choice moves the
  * game's highlight there (the play screen has no hover: verbs only light
  * up once selected).
@@ -21,6 +23,8 @@
 #include "../sg_game.h"
 #include "../sg_hitboxes.h"
 #include "cyc_mod.h"
+#include "mod_function_hooks.h"
+#include "mod_runtime.h"
 
 #include <stdio.h>
 
@@ -45,6 +49,42 @@ static int         s_press_frames;       /* frames left to hold them */
 /* Hold a button this many frames. The game reads the pad once a frame and
  * acts on a new press; two frames make sure it is seen. */
 #define HOLD_FRAMES 2
+
+/* ---- message-box clicks (p6-message polish, user chose "every click
+ * counts" 2026-11-08) ----
+ * The game only sees A in the one frame it is newly pressed ($F5), and
+ * while printing it looks once per letter, so most timed presses were
+ * missed. Instead we set the A bit of $F5 right before the game reads it:
+ *   $C7F4  LDA $F5  - per-letter check while printing (A = finish page)
+ *   $C9F9  LDA $F5  - end-of-page wait (A = next page / close)
+ * Both sites are in game.toml (CRC-32 of 16 bytes, no ROM bytes). */
+#define RAM_PAD_PRESSED     0x00F5
+#define HOOK_TEXT_A         "shadowgate.mouse.text-a"
+#define HOOK_PAGE_A         "shadowgate.mouse.page-a"
+#define SITE_TEXT_A         0xC7F4
+#define SITE_PAGE_A         0xC9F9
+#define CLICK_KEEP_FRAMES   60      /* a saved click is dropped after ~1 s */
+
+static bool     s_msg_click;        /* a message-box click waiting for the game */
+static uint32_t s_msg_click_frame;
+
+static int give_saved_click(uint16_t addr)
+{
+    if (!s_msg_click) return 0;
+    s_msg_click = false;
+    if (sg_game.frame - s_msg_click_frame > CLICK_KEEP_FRAMES) return 0;
+    cyc_mod_poke(RAM_PAD_PRESSED, (uint8_t)(cyc_mod_peek(RAM_PAD_PRESSED) | 0x80));
+    sg_log("frame %6u  mouse: saved click given to the game at $%04X (%s)",
+           (unsigned)sg_game.frame, addr,
+           addr == SITE_TEXT_A ? "finish the page" : "next page / close");
+    return 0;   /* the game's own instruction runs as normal */
+}
+
+NES_MOD_CONSTRUCTOR(sg_register_mouse_hooks)
+{
+    nes_mod_register_function_entry_plugin(HOOK_TEXT_A, SITE_TEXT_A, give_saved_click);
+    nes_mod_register_function_entry_plugin(HOOK_PAGE_A, SITE_PAGE_A, give_saved_click);
+}
 
 static void press(uint8_t buttons)
 {
@@ -175,9 +215,11 @@ static void apply_click(int x, int y)
     if (sg_game.busy) {
         what = "ignored: the game is changing screen";
     } else if (sg_game.screen == SG_SCREEN_MESSAGE) {
-        /* Hit boxes are ignored here, so skipping text never picks a verb. */
-        what = "message box: advance";
-        a_press = NES_BUTTON_A;
+        /* Hit boxes are ignored here, so skipping text never picks a verb.
+         * The click is saved for the game's next A check. */
+        what = "message box: click saved for the game";
+        s_msg_click = true;
+        s_msg_click_frame = sg_game.frame;
     } else if (sg_game.screen == SG_SCREEN_TITLE) {
         what = "title screen: start";
         a_press = NES_BUTTON_START;
@@ -254,6 +296,9 @@ static void mouse_frame(void)
 #endif
     sg_pointer_x = s_x;
     sg_pointer_y = s_y;
+    /* A saved message click never outlives the message box. */
+    if (s_msg_click && !sg_game.busy && sg_game.screen != SG_SCREEN_MESSAGE)
+        s_msg_click = false;
     bool moved = s_x != prev_x || s_y != prev_y;
     prev_x = s_x;
     prev_y = s_y;
@@ -286,6 +331,10 @@ static void mouse_start(void)
     s_click_pending = false;
     s_press_buttons = 0;
     s_press_frames = 0;
+    s_msg_click = false;
+    if (!nes_mod_set_function_hook_enabled(HOOK_TEXT_A, 1) ||
+        !nes_mod_set_function_hook_enabled(HOOK_PAGE_A, 1))
+        sg_log("mouse: could not switch on the message-click hooks");
     sg_log("mouse: point and click (left = select + A, right = B)");
 }
 

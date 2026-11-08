@@ -13,3 +13,15 @@ id     = "shadowgate.narration.message"   # feat_narration.c
 addr   = 0xC49E                           # a message starts printing
 length = 16
 crc32  = 0x9B4D6BA3
+
+[[mod_function_hook]]
+id     = "shadowgate.mouse.text-a"        # feat_mouse.c
+addr   = 0xC7F4                           # LDA $F5: A check while a message prints
+length = 16
+crc32  = 0x2448687D
+
+[[mod_function_hook]]
+id     = "shadowgate.mouse.page-a"        # feat_mouse.c
+addr   = 0xC9F9                           # LDA $F5: A check at the end of a message page
+length = 16
+crc32  = 0xE15116D7
