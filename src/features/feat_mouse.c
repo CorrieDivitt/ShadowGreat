@@ -1,14 +1,20 @@
 /*
  * feat_mouse.c - point and click (Phase 6).
  *
- * p6-coords (this step): turn the Windows mouse position into game pixels
- * (0-255 across, 0-239 down) whatever the window size or fullscreen, look up
- * which hit box it is over, and write changes and clicks to shadowgate.log.
- * It does NOT touch the game yet: no memory writes, no button presses.
+ * p6-coords: turn the Windows mouse position into game pixels (0-255
+ * across, 0-239 down) whatever the window size or fullscreen, and find the
+ * hit box under it.
+ * p6-write (this step): a left click writes what selects that thing - the
+ * cursor position, the button bytes, or a menu's choice byte - using only
+ * values from shadowgate-map.toml (via sg_hitboxes.c). It does NOT press A
+ * yet (p6-click). Everything written is listed in shadowgate.log.
  */
 #include "../sg_features.h"
 #include "../sg_game.h"
 #include "../sg_hitboxes.h"
+#include "cyc_mod.h"
+
+#include <stdio.h>
 
 #include <string.h>
 
@@ -18,6 +24,27 @@
 
 static int         s_x = -1, s_y = -1;   /* game pixel under the mouse, -1 = off */
 static const char *s_over;               /* hit box under the mouse, or NULL */
+static bool        s_click_pending;      /* a left click waiting for the frame */
+static int         s_click_x, s_click_y;
+
+/* RAM addresses (see shadowgate-map.toml) */
+#define RAM_CURSOR_X       0x00AB
+#define RAM_CURSOR_Y       0x00AC
+#define RAM_CURSOR_X_WORK  0x0076
+#define RAM_CURSOR_Y_WORK  0x0077
+#define RAM_BUTTON         0x00AD
+#define RAM_HOVERED        0x00AF
+#define RAM_COMMAND        0x00B2
+/* $AF modes from [buttons.scene] in shadowgate-map.toml */
+#define AF_SCENE_FROM_VERBS 0x16
+#define AF_SCENE_FROM_MOVE  0x17
+#define AF_MAP              0x19
+#define COMMAND_MOVE        0x08
+/* [snap] scene_bounds: where the cursor may go inside the scene */
+#define SCENE_LEFT   0x0F
+#define SCENE_TOP    0x20
+#define SCENE_RIGHT  0x7F
+#define SCENE_BOTTOM 0x90
 
 const char *sg_hitbox_at(SgScreen screen, int x, int y)
 {
@@ -64,22 +91,110 @@ static void mouse_event(const void *e)
     if (ev->type == SDL_MOUSEBUTTONDOWN && ev->button.button == SDL_BUTTON_LEFT) {
         int x, y;
         pointer_in_game(&x, &y);
-        const char *box = screen_box(x, y);
-        sg_log("frame %6u  mouse: click at (%d,%d) on %s  [screen: %s%s]",
-               (unsigned)sg_game.frame, x, y, box ? box : "nothing",
-               sg_screen_name(sg_game.screen), sg_game.busy ? ", busy" : "");
+        /* Acted on in mouse_frame, with this frame's screen reading. */
+        s_click_x = x;
+        s_click_y = y;
+        s_click_pending = true;
     }
 #else
     (void)e;
 #endif
 }
 
-/* Once a frame: log when the box under the mouse changes. */
+/* ---- writing to the game: only values from the map ---- */
+static char s_wrote[160];
+
+static void poke(uint16_t addr, uint8_t value)
+{
+    cyc_mod_poke(addr, value);
+    size_t n = strlen(s_wrote);
+    snprintf(s_wrote + n, sizeof s_wrote - n, "%s$%02X=%02X", n ? " " : "", addr, value);
+}
+
+static void put_cursor(uint8_t x, uint8_t y)
+{
+    /* both the shown position and the input loop's working copy */
+    poke(RAM_CURSOR_X, x);      poke(RAM_CURSOR_Y, y);
+    poke(RAM_CURSOR_X_WORK, x); poke(RAM_CURSOR_Y_WORK, y);
+}
+
+static const SgButton *find_button(const char *name)
+{
+    for (int i = 0; i < sg_button_count; ++i)
+        if (!strcmp(sg_buttons[i].name, name)) return &sg_buttons[i];
+    return NULL;
+}
+
+static const SgChoice *find_choice(SgScreen screen, const char *name)
+{
+    for (int i = 0; i < sg_choice_count; ++i)
+        if (sg_choices[i].screen == screen && !strcmp(sg_choices[i].name, name))
+            return &sg_choices[i];
+    return NULL;
+}
+
+static uint8_t clamp(int v, int lo, int hi) { return (uint8_t)(v < lo ? lo : v > hi ? hi : v); }
+
+static void apply_click(int x, int y)
+{
+    const char *box = screen_box(x, y);
+    const char *what = "nothing to do";
+    s_wrote[0] = 0;
+
+    if (sg_game.busy) {
+        what = "ignored: the game is changing screen";
+    } else if (sg_game.screen == SG_SCREEN_MESSAGE) {
+        what = "ignored: message box (clicks will advance text in p6-message)";
+    } else if (!box) {
+        /* empty space: write nothing */
+    } else if (sg_game.screen == SG_SCREEN_PLAY && !strcmp(box, "SCENE")) {
+        /* Tested: X/Y onto the object, then A; the game works out the
+         * object itself, whatever button $AF names. The one exception we
+         * know of is map mode ($AF = 0x19), which reads X/Y as a map square,
+         * so leave it for the scene mode the game itself would use. */
+        put_cursor(clamp(x, SCENE_LEFT, SCENE_RIGHT), clamp(y, SCENE_TOP, SCENE_BOTTOM));
+        if (cyc_mod_peek(RAM_HOVERED) == AF_MAP)
+            poke(RAM_HOVERED, cyc_mod_peek(RAM_COMMAND) == COMMAND_MOVE
+                                  ? AF_SCENE_FROM_MOVE : AF_SCENE_FROM_VERBS);
+        what = "scene: cursor moved";
+    } else if (sg_game.screen == SG_SCREEN_PLAY && !strcmp(box, "MAP")) {
+        /* The map is its own input mode: X/Y alone is ignored until $AF is
+         * 0x19 (found by the user 2026-11-08: map clicks only worked after
+         * entering the map once with the d-pad, which sets $AF = 0x19). */
+        put_cursor((uint8_t)x, (uint8_t)y);
+        poke(RAM_HOVERED, AF_MAP);
+        what = "map: cursor moved";
+    } else if (sg_game.screen == SG_SCREEN_PLAY) {
+        const SgButton *b = find_button(box);
+        if (b) {
+            put_cursor(b->x, b->y);
+            if (b->ad >= 0) poke(RAM_BUTTON, (uint8_t)b->ad);
+            poke(RAM_HOVERED, b->af);
+            what = "button selected";
+        }
+    } else {
+        const SgChoice *c = find_choice(sg_game.screen, box);
+        if (c) {
+            poke(c->byte, c->value);
+            what = "menu choice";
+        }
+    }
+    sg_log("frame %6u  mouse: click at (%d,%d) on %s [%s]: %s%s%s  ($AF now %02X)",
+           (unsigned)sg_game.frame, x, y, box ? box : "nothing",
+           sg_screen_name(sg_game.screen), what,
+           s_wrote[0] ? "; wrote " : "", s_wrote, cyc_mod_peek(RAM_HOVERED));
+}
+
+/* Once a frame: act on a click, and log when the box under the mouse changes. */
 static void mouse_frame(void)
 {
 #if defined(CYC_WITH_SDL)
     pointer_in_game(&s_x, &s_y);
 #endif
+    if (s_click_pending) {
+        s_click_pending = false;
+        apply_click(s_click_x, s_click_y);
+    }
     const char *box = screen_box(s_x, s_y);
     if (box == s_over) return;
     sg_log("frame %6u  mouse: (%d,%d) over %s  [screen: %s]",
@@ -91,7 +206,8 @@ static void mouse_frame(void)
 static void mouse_start(void)
 {
     s_over = NULL;
-    sg_log("mouse: tracking the pointer (logging only, no clicks sent yet)");
+    s_click_pending = false;
+    sg_log("mouse: clicks select things (no A press yet)");
 }
 
 SgFeature sg_feature_mouse = {

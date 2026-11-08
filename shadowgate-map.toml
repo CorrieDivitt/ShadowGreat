@@ -36,15 +36,15 @@ verified = true
 addr = 0x0076
 name = "cursor_x_work"
 doc = "Working copy of cursor X used by the play-screen input loop ($A27C). When the loop starts ($A268) the game copies $AB/$AC into $76/$77; while it runs, moves change $76/$77 and $A636 copies them back to $AB/$AC. So a write to $AB/$AC alone can be overwritten while the loop is running: the mouse code should write both pairs (to test)."
-source = "Data Crystal RAM map; write breakpoint on $AB, 2026-11-07"
-verified = false
+source = "Data Crystal RAM map; write breakpoint on $AB, 2026-11-07; writing both pairs from the mouse works (2026-11-08)"
+verified = true
 
 [[ram]]
 addr = 0x0077
 name = "cursor_y_work"
 doc = "Working copy of cursor Y (see cursor_x_work)."
-source = "Data Crystal RAM map; write breakpoint on $AB, 2026-11-07"
-verified = false
+source = "Data Crystal RAM map; write breakpoint on $AB, 2026-11-07; writing both pairs from the mouse works (2026-11-08)"
+verified = true
 
 [[ram]]
 addr = 0x00AD
@@ -265,15 +265,15 @@ verified = true
 addr = 0x0075
 name = "yes_no_choice"
 doc = "Highlighted choice on the save confirm screen ($E5 = 0x13: 0x00 YES, 0x01 NO) and the game over screen ($E5 = 0x12: 0x00 CONTINUE, 0x01 END). On the play screen the input loop uses it as a flag instead: set to 0x00 when the loop starts and 0x01 when A is pressed on something (selection made)."
-source = "Seen changing in step with the choice in Mesen 2026-11-07; write test pending"
-verified = false
+source = "Seen changing in step with the choice in Mesen 2026-11-07; mouse write test on save confirm (YES/NO) passed 2026-11-08; game over still to try"
+verified = true
 
 [[ram]]
 addr = 0x0084
 name = "file_options_choice"
 doc = "Highlighted choice on the file options screen: 0x00 CONTINUE, 0x01 EXIT, 0x02 NEW GAME. NOT range-checked: writing 0x03 moved the highlight to an empty spot and pressing A crashed the game."
-source = "Seen changing in step with the choice in Mesen 2026-11-07; write test pending"
-verified = false
+source = "Seen changing in step with the choice in Mesen 2026-11-07; mouse write test passed 2026-11-08 (0x00-0x02 move the highlight correctly)"
+verified = true
 
 [[ram]]
 addr = 0x0087
@@ -621,6 +621,10 @@ click_needs = ["cursor_x", "cursor_y", "press A"]
 # write test; revisit if map clicks misbehave. The input code ($A2E8) shows
 # the map is its own mode with $AF = 0x19, so a map click will probably need
 # $AF = 0x19 written as well as X/Y (check in Phase 6 testing).
+# CONFIRMED 2026-11-08 by the user: map clicks with X/Y only did nothing
+# until the d-pad had entered the map once (which sets $AF = 0x19); after that
+# they worked. So a map click writes X/Y AND $AF = 0x19. A scene click made
+# while $AF = 0x19 sets $AF back to 0x16 (0x17 when $B2 = MOVE) - to test.
 map_af = 0x19
 
 # ------------------------------------------------------------------ hit boxes
