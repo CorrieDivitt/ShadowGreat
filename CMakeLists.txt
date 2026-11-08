@@ -24,6 +24,7 @@ set(SHADOWGATE_FEATURES
     src/sg_host.c
     src/sg_game.c
     src/sg_text.c
+    src/sg_hitboxes.c
     src/features/feat_mouse.c
     src/features/feat_narration.c
     src/features/feat_torch.c
