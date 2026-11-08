@@ -8,21 +8,15 @@
 #         -DSHADOWGATE_ROM="F:/Shadowgreat/Shadowgate (USA).nes"
 #   cmake --build build-window --config Release --parallel
 #
-# The narrator's voice (Phase 7) also needs sherpa-onnx's Windows library
-# download and the Kokoro model folder (both downloaded separately):
-#         -DSHERPA_ONNX_DIR="F:/NESDev/Voice/sherpa-onnx-v2.0.1-win-x64-static-MD-Release"
-#         -DSHADOWGATE_VOICE_MODEL="F:/NESDev/Voice/kokoro-multi-lang-v1_0"
-# (those two are also the defaults). Without them the game builds silent.
+# The narrator's voice is an optional "voice package" (sherpa-onnx DLLs +
+# the Kokoro model) placed in a voice folder beside the .exe; nothing about
+# it is needed at build time (config.ini VoiceFolder / VoiceModelFolder).
 cmake_minimum_required(VERSION 3.21)
 project(Shadowgate C)
 
 set(NESRECOMP_ROOT "F:/NESDev/nesrecomp" CACHE PATH "Your nesrecomp checkout")
 set(SHADOWGATE_ROM "" CACHE FILEPATH "Your own Shadowgate (USA) .nes file")
 option(NESRECOMP_HEADLESS "Build without a window (for tests)" OFF)
-set(SHERPA_ONNX_DIR "F:/NESDev/Voice/sherpa-onnx-v2.0.1-win-x64-static-MD-Release"
-    CACHE PATH "sherpa-onnx's Windows download (has include/ and lib/)")
-set(SHADOWGATE_VOICE_MODEL "F:/NESDev/Voice/kokoro-multi-lang-v1_0"
-    CACHE PATH "The Kokoro model folder (model.onnx, voices.bin, ...)")
 
 if(NOT SHADOWGATE_ROM)
     message(FATAL_ERROR "Tell CMake where your ROM is: -DSHADOWGATE_ROM=\"F:/path/Shadowgate (USA).nes\"")
@@ -73,22 +67,19 @@ target_include_directories(shadowgate PRIVATE "${CMAKE_SOURCE_DIR}/src"
     "${NESRECOMP_ROOT}/runner/include")
 
 # ---- the narrator's voice (sg_voice.c) ----
-# sherpa-onnx is linked into shadowgate.exe from its own download; nothing
-# of it is copied into this project. Our word list (voice/sg-names.txt) is
-# copied beside the .exe.
-set(_sg_sherpa_header "${SHERPA_ONNX_DIR}/include/sherpa-onnx/c-api/c-api.h")
-if(NOT NESRECOMP_HEADLESS AND EXISTS "${_sg_sherpa_header}")
-    file(GLOB _sg_sherpa_libs "${SHERPA_ONNX_DIR}/lib/*.lib")
-    target_include_directories(shadowgate PRIVATE "${SHERPA_ONNX_DIR}/include")
-    target_link_libraries(shadowgate PRIVATE ${_sg_sherpa_libs})
-    target_compile_definitions(shadowgate PRIVATE SG_HAVE_VOICE
-        SG_DEFAULT_VOICE_MODEL="${SHADOWGATE_VOICE_MODEL}")
+# The voice is an optional add-on: sherpa-onnx's DLLs and the Kokoro model go
+# in a "voice" folder beside the .exe (the launcher downloads them on request).
+# The game is always built able to use it: only sherpa-onnx's header is in the
+# project (third_party/sherpa-onnx, Apache-2.0), and the DLL is loaded while
+# the game runs. Without the voice package the game runs without narration.
+# Our word list (voice/sg-names.txt) is copied beside the .exe.
+if(NOT NESRECOMP_HEADLESS)
+    target_include_directories(shadowgate PRIVATE "${CMAKE_SOURCE_DIR}/third_party/sherpa-onnx")
+    target_compile_definitions(shadowgate PRIVATE SG_HAVE_VOICE)
     add_custom_command(TARGET shadowgate POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_SOURCE_DIR}/voice/sg-names.txt" $<TARGET_FILE_DIR:shadowgate>)
-    message(STATUS "shadowgate: voice ON (sherpa-onnx from ${SHERPA_ONNX_DIR})")
-else()
-    message(STATUS "shadowgate: voice OFF (no sherpa-onnx at ${SHERPA_ONNX_DIR})")
+    message(STATUS "shadowgate: voice support ON (uses the voice package if it is installed)")
 endif()
 
 # ---- in-game menu scaled with the window (patches/menu-scale/README.md) ----
@@ -171,4 +162,26 @@ if(_sg_rt_src)
         message(WARNING "shadowgate: recomp-ui's runtime_ui_imgui.cpp has changed; "
                         "the reset row shows OPEN")
     endif()
+endif()
+
+# ---- MinGW (llvm-mingw) builds: ship the compiler's C++ runtime beside the exe ----
+# shadowgate.exe built with clang for MinGW needs libc++.dll and libunwind.dll.
+# They are part of the compiler download (Apache-2.0 with LLVM exception), so
+# the build copies them next to the exe; otherwise it only starts when the
+# compiler folder happens to be on PATH.
+if(MINGW)
+    get_filename_component(_sg_cc_bin "${CMAKE_CXX_COMPILER}" DIRECTORY)
+    foreach(_sg_dll libc++.dll libunwind.dll)
+        find_file(_sg_dll_path_${_sg_dll} ${_sg_dll}
+            PATHS "${_sg_cc_bin}" "${_sg_cc_bin}/../x86_64-w64-mingw32/bin"
+            NO_DEFAULT_PATH)
+        if(_sg_dll_path_${_sg_dll})
+            add_custom_command(TARGET shadowgate POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${_sg_dll_path_${_sg_dll}}" $<TARGET_FILE_DIR:shadowgate>)
+        else()
+            message(WARNING "shadowgate: ${_sg_dll} not found next to the compiler; "
+                            "copy it beside shadowgate.exe by hand")
+        endif()
+    endforeach()
 endif()

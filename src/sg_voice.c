@@ -19,6 +19,11 @@
  * the end of the page the game is showing and goes on (jumping ahead if
  * need be) when the player turns the page (sg_voice_page).
  *
+ * The voice is an optional add-on (the "voice package"): sherpa-onnx's DLL
+ * and the Kokoro model, in the voice folder beside the .exe. The DLL is
+ * loaded while the game runs (load_library); without it narration is just
+ * unavailable and the rest of the game is unaffected.
+ *
  * Loudness: Kokoro speaks quietly, so the voice is brought up to near full
  * scale (from the loudest moment heard so far), then VoiceVolume applies,
  * and a soft limiter keeps voice + music from crackling.
@@ -42,9 +47,63 @@ const int sg_voice_preset_count = (int)(sizeof sg_voice_presets / sizeof sg_voic
 #if defined(SG_HAVE_VOICE) && defined(CYC_WITH_SDL)
 
 #include <SDL.h>
-#include "sherpa-onnx/c-api/c-api.h"
+#include "sherpa-onnx/c-api/c-api.h"   /* third_party/sherpa-onnx (v2.0.1, Apache-2.0) */
+#if defined(_WIN32)
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
 
-bool sg_voice_built_in(void) { return true; }
+/* ---- sherpa-onnx, loaded from the voice package while the game runs ---- */
+static char s_voice_dir[1024];          /* the voice folder (DLLs, and the model by default) */
+static bool s_unavailable;              /* the voice package is missing or broken */
+static const SherpaOnnxOfflineTts *(*p_create)(const SherpaOnnxOfflineTtsConfig *);
+static void (*p_destroy)(const SherpaOnnxOfflineTts *);
+static int32_t (*p_sample_rate)(const SherpaOnnxOfflineTts *);
+static const SherpaOnnxGeneratedAudio *(*p_generate)(const SherpaOnnxOfflineTts *, const char *,
+        const SherpaOnnxGenerationConfig *, SherpaOnnxGeneratedAudioProgressCallbackWithArg, void *);
+static void (*p_free_audio)(const SherpaOnnxGeneratedAudio *);
+
+static bool load_library(void)
+{
+    static bool tried, ok;
+    if (tried) return ok;
+    tried = true;
+#if defined(_WIN32)
+    char path[1200];
+    snprintf(path, sizeof path, "%s\\sherpa-onnx-c-api.dll", s_voice_dir);
+    /* ALTERED_SEARCH_PATH: its own DLLs (onnxruntime.dll) are found beside it. */
+    HMODULE lib = LoadLibraryExA(path, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+#define SG_SYM(name) GetProcAddress(lib, name)
+#else
+    char path[1200];
+    snprintf(path, sizeof path, "%s/libsherpa-onnx-c-api.so", s_voice_dir);
+    void *lib = SDL_LoadObject(path);
+#define SG_SYM(name) SDL_LoadFunction(lib, name)
+#endif
+    if (!lib) {
+        sg_log("voice: the voice package is not installed (no %s); narration is off", path);
+        return false;
+    }
+    p_create      = (const SherpaOnnxOfflineTts *(*)(const SherpaOnnxOfflineTtsConfig *))(void (*)(void))SG_SYM("SherpaOnnxCreateOfflineTts");
+    p_destroy     = (void (*)(const SherpaOnnxOfflineTts *))(void (*)(void))SG_SYM("SherpaOnnxDestroyOfflineTts");
+    p_sample_rate = (int32_t (*)(const SherpaOnnxOfflineTts *))(void (*)(void))SG_SYM("SherpaOnnxOfflineTtsSampleRate");
+    p_generate    = (const SherpaOnnxGeneratedAudio *(*)(const SherpaOnnxOfflineTts *, const char *,
+                        const SherpaOnnxGenerationConfig *, SherpaOnnxGeneratedAudioProgressCallbackWithArg,
+                        void *))(void (*)(void))SG_SYM("SherpaOnnxOfflineTtsGenerateWithConfig");
+    p_free_audio  = (void (*)(const SherpaOnnxGeneratedAudio *))(void (*)(void))SG_SYM("SherpaOnnxDestroyOfflineTtsGeneratedAudio");
+#undef SG_SYM
+    ok = p_create && p_destroy && p_sample_rate && p_generate && p_free_audio;
+    if (!ok) sg_log("voice: %s is not the expected sherpa-onnx version (2.0.1); narration is off", path);
+    return ok;
+}
+#define SherpaOnnxCreateOfflineTts                p_create
+#define SherpaOnnxDestroyOfflineTts               p_destroy
+#define SherpaOnnxOfflineTtsSampleRate            p_sample_rate
+#define SherpaOnnxOfflineTtsGenerateWithConfig    p_generate
+#define SherpaOnnxDestroyOfflineTtsGeneratedAudio p_free_audio
+
+/* false once we know the voice package is missing (the menu greys its rows) */
+bool sg_voice_built_in(void) { return !s_unavailable; }
 
 #define KOKORO_STYLE_FLOATS (510 * 256)   /* one voice in voices.bin */
 
@@ -375,8 +434,10 @@ static const SherpaOnnxOfflineTts *load_model(int *sid)
     join(voices, sizeof voices, s_model_dir, "/voices.bin");
     join(tokens, sizeof tokens, s_model_dir, "/tokens.txt");
     join(ours,   sizeof ours,   s_base, "sg-names.txt");
+    if (!load_library()) { s_unavailable = true; return NULL; }
     if (!file_exists(model) || !file_exists(voices) || !file_exists(tokens)) {
-        sg_log("voice: no Kokoro model in \"%s\" (set VoiceModelFolder in config.ini)", s_model_dir);
+        sg_log("voice: the voice package has no Kokoro model in \"%s\"; narration is off", s_model_dir);
+        s_unavailable = true;
         return NULL;
     }
     /* British first, US fills gaps, ours last: the LAST list wins. */
@@ -584,7 +645,16 @@ static int voice_thread(void *unused)
     return 0;   /* (never reached: the voice thread runs until the game closes) */
 }
 
-void sg_voice_start(int preset, const char *model_dir, int volume, int music)
+/* A folder setting: relative = beside the .exe; no trailing slash. */
+static void resolve_dir(char *out, size_t n, const char *dir)
+{
+    if (is_absolute(dir)) snprintf(out, n, "%s", dir);
+    else snprintf(out, n, "%s%s", s_base, dir);
+    size_t len = strlen(out);
+    while (len && (out[len - 1] == '/' || out[len - 1] == '\\')) out[--len] = 0;
+}
+
+void sg_voice_start(int preset, const char *voice_dir, const char *model_dir, int volume, int music)
 {
     if (s_started) {                     /* again (reset, or switched back on) */
         sg_voice_stop();
@@ -601,11 +671,9 @@ void sg_voice_start(int preset, const char *model_dir, int volume, int music)
     char *base = SDL_GetBasePath();
     snprintf(s_base, sizeof s_base, "%s", base ? base : "");
     if (base) SDL_free(base);
-    if (!model_dir || !*model_dir) model_dir = "kokoro-multi-lang-v1_0";
-    if (is_absolute(model_dir)) snprintf(s_model_dir, sizeof s_model_dir, "%s", model_dir);
-    else snprintf(s_model_dir, sizeof s_model_dir, "%s%s", s_base, model_dir);
-    size_t n = strlen(s_model_dir);
-    while (n && (s_model_dir[n - 1] == '/' || s_model_dir[n - 1] == '\\')) s_model_dir[--n] = 0;
+    resolve_dir(s_voice_dir, sizeof s_voice_dir, voice_dir && *voice_dir ? voice_dir : "voice");
+    if (model_dir && *model_dir) resolve_dir(s_model_dir, sizeof s_model_dir, model_dir);
+    else snprintf(s_model_dir, sizeof s_model_dir, "%s/kokoro-multi-lang-v1_0", s_voice_dir);
 
     s_lock = SDL_CreateMutex();
     s_wake = SDL_CreateCond();
@@ -765,10 +833,10 @@ void sg_voice_mix(int16_t *pcm, size_t count, unsigned rate)
 #else   /* built without sherpa-onnx */
 
 bool sg_voice_built_in(void) { return false; }
-void sg_voice_start(int preset, const char *model_dir, int volume, int music)
+void sg_voice_start(int preset, const char *voice_dir, const char *model_dir, int volume, int music)
 {
-    (void)preset; (void)model_dir; (void)volume; (void)music;
-    sg_log("voice: this build has no voice (sherpa-onnx was not found when it was built)");
+    (void)preset; (void)voice_dir; (void)model_dir; (void)volume; (void)music;
+    sg_log("voice: this build has no voice (built without a window)");
 }
 void sg_voice_say(const char *text) { (void)text; }
 void sg_voice_page(int page) { (void)page; }

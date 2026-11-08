@@ -63,7 +63,9 @@ static int get_value(void *ctx, const RecompRuntimeUiItem *it, int *out)
     (void)ctx;
     if (is(it, "sg.mouse"))              *out = sg_feature_mouse.enabled;
     else if (is(it, "sg.hand"))          *out = sg_feature_hand.enabled;
-    else if (is(it, "sg.narration"))     *out = sg_feature_narration.enabled;
+    /* Shown Off while the voice package is missing (the row is greyed then);
+     * the saved setting itself stays as the player chose it. */
+    else if (is(it, "sg.narration"))     *out = sg_feature_narration.enabled && sg_voice_built_in();
     else if (is(it, "sg.voice"))         *out = sg_narration_get(SG_NARR_PRESET);
     else if (is(it, "sg.voice.volume"))  *out = sg_narration_get(SG_NARR_VOLUME);
     else if (is(it, "sg.voice.music"))   *out = sg_narration_get(SG_NARR_MUSIC);

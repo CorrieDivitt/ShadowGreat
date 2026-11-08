@@ -28,15 +28,18 @@ typedef struct SgVoicePreset {
 extern const SgVoicePreset sg_voice_presets[];
 extern const int sg_voice_preset_count;
 
-/* false when this build was made without sherpa-onnx (then all of the
- * functions below do nothing). */
+/* false when the voice can't be used: the build has no window, or the
+ * voice package (sherpa-onnx DLL + Kokoro model) is not installed. Then the
+ * functions below do nothing. */
 bool sg_voice_built_in(void);
 
-/* Start the voice thread (once) and load the model in the background.
- * model_dir: the kokoro-multi-lang-v1_0 folder (relative = beside the .exe).
+/* Start the voice thread (once) and load the voice in the background.
+ * voice_dir: the voice package folder holding sherpa-onnx's DLLs ("voice"
+ * beside the .exe by default). model_dir: the kokoro-multi-lang-v1_0 folder,
+ * or NULL / "" for voice_dir/kokoro-multi-lang-v1_0. Relative = beside the .exe.
  * volume: 0-100. music: 0-100, how loud the game's own sound stays while
  * the voice is talking. Calling it again (game reset) just stops speech. */
-void sg_voice_start(int preset, const char *model_dir, int volume, int music);
+void sg_voice_start(int preset, const char *voice_dir, const char *model_dir, int volume, int music);
 
 /* Get ready to say this, cutting off anything still being said. The
  * speech is made at once but stays silent until sg_voice_release().

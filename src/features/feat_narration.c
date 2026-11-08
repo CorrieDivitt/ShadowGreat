@@ -12,7 +12,8 @@
  *   MusicWhileSpeaking = 40           0-100: game sound level while the voice talks
  *   QuotePause       = 0.8            seconds of quiet after a closing quote
  *   ExclaimPause     = 0.6            seconds of quiet after "!"
- *   VoiceModelFolder = kokoro-multi-lang-v1_0   (beside the .exe, or a full path)
+ *   VoiceFolder      = voice          the voice package: sherpa-onnx DLLs (beside the .exe, or a full path)
+ *   VoiceModelFolder =                the Kokoro model; empty = VoiceFolder/kokoro-multi-lang-v1_0
  *
  * The hook site is declared in game.toml as "shadowgate.narration.message".
  * It is only switched on while this feature is On.
@@ -29,11 +30,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* Where the Kokoro model folder is, unless config.ini says otherwise
- * (set by CMakeLists.txt: SHADOWGATE_VOICE_MODEL). */
-#ifndef SG_DEFAULT_VOICE_MODEL
-#define SG_DEFAULT_VOICE_MODEL "kokoro-multi-lang-v1_0"
-#endif
+
 
 #define HOOK_ID   "shadowgate.narration.message"
 /* Second way in ($C494): used for automatic story scenes, e.g. the
@@ -80,7 +77,8 @@ static float s_exclaim_pause = DEFAULT_EXCLAIM_PAUSE;
 #define BOX_WAIT_FRAMES      20
 static bool     s_waiting_for_box;
 static uint32_t s_message_frame;
-static char s_model_dir[1024] = SG_DEFAULT_VOICE_MODEL;
+static char s_voice_dir[1024] = "voice";
+static char s_model_dir[1024] = "";
 
 static int on_message_start(uint16_t addr)
 {
@@ -156,7 +154,7 @@ static void narration_start(void)
     s_messages = 0;
     s_waiting_for_box = false;
     sg_voice_set_pauses(s_quote_pause, s_exclaim_pause);
-    sg_voice_start(s_preset, s_model_dir, s_volume, s_music);
+    sg_voice_start(s_preset, s_voice_dir, s_model_dir, s_volume, s_music);
     s_last_screen = SG_SCREEN_UNKNOWN;
     if (nes_mod_set_function_hook_enabled(HOOK_ID, 1) &&
         nes_mod_set_function_hook_enabled(HOOK_ID_2, 1) &&
@@ -229,6 +227,10 @@ static bool narration_setting(const char *key, const char *value)
         s_music = v < 0 ? 0 : v > 100 ? 100 : v;
         return true;
     }
+    if (sg_same_word(key, "VoiceFolder")) {
+        snprintf(s_voice_dir, sizeof s_voice_dir, "%s", value);
+        return true;
+    }
     if (sg_same_word(key, "VoiceModelFolder")) {
         snprintf(s_model_dir, sizeof s_model_dir, "%s", value);
         return true;
@@ -243,6 +245,7 @@ static void narration_save(FILE *f)
     fprintf(f, "MusicWhileSpeaking = %d\n", s_music);
     fprintf(f, "QuotePause = %.2f\n", s_quote_pause);
     fprintf(f, "ExclaimPause = %.2f\n", s_exclaim_pause);
+    fprintf(f, "VoiceFolder = %s\n", s_voice_dir);
     fprintf(f, "VoiceModelFolder = %s\n", s_model_dir);
 }
 
