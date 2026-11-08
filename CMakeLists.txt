@@ -49,6 +49,7 @@ set(SHADOWGATE_FEATURES
     src/sg_game.c
     src/sg_text.c
     src/sg_voice.c
+    src/sg_menu.c
     src/sg_hitboxes.c
     src/features/feat_mouse.c
     src/features/feat_hand.c
@@ -87,4 +88,86 @@ if(NOT NESRECOMP_HEADLESS AND EXISTS "${_sg_sherpa_header}")
     message(STATUS "shadowgate: voice ON (sherpa-onnx from ${SHERPA_ONNX_DIR})")
 else()
     message(STATUS "shadowgate: voice OFF (no sherpa-onnx at ${SHERPA_ONNX_DIR})")
+endif()
+
+# ---- in-game menu scaled with the window (patches/menu-scale/README.md) ----
+# Only for builds with recomp-ui. Builds a patched copy of nesrecomp's
+# cyc_ui_imgui.cpp in the build folder; nesrecomp's own file is untouched.
+get_target_property(_sg_srcs shadowgate SOURCES)
+set(_sg_ui_src "")
+foreach(_s IN LISTS _sg_srcs)
+    if(_s MATCHES "cyc_ui_imgui\\.cpp$")
+        set(_sg_ui_src "${_s}")
+    endif()
+endforeach()
+if(_sg_ui_src)
+    set(_sg_p "${CMAKE_SOURCE_DIR}/patches/menu-scale")
+    file(READ "${_sg_ui_src}" _sg_text)
+    file(READ "${_sg_p}/helpers.inc" _sg_helpers)
+    file(READ "${_sg_p}/init.inc" _sg_init)
+    file(READ "${_sg_p}/newframe.inc" _sg_newframe)
+    file(READ "${_sg_p}/render.inc" _sg_render)
+    set(_sg_ok TRUE)
+    foreach(_a
+            "#include \"imgui_impl_sdlrenderer2.h\"\n"
+            "    cyc_state_ui_init(ren, host);\n"
+            "    ImGui_ImplSDL2_NewFrame();\n    ImGui::NewFrame();\n"
+            "    ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), s_ren);\n")
+        string(FIND "${_sg_text}" "${_a}" _sg_at)
+        if(_sg_at LESS 0)
+            set(_sg_ok FALSE)
+        endif()
+    endforeach()
+    if(_sg_ok)
+        string(REPLACE "#include \"imgui_impl_sdlrenderer2.h\"\n"
+                       "#include \"imgui_impl_sdlrenderer2.h\"\n${_sg_helpers}" _sg_text "${_sg_text}")
+        string(REPLACE "    cyc_state_ui_init(ren, host);\n"
+                       "    cyc_state_ui_init(ren, host);\n${_sg_init}" _sg_text "${_sg_text}")
+        string(REPLACE "    ImGui_ImplSDL2_NewFrame();\n    ImGui::NewFrame();\n"
+                       "    ImGui_ImplSDL2_NewFrame();\n${_sg_newframe}    ImGui::NewFrame();\n" _sg_text "${_sg_text}")
+        string(REPLACE "    ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), s_ren);\n"
+                       "${_sg_render}" _sg_text "${_sg_text}")
+        set(_sg_out "${CMAKE_BINARY_DIR}/generated/cyc_ui_imgui_scaled.cpp")
+        file(WRITE "${_sg_out}.new" "${_sg_text}")
+        file(COPY_FILE "${_sg_out}.new" "${_sg_out}" ONLY_IF_DIFFERENT)
+        list(REMOVE_ITEM _sg_srcs "${_sg_ui_src}")
+        list(APPEND _sg_srcs "${_sg_out}")
+        set_property(TARGET shadowgate PROPERTY SOURCES ${_sg_srcs})
+        get_filename_component(_sg_ui_dir "${_sg_ui_src}" DIRECTORY)
+        target_include_directories(shadowgate PRIVATE "${_sg_ui_dir}")
+        message(STATUS "shadowgate: in-game menu scales with the window")
+    else()
+        message(WARNING "shadowgate: nesrecomp's cyc_ui_imgui.cpp has changed; "
+                        "the in-game menu keeps its normal (unscaled) size")
+    endif()
+endif()
+
+# ---- "Restore Defaults" instead of OPEN on our reset row (patches/menu-action-label) ----
+get_target_property(_sg_srcs shadowgate SOURCES)
+set(_sg_rt_src "")
+foreach(_s IN LISTS _sg_srcs)
+    if(_s MATCHES "runtime_ui_imgui\\.cpp$")
+        set(_sg_rt_src "${_s}")
+    endif()
+endforeach()
+if(_sg_rt_src)
+    file(READ "${_sg_rt_src}" _sg_text)
+    file(READ "${CMAKE_SOURCE_DIR}/patches/menu-action-label/value.inc" _sg_value)
+    set(_sg_a "        std::snprintf(out, out_size, \"OPEN\");\n")
+    string(FIND "${_sg_text}" "${_sg_a}" _sg_at)
+    if(_sg_at GREATER_EQUAL 0)
+        string(REPLACE "${_sg_a}" "${_sg_value}" _sg_text "${_sg_text}")
+        set(_sg_out "${CMAKE_BINARY_DIR}/generated/runtime_ui_imgui_labels.cpp")
+        file(WRITE "${_sg_out}.new" "${_sg_text}")
+        file(COPY_FILE "${_sg_out}.new" "${_sg_out}" ONLY_IF_DIFFERENT)
+        list(REMOVE_ITEM _sg_srcs "${_sg_rt_src}")
+        list(APPEND _sg_srcs "${_sg_out}")
+        set_property(TARGET shadowgate PROPERTY SOURCES ${_sg_srcs})
+        get_filename_component(_sg_rt_dir "${_sg_rt_src}" DIRECTORY)
+        target_include_directories(shadowgate PRIVATE "${_sg_rt_dir}")
+        message(STATUS "shadowgate: menu reset row says Restore Defaults")
+    else()
+        message(WARNING "shadowgate: recomp-ui's runtime_ui_imgui.cpp has changed; "
+                        "the reset row shows OPEN")
+    endif()
 endif()

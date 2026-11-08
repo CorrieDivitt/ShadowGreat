@@ -60,11 +60,18 @@ static int      s_page;               /* page of the message being shown */
 static bool     s_at_page_end;        /* the game is waiting for A        */
 static SgScreen s_last_screen;
 
-static int  s_preset;                       /* index into sg_voice_presets */
-static int  s_volume = 100;
-static int  s_music = 40;
-static float s_quote_pause = 0.8f;
-static float s_exclaim_pause = 0.6f;
+/* Defaults (also what "Restore defaults" in the menu goes back to) */
+#define DEFAULT_PRESET        0      /* Narrator */
+#define DEFAULT_VOLUME        100
+#define DEFAULT_MUSIC         40
+#define DEFAULT_QUOTE_PAUSE   0.8f
+#define DEFAULT_EXCLAIM_PAUSE 0.6f
+
+static int  s_preset = DEFAULT_PRESET;      /* index into sg_voice_presets */
+static int  s_volume = DEFAULT_VOLUME;
+static int  s_music = DEFAULT_MUSIC;
+static float s_quote_pause = DEFAULT_QUOTE_PAUSE;
+static float s_exclaim_pause = DEFAULT_EXCLAIM_PAUSE;
 
 /* A message is only spoken once the narration box is really on screen
  * ($E5 = $6C, shadowgate-map.toml). Things like the inventory headings
@@ -78,6 +85,7 @@ static char s_model_dir[1024] = SG_DEFAULT_VOICE_MODEL;
 static int on_message_start(uint16_t addr)
 {
     (void)addr;
+    if (!sg_feature_narration.enabled) return 0;   /* switched Off in the menu */
     CycModRegs r;
     cyc_mod_regs(&r);
     uint16_t msg = (uint16_t)(cyc_mod_peek(SG_RAM_MESSAGE_PTR) |
@@ -159,6 +167,47 @@ static void narration_start(void)
         sg_log("narration: could not switch on the message hook");
 }
 
+static void narration_stop(void)
+{
+    s_waiting_for_box = false;
+    sg_voice_stop();
+}
+
+int sg_narration_get(SgNarrSetting which)
+{
+    switch (which) {
+    case SG_NARR_PRESET:         return s_preset;
+    case SG_NARR_VOLUME:         return s_volume;
+    case SG_NARR_MUSIC:          return s_music;
+    case SG_NARR_QUOTE_TENTHS:   return (int)(s_quote_pause * 10.0f + 0.5f);
+    case SG_NARR_EXCLAIM_TENTHS: return (int)(s_exclaim_pause * 10.0f + 0.5f);
+    }
+    return 0;
+}
+
+void sg_narration_set(SgNarrSetting which, int v)
+{
+    switch (which) {
+    case SG_NARR_PRESET:
+        if (v >= 0 && v < sg_voice_preset_count) { s_preset = v; sg_voice_set_preset(v); }
+        break;
+    case SG_NARR_VOLUME: s_volume = v < 0 ? 0 : v > 100 ? 100 : v; sg_voice_set_volume(s_volume, s_music); break;
+    case SG_NARR_MUSIC:  s_music  = v < 0 ? 0 : v > 100 ? 100 : v; sg_voice_set_volume(s_volume, s_music); break;
+    case SG_NARR_QUOTE_TENTHS:   s_quote_pause = v / 10.0f;   sg_voice_set_pauses(s_quote_pause, s_exclaim_pause); break;
+    case SG_NARR_EXCLAIM_TENTHS: s_exclaim_pause = v / 10.0f; sg_voice_set_pauses(s_quote_pause, s_exclaim_pause); break;
+    }
+}
+
+void sg_narration_defaults(void)
+{
+    sg_narration_set(SG_NARR_PRESET, DEFAULT_PRESET);
+    sg_narration_set(SG_NARR_VOLUME, DEFAULT_VOLUME);
+    sg_narration_set(SG_NARR_MUSIC, DEFAULT_MUSIC);
+    s_quote_pause = DEFAULT_QUOTE_PAUSE;
+    s_exclaim_pause = DEFAULT_EXCLAIM_PAUSE;
+    sg_voice_set_pauses(s_quote_pause, s_exclaim_pause);
+}
+
 static bool narration_setting(const char *key, const char *value)
 {
     if (sg_same_word(key, "NarratorVoice")) {
@@ -201,6 +250,7 @@ SgFeature sg_feature_narration = {
     .key = "Narration",
     .default_on = true,
     .start = narration_start,
+    .stop = narration_stop,
     .frame = narration_frame,
     .setting = narration_setting,
     .save = narration_save,

@@ -27,7 +27,8 @@ typedef struct SgFeature {
     bool enabled;             /* the live switch (set from config.ini)     */
 
     /* Optional hooks: leave any of them NULL. Called only while enabled. */
-    void (*start)(void);                      /* game powered on / reset   */
+    void (*start)(void);                      /* game powered on / reset, or switched On mid-game */
+    void (*stop)(void);                       /* switched Off mid-game: tidy up */
     void (*frame)(void);                      /* end of every frame        */
     void (*input)(uint8_t buttons[2]);        /* may add NES button presses */
     void (*event)(const void *sdl_event);     /* raw window events (mouse) */
@@ -57,6 +58,25 @@ extern int sg_pointer_x, sg_pointer_y;
 #define SG_SITE_TEXT_A 0xC7F4
 #define SG_SITE_PAGE_A 0xC9F9
 void sg_narration_print_site(uint16_t addr);
+
+/* Switch a feature On or Off while the game runs (the in-game menu). */
+void sg_feature_switch(SgFeature *f, bool on);
+
+/* The narration feature's own settings, for the in-game menu. */
+typedef enum SgNarrSetting {
+    SG_NARR_PRESET,          /* index into sg_voice_presets            */
+    SG_NARR_VOLUME,          /* 0-100                                  */
+    SG_NARR_MUSIC,           /* 0-100: game sound while the voice talks */
+    SG_NARR_QUOTE_TENTHS,    /* pause after quotes, tenths of a second */
+    SG_NARR_EXCLAIM_TENTHS,  /* pause after "!", tenths of a second    */
+} SgNarrSetting;
+int  sg_narration_get(SgNarrSetting which);
+void sg_narration_set(SgNarrSetting which, int value);
+void sg_narration_defaults(void);   /* every narration setting back to normal */
+
+/* The in-game menu rows (sg_menu.c; only in builds with recomp-ui). */
+struct CycHostExtras;
+void sg_menu_attach(struct CycHostExtras *extras);
 
 /* Case-blind comparison for config.ini keys and values. */
 bool sg_same_word(const char *a, const char *b);

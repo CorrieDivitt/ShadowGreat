@@ -89,7 +89,8 @@ static unsigned   s_cache_hits, s_cache_misses;
 
 /* ---- set once at start ---- */
 static bool           s_started;
-static SgVoicePreset  s_preset;
+static SgVoicePreset  s_preset;               /* the preset wanted now          */
+static int            s_preset_index;
 static int            s_volume = 80;
 static float          s_music_duck = 0.4f;   /* game sound level while the voice talks */
 static float          s_quote_pause = 0.8f;  /* seconds of quiet after closing a quote  */
@@ -413,8 +414,10 @@ static const SherpaOnnxOfflineTts *load_model(int *sid)
            s_preset.name, threads, s_pcm_rate, (unsigned)(SDL_GetTicks() - t0));
 
     /* The word lists, to report words the voice would skip. */
-    s_known = (uint64_t *)calloc((size_t)1 << KNOWN_BITS, sizeof *s_known);
-    if (s_known) {
+    if (!s_known) s_known = (uint64_t *)calloc((size_t)1 << KNOWN_BITS, sizeof *s_known);
+    static bool words_loaded;
+    if (s_known && !words_loaded) {
+        words_loaded = true;
         char p[1200];
         int total = 0, n;
         join(p, sizeof p, s_model_dir, "/lexicon-us-en.txt"); if ((n = load_word_list(p)) > 0) total += n;
@@ -499,9 +502,8 @@ static bool recall(uint64_t key)
 static int voice_thread(void *unused)
 {
     (void)unused;
-    int sid = 0;
+    int sid = 0, loaded = s_preset_index;
     const SherpaOnnxOfflineTts *tts = load_model(&sid);
-    if (!tts) return 0;
     for (;;) {
         SDL_LockMutex(s_lock);
         while (!s_pending) SDL_CondWait(s_wake, s_lock);
@@ -509,7 +511,16 @@ static int voice_thread(void *unused)
         s_pending = NULL;
         Job job = { s_request, 0, 0, false };
         uint64_t key = s_request_key;
+        int want = s_preset_index;
         SDL_UnlockMutex(s_lock);
+
+        /* The narrator voice was changed in the menu: load it (~1.5 s). */
+        if (want != loaded) {
+            if (tts) SherpaOnnxDestroyOfflineTts(tts);
+            tts = load_model(&sid);
+            loaded = want;
+        }
+        if (!tts) { free(text); continue; }
 
         report_unknown_words(text);
         SherpaOnnxGenerationConfig g;
@@ -570,15 +581,22 @@ static int voice_thread(void *unused)
                job.cut ? " (cut short, not kept)" : "");
         free(text);
     }
+    return 0;   /* (never reached: the voice thread runs until the game closes) */
 }
 
 void sg_voice_start(int preset, const char *model_dir, int volume, int music)
 {
-    if (s_started) { sg_voice_stop(); return; }
+    if (s_started) {                     /* again (reset, or switched back on) */
+        sg_voice_stop();
+        sg_voice_set_preset(preset);
+        sg_voice_set_volume(volume, music);
+        return;
+    }
     s_music_duck = (music < 0 ? 0 : music > 100 ? 100 : music) / 100.0f;
     s_started = true;
     if (preset < 0 || preset >= sg_voice_preset_count) preset = 0;
     s_preset = sg_voice_presets[preset];
+    s_preset_index = preset;
     s_volume = volume < 0 ? 0 : volume > 100 ? 100 : volume;
     char *base = SDL_GetBasePath();
     snprintf(s_base, sizeof s_base, "%s", base ? base : "");
@@ -623,6 +641,29 @@ void sg_voice_say(const char *text)
     }
     SDL_UnlockMutex(s_lock);
     free(clean);
+}
+
+void sg_voice_set_preset(int preset)
+{
+    if (preset < 0 || preset >= sg_voice_preset_count) return;
+    if (!s_lock) { s_preset = sg_voice_presets[preset]; s_preset_index = preset; return; }
+    SDL_LockMutex(s_lock);
+    bool changed = preset != s_preset_index;
+    s_preset = sg_voice_presets[preset];
+    s_preset_index = preset;
+    SDL_UnlockMutex(s_lock);
+    if (changed) {
+        sg_voice_stop();                 /* the old voice stops; the new one loads with the next message */
+        sg_log("voice: narrator voice is now %s", sg_voice_presets[preset].name);
+    }
+}
+
+void sg_voice_set_volume(int volume, int music)
+{
+    if (s_lock) SDL_LockMutex(s_lock);
+    s_volume = volume < 0 ? 0 : volume > 100 ? 100 : volume;
+    s_music_duck = (music < 0 ? 0 : music > 100 ? 100 : music) / 100.0f;
+    if (s_lock) SDL_UnlockMutex(s_lock);
 }
 
 void sg_voice_set_pauses(float quote_seconds, float exclaim_seconds)
@@ -732,6 +773,8 @@ void sg_voice_start(int preset, const char *model_dir, int volume, int music)
 void sg_voice_say(const char *text) { (void)text; }
 void sg_voice_page(int page) { (void)page; }
 void sg_voice_release(void) {}
+void sg_voice_set_preset(int preset) { (void)preset; }
+void sg_voice_set_volume(int volume, int music) { (void)volume; (void)music; }
 void sg_voice_set_pauses(float quote_seconds, float exclaim_seconds) { (void)quote_seconds; (void)exclaim_seconds; }
 void sg_voice_stop(void) {}
 void sg_voice_mix(int16_t *pcm, size_t count, unsigned rate) { (void)pcm; (void)count; (void)rate; }

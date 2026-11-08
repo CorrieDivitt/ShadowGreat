@@ -339,10 +339,25 @@ static void mouse_start(void)
     sg_log("mouse: point and click (left = select + A, right = B)");
 }
 
+/* Switched Off in the menu: drop anything half-done, give the pointer back. */
+static void mouse_stop(void)
+{
+    s_over = NULL;
+    s_click_pending = false;
+    s_press_buttons = 0;
+    s_press_frames = 0;
+    s_msg_click = false;
+    sg_pointer_x = sg_pointer_y = -1;
+#if defined(CYC_WITH_SDL)
+    SDL_ShowCursor(SDL_ENABLE);
+#endif
+}
+
 SgFeature sg_feature_mouse = {
     .key = "Mouse",
     .default_on = true,
     .start = mouse_start,
+    .stop = mouse_stop,
     .frame = mouse_frame,
     .event = mouse_event,
     .input = mouse_input,

@@ -150,6 +150,12 @@ static void hand_input(uint8_t buttons[2])
     }
 }
 
+/* Switched Off in the menu: the game's own hand and the Windows pointer return. */
+static void hand_stop(void)
+{
+    show_windows_pointer(true);
+}
+
 static void hand_start(void)
 {
     decode_hand();
@@ -164,6 +170,7 @@ SgFeature sg_feature_hand = {
     .key = "HandFollowsMouse",
     .default_on = true,
     .start = hand_start,
+    .stop = hand_stop,
     .frame = hand_frame,
     .input = hand_input,
     .present = hand_present,

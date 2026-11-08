@@ -158,6 +158,20 @@ static void audio_mix(void *ctx, int16_t *samples, size_t count)
             s_features[i]->audio(samples, count, SG_AUDIO_RATE);
 }
 
+void sg_feature_switch(SgFeature *f, bool on)
+{
+    if (f->enabled == on) return;
+    if (on) {
+        f->enabled = true;
+        sg_game_update();
+        if (f->start) f->start();
+    } else {
+        if (f->stop) f->stop();
+        f->enabled = false;
+    }
+    sg_log("frame %6u  %s switched %s in the menu", (unsigned)sg_game.frame, f->key, on ? "On" : "Off");
+}
+
 static CycHostExtras s_extras;
 
 const CycHostExtras *cyc_host_extras(void)
@@ -175,6 +189,7 @@ const CycHostExtras *cyc_host_extras(void)
         s_extras.present       = present;
         s_extras.audio_rate    = SG_AUDIO_RATE;   /* nesrecomp's own default too */
         s_extras.audio_mix     = audio_mix;
+        sg_menu_attach(&s_extras);        /* our rows in the Esc menu (recomp-ui builds) */
         ready = true;
     }
     return &s_extras;
