@@ -399,8 +399,10 @@ source = "Data Crystal text table; A1 found 2026-11-05"
 0x89 = "9"
 0x8A = "!!"                # one tile shows two marks (checked on screen 2026-11-08)
 0x8B = "?"                 # seen in our frame log 2026-11-08
+0xCC = ":"                 # seen in the opening message 2026-11-08
 0xCD = ","                 # seen in our frame log 2026-11-08
 0xCF = "'"                 # apostrophe, seen in our frame log 2026-11-08
+0xD5 = '"'                 # quotation mark, seen in the opening message 2026-11-08
 0xA1 = "."
 0xB1 = "A"
 0xB2 = "B"
@@ -458,8 +460,10 @@ new_line = 0x1D           # in a message
 # Escape + 0x1E (read from the game's code at $C541, 2026-11-08): skip to the
 # next whole byte, read a 2-byte RAM address (low byte first), and print word
 # number RAM[address] from list A. Used for "THE <thing> IS OPEN." ($0514 seen).
-# Message code 0x1C ($C650) probably starts a new page; 0x1B ($C63D) comes
-# just before the end; escape + 0x1F ($C627) prints a number from $8B-$8D.
+# Message code 0x1B ($C63D) ends a page: the game waits for A. 0x1C ($C650)
+# after it clears the box for a new paragraph (matches the blank lines in the
+# script for the 11-page opening message, decoded in full 2026-11-08).
+# Escape + 0x1F ($C627) prints a number from $8B-$8D (not seen yet).
 
 [text.layout]
 # Worked out 2026-11-06 by matching a buffer snapshot to the message on screen.

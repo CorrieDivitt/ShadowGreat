@@ -83,8 +83,10 @@ static const char *tile_char(uint8_t t)
     if (t >= 0x80 && t <= 0x89) return digits[t - 0x80];
     if (t == 0x8A) return "!!";   /* one tile shows two marks */
     if (t == 0x8B) return "?";
+    if (t == 0xCC) return ":";
     if (t == 0xCD) return ",";
     if (t == 0xCF) return "'";
+    if (t == 0xD5) return "\"";
     if (t == 0xA1) return ".";
     if (t >= 0xB1 && t <= 0xCA) return letters[t - 0xB1];
     return NULL;
@@ -132,15 +134,15 @@ bool sg_text_decode(uint16_t addr, char *spoken, size_t spoken_size,
     Bits b = { addr, false, 0, 0 };
     char tmp[32];
 
-    for (int count = 0; count < 600; ++count) {  /* safety limit */
+    for (int count = 0; count < 4000; ++count) { /* safety limit */
         unsigned c = read_bits(&b, 5);
         if (c == 0x1F) return true;              /* end of message */
         if (c < 0x1A) { put_code(&s, &l, c); continue; }   /* A-Z */
         switch (c) {
         case 0x1A: put(&s, " "); put(&l, " "); break;      /* space */
         case 0x1D: put(&s, " "); put(&l, " / "); break;    /* new line */
-        case 0x1B: put(&l, "{1B}"); break;                 /* not known yet */
-        case 0x1C: put(&s, " "); put(&l, " // "); break;   /* probably a new page */
+        case 0x1B: put(&s, " "); put(&l, " // "); break;   /* end of a page: the game waits for A */
+        case 0x1C: put(&l, "{1C}"); break;                 /* follows some page ends; not known yet */
         case 0x1E: {                                       /* escape */
             unsigned e = read_bits(&b, 5);
             if (e < 0x1C) {

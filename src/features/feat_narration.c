@@ -19,8 +19,8 @@
 
 #define HOOK_ID "shadowgate.narration.message"
 
-static char     s_spoken[1024];
-static char     s_logged[1536];
+static char     s_spoken[4096];
+static char     s_logged[6144];
 static unsigned s_messages;
 
 static int on_message_start(uint16_t addr)
