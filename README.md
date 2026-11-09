@@ -36,6 +36,8 @@ code into a native Windows program, and [recomp-ui](https://github.com/mstan/rec
 - The game's **music dips** while the narrator talks, then comes back.
 - Short **pauses after quotations and after "!"**, adjustable.
 - Three voices: **Dungeon Master** (deep, the default), **Old Man** and **Woman**.
+- Make each voice your own: **Speed**, **Depth** and **Pause** (the pauses at commas and between sentences) are set
+  separately for each narrator, so switching voices keeps what you chose for each one.
 - It's a separate download (about 358 MB). You can play without it and add or remove it any time.
 
 ### Torch tracker (optional)
@@ -46,14 +48,18 @@ code into a native Windows program, and [recomp-ui](https://github.com/mstan/rec
 ### Options while you play
 - Press **Esc** for the in-game menu. The **Shadowgreat** section has every option, grouped under **Control Options**, **Sound Options** and **Narrator Options** (choose a heading to show or hide its options), and changes apply at once.
 - The menu scales with the window, so it stays readable on large and 4K screens.
-- **Restore Defaults** puts every Shadowgreat option back.
+- **Restore Defaults** at the bottom puts every Shadowgreat option back.
+- **Narrator Options has its own Restore Defaults**, so you can experiment with the voice safely: it puts back
+  the chosen narrator's Speed, Depth and Pause and the two quote pauses, and keeps your narrator choice and
+  every other setting.
 
 ### The launcher
 One window takes you from your ROM to playing:
 1. **Your ROM:** choose your `.nes` file; it's checked to be Shadowgate (USA).
 2. **Build the game:** a one-time download of the build tools (about 283 MB), then a build of a few minutes.
 3. **Narrator voice (optional):** *Download voice files*, or *Play without voice*.
-4. **Options:** the same options as the in-game menu, plus *Skip the game's start screen*.
+4. **Options:** the same options as the in-game menu, under the same headings (including the narrator's
+   Speed, Depth and Pause and both Restore Defaults buttons), plus *Skip the game's start screen*.
 5. **Play.**
 
 Every download comes from its own project's official release on GitHub and is checked against a fixed
@@ -105,21 +111,25 @@ All are in the in-game menu (Esc → Shadowgreat), in the launcher's Options ste
 
 | Option | `config.ini` key | Default |
 |---|---|---|
+| **Control Options** | | |
 | Mouse control | `Mouse` | On |
 | Hand follows the mouse | `HandFollowsMouse` | On |
-| Narrator | `Narration` | On (needs the voice files) |
-| Narration voice | `NarratorVoice` | `Dungeon Master` (or `Old Man`, `Woman`) |
+| Analog stick as mouse | `PadPointer` | On (needs Mouse control) |
+| Analog stick | `PointerStick` | `Left` (or `Right`) |
+| Pointer speed | `PointerSpeed` | 5 (1-10) |
+| **Sound Options** | | |
 | Voice volume | `VoiceVolume` | 100 |
 | Music volume during narration | `MusicWhileSpeaking` | 40 (100 = no dip) |
+| **Narrator Options** | | |
+| Narrator | `Narration` | On (needs the voice files) |
+| Narration voice | `NarratorVoice` | `Dungeon Master` (or `Old Man`, `Woman`) |
 | Pause after quotations | `QuotePause` | 0.80 seconds |
 | Pause after "!" | `ExclaimPause` | 0.60 seconds |
 | Speed (each narrator) | `DungeonMasterSpeed`, `OldManSpeed`, `WomanSpeed` | 1.22, 1.12, 1.00 (0.5-1.5) |
 | Depth (each narrator) | `DungeonMasterDepth`, `OldManDepth`, `WomanDepth` | 0.85, 0.95, 1.00 (0.5-1.5; lower = deeper) |
 | Pause (each narrator) | `DungeonMasterPause`, `OldManPause`, `WomanPause` | 0.5, 0.6, 0.6 (0-2) |
+| **Other** | | |
 | Torch tracker | `TorchTracker` | Off |
-| Analog stick as mouse | `PadPointer` | On (needs Mouse control) |
-| Analog stick | `PointerStick` | `Left` (or `Right`) |
-| Pointer speed | `PointerSpeed` | 5 (1-10) |
 | Skip the game's start screen | `[Launcher] SkipLauncher` | 0 (off) |
 
 ---
@@ -154,7 +164,9 @@ The build tools have deep folders inside them, and very long paths can make Wind
 build fails, tick *Show details*; the full output is also saved in `launcher-build.log`.
 
 **About the narrator.**
-- The narration options show **Off** and are greyed out until the voice files are installed.
+- The narration options show **Off** and are greyed out until the voice files are installed. Sound Options
+  and Narrator Options are also greyed out while *Narrator* is off.
+- Speed, Depth and Pause changes are heard from the next message (Depth at once).
 - The voice is made on your PC as you play, so a slow or busy PC can add a short delay before it starts
   speaking. Lines it has already spoken start at once.
 - The first word of a line can occasionally sound a little odd; that's the voice model, not a bug.
@@ -216,7 +228,7 @@ git config core.hooksPath .githooks
 |---|---|
 | `src/` | The Shadowgreat features: mouse, hand pointer, narration, menu rows, SETTINGS link, torch tracker |
 | `launcher/` | The launcher (SDL2 + Dear ImGui) and `fetch.py`, which downloads the build tools and voice |
-| `patches/` | Small build-time changes to recomp-ui's menu (scaling, button label) |
+| `patches/` | Small build-time changes to recomp-ui's menu (scaling, button labels, decimal values, headings that open in place) |
 | `shadowgate-map.toml` | What we know about the game's memory and screens: addresses and meanings only |
 | `game.toml` | nesrecomp's settings for this game |
 | `voice/sg-names.txt` | Pronunciations for the narrator |
