@@ -13,6 +13,7 @@ struct LauncherSettings {
     std::string game_folder;       // where the game is built (shadowgate.exe)
 
     std::string built_rom_sha1;    // the ROM the current build was made from
+    std::string built_version;     // the Shadowgreat version that built it ("" = before 1.0)
     std::string voice_choice;      // "skip" = play without the narrator voice; "" = not asked yet
 };
 

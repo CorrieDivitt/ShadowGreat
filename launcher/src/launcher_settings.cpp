@@ -31,6 +31,7 @@ const Key kKeys[] = {
     { "ToolsFolder",     &LauncherSettings::tools_folder },
     { "GameFolder",      &LauncherSettings::game_folder },
     { "BuiltRomSha1",    &LauncherSettings::built_rom_sha1 },
+    { "BuiltVersion",    &LauncherSettings::built_version },
     { "VoiceChoice",     &LauncherSettings::voice_choice },
 };
 }

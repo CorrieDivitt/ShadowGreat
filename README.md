@@ -1,7 +1,9 @@
 # Shadowgreat
 
 **Shadowgate (NES) as a native Windows game, built on your own PC from your own ROM**, with mouse
-control, an optional narrator voice, a torch tracker, and options you can change while you play.
+and controller pointing, an optional narrator voice, a torch tracker, and options you can change while you play.
+
+**Version 1.0.0**
 
 Shadowgreat is built with [nesrecomp](https://github.com/mstan/nesrecomp), which turns the NES game's
 code into a native Windows program, and [recomp-ui](https://github.com/mstan/recomp-ui) for its menus.
@@ -19,6 +21,14 @@ code into a native Windows program, and [recomp-ui](https://github.com/mstan/rec
 - **Hand follows the mouse:** the game's own pointing hand becomes your mouse pointer on every screen.
 - A clickable **SETTINGS** line on the file select and save screens opens the Shadowgreat options, so the
   whole game can be played with just a mouse.
+
+### Controller
+- Any controller Windows knows works (tested with an Xbox controller). Buttons can be changed on the game's
+  start screen (Controls).
+- **The left stick moves the pointer**, like the mouse; the D-pad still moves the game's own cursor.
+- **A clicks** where the pointer is (after a D-pad move, A is the normal A). **Pressing either stick in** is A too.
+- **B** is on the controller's B button.
+- Choose the right stick instead, or change the pointer speed, in the options.
 
 ### Narrator voice (optional)
 - Reads the **message box** aloud, using the Kokoro voice model (runs offline on your PC, no internet needed once installed).
@@ -60,25 +70,30 @@ SHA-256 fingerprint before it's used.
 - An internet connection for the first setup (the build tools and the voice). After that, none.
 
 ### Install
-1. Download the latest `Shadowgreat-<date>.zip`.
+1. Download the latest `Shadowgreat-<version>.zip` (for example `Shadowgreat-1.0.0.zip`).
 2. Unzip it to a folder with a **short path**, for example `C:\Games\Shadowgreat`.
 3. Run `ShadowgreatLauncher.exe` and follow the steps from top to bottom.
 
+### Updating
+Unzip the new version over your Shadowgreat folder (replace the files), run `ShadowgreatLauncher.exe` and press
+**Rebuild**. Your saves, settings, build tools and narrator voice are kept; the launcher asks for the Rebuild
+itself and won't start an old build.
+
 ### Controls
 
-| | Keyboard | Mouse |
-|---|---|---|
-| A | Z | Left click |
-| B | X | Right click |
-| Start | Enter | |
-| Select | \ | |
-| Move the cursor | Arrow keys | Move the mouse |
-| Menu | Esc | SETTINGS on the file and save screens |
-| Fullscreen | F11 | |
-| Screenshot | F12 | |
-| Save states | F7 | |
-| Rewind | F8 | |
-| Fast forward | Tab (hold) | |
+| | Keyboard | Mouse | Controller |
+|---|---|---|---|
+| A | Z | Left click | A, or press a stick in |
+| B | X | Right click | B |
+| Start | Enter | | Start |
+| Select | \ | | Back |
+| Move the cursor | Arrow keys | Move the mouse | D-pad (left stick moves the pointer) |
+| Menu | Esc | SETTINGS on the file and save screens | Right shoulder |
+| Fullscreen | F11 | | |
+| Screenshot | F12 | | |
+| Save states | F7 | | Back + press the left stick in |
+| Rewind | F8 | | Back + press the right stick in |
+| Fast forward | Tab (hold) | | Right trigger (hold) |
 
 Keys and controllers are changed on the game's start screen (see *Things to know*).
 
@@ -98,6 +113,9 @@ All are in the in-game menu (Esc → Shadowgreat), in the launcher's Options ste
 | Pause after quotations | `QuotePause` | 0.80 seconds |
 | Pause after "!" | `ExclaimPause` | 0.60 seconds |
 | Torch tracker | `TorchTracker` | Off |
+| Stick moves the pointer | `PadPointer` | On (needs Mouse control) |
+| Pointer stick | `PointerStick` | `Left` (or `Right`) |
+| Pointer speed | `PointerSpeed` | 5 (1-10) |
 | Skip the game's start screen | `[Launcher] SkipLauncher` | 0 (off) |
 
 ---

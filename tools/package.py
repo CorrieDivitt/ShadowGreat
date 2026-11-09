@@ -2,7 +2,8 @@
 
     python tools\\package.py --rom "F:\\Shadowgreat\\Shadowgate (USA).nes"
 
-Puts together dist\\Shadowgreat\\ and dist\\Shadowgreat-<date>.zip:
+Puts together dist\\Shadowgreat\\ and dist\\Shadowgreat-<version>.zip (the version
+is in the VERSION file):
 
     ShadowgreatLauncher.exe (+ SDL2.dll, libc++.dll, libunwind.dll, fetch.py, assets\\)
     source\\      this project        (the files git tracks)
@@ -22,7 +23,6 @@ The build tools and the narrator voice are not in the zip: the launcher
 downloads them from their own projects on the player's PC.
 """
 import argparse
-import datetime
 import os
 import re
 import shutil
@@ -170,8 +170,8 @@ def check_package(folder, rom_path):
 
 
 # ---- putting it together ------------------------------------------------------------------
-README = """Shadowgreat - Shadowgate (NES) for Windows, built on your PC from your own ROM
-==========================================================================
+README = """Shadowgreat %s - Shadowgate (NES) for Windows, built on your PC from your own ROM
+================================================================================
 
 This contains NO part of Shadowgate. You need your own legally obtained
 Shadowgate (USA) .nes file; the launcher checks it and builds the game from
@@ -203,6 +203,10 @@ Licences: see the LICENSES folder. nesrecomp is under the PolyForm
 Noncommercial licence 1.0.0, so this package may be shared, but not sold or
 used commercially.
 
+Updating to a newer Shadowgreat: unzip it over this folder (say Yes to replacing
+files), run ShadowgreatLauncher.exe and press Rebuild. Your saves, settings,
+build tools and narrator voice are kept.
+
 Versions in this package:
 %s
 """
@@ -220,6 +224,12 @@ def main():
     ap.add_argument("--allow-uncommitted", action="store_true",
                     help="package even if a project has changes that aren't committed")
     args = ap.parse_args()
+
+    with open(os.path.join(ROOT, "VERSION"), encoding="utf-8") as f:
+        version = f.read().strip()
+    if not re.fullmatch(r"\d+\.\d+\.\d+", version):
+        fail("VERSION should look like 1.0.0, not %r" % version)
+    print("Shadowgreat %s" % version)
 
     repos = [("source", ROOT, ()), ("nesrecomp", args.nesrecomp, ()), ("recomp-ui", args.recomp_ui, ())]
     versions = []
@@ -272,12 +282,11 @@ def main():
         shutil.copy2(src, os.path.join(lic, name))
 
     with open(os.path.join(out, "README.txt"), "w", encoding="utf-8", newline="\r\n") as f:
-        f.write(README % "\n".join(versions))
+        f.write(README % (version, "\n".join(versions)))
 
     check_package(out, args.rom)
 
-    stamp = datetime.date.today().isoformat()
-    zip_path = os.path.join(dist, "Shadowgreat-%s.zip" % stamp)
+    zip_path = os.path.join(dist, "Shadowgreat-%s.zip" % version)
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
         for base, _, names in os.walk(out):
             for name in sorted(names):

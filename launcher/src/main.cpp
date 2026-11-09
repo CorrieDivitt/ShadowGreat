@@ -14,6 +14,7 @@
 #include "paths.h"
 #include "child_process.h"
 #include "rom_check.h"
+#include "version.h"
 #include "utf8_file.h"
 
 #include <SDL.h>
@@ -218,6 +219,13 @@ void draw_job_result(State &st, const BuildProgress &p, JobKind kind)
     }
 }
 
+// The game was built by another version of Shadowgreat (an update was
+// unzipped over this one): it must be built again before playing.
+bool needs_rebuild(const State &st)
+{
+    return st.built && st.settings.built_version != SG_VERSION;
+}
+
 void draw_build(State &st, bool rom_ok)
 {
     BuildProgress p = build_progress();
@@ -255,7 +263,10 @@ void draw_build(State &st, bool rom_ok)
         }
         ImGui::EndDisabled();
         ImGui::SameLine();
-        if (st.built)
+        if (needs_rebuild(st))
+            ImGui::TextColored(kBad, "Shadowgreat was updated to %s. Press Rebuild to build the new version "
+                                     "(your saves and settings are kept).", SG_VERSION);
+        else if (st.built)
             ImGui::TextColored(kGood, "%s", p.kind == JobKind::Build && p.stage == BuildStage::Finished
                                                  ? p.message.c_str() : "Built and ready to play.");
         else if (p.kind == JobKind::Tools && p.stage == BuildStage::Finished)
@@ -336,6 +347,7 @@ void job_ended(State &st)
     if (!running) {
         if (p.kind == JobKind::Build && p.stage == BuildStage::Finished) {
             st.settings.built_rom_sha1 = st.check.sha1_body;
+            st.settings.built_version = SG_VERSION;
             launcher_settings_save(st.settings);
         }
         if (p.stage == BuildStage::Failed) st.show_details = true;
@@ -483,7 +495,7 @@ void draw(State &st, SDL_Window *win)
     ImGui::TextUnformatted("Shadowgreat");
     ImGui::SetWindowFontScale(1.0f);
     ImGui::PopStyleColor();
-    ImGui::TextColored(kMuted, "Shadowgate for Windows, built on your PC from your own ROM.");
+    ImGui::TextColored(kMuted, "Shadowgate for Windows, built on your PC from your own ROM.  Version %s", SG_VERSION);
     ImGui::Separator();
     ImGui::Spacing();
 
@@ -542,7 +554,7 @@ void draw(State &st, SDL_Window *win)
         ImGui::PopTextWrapPos();
     }
     ImGui::SetCursorPos(ImVec2(ImGui::GetWindowWidth() - play_size.x - style.WindowPadding.x, row));
-    bool can_play = rom_ok && st.built && !build_running() && !playing;
+    bool can_play = rom_ok && st.built && !needs_rebuild(st) && !build_running() && !playing;
     ImGui::BeginDisabled(!can_play);
     ImGui::PushStyleColor(ImGuiCol_Button, can_play ? ImVec4(0.62f, 0.17f, 0.14f, 1.0f) : style.Colors[ImGuiCol_Button]);
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.74f, 0.22f, 0.18f, 1.0f));

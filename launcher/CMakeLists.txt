@@ -18,6 +18,22 @@ if(NOT EXISTS "${IMGUI_DIR}/imgui.cpp")
   message(FATAL_ERROR "Dear ImGui not found in ${IMGUI_DIR}. Set -DRECOMP_UI_DIR=<your recomp-ui folder>.")
 endif()
 
+# The version, from the project's VERSION file (one place for the launcher,
+# the game and the packaging script).
+file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/../VERSION" SG_VERSION LIMIT_COUNT 1)
+string(STRIP "${SG_VERSION}" SG_VERSION)
+if(NOT SG_VERSION MATCHES "^([0-9]+)\\.([0-9]+)\\.([0-9]+)$")
+  message(FATAL_ERROR "VERSION should look like 1.0.0, not '${SG_VERSION}'")
+endif()
+set(SG_V1 ${CMAKE_MATCH_1})
+set(SG_V2 ${CMAKE_MATCH_2})
+set(SG_V3 ${CMAKE_MATCH_3})
+configure_file(src/version.h.in ${CMAKE_CURRENT_BINARY_DIR}/generated/version.h @ONLY)
+set(SG_MANIFEST "${CMAKE_CURRENT_BINARY_DIR}/generated/launcher.manifest")
+configure_file(launcher.manifest.in ${SG_MANIFEST} @ONLY)
+configure_file(launcher.rc.in ${CMAKE_CURRENT_BINARY_DIR}/generated/launcher.rc @ONLY)
+message(STATUS "Shadowgreat launcher ${SG_VERSION}")
+
 find_package(SDL2 REQUIRED CONFIG)
 
 add_executable(ShadowgreatLauncher WIN32
@@ -40,14 +56,14 @@ add_executable(ShadowgreatLauncher WIN32
   ${IMGUI_DIR}/imgui_widgets.cpp
   ${IMGUI_DIR}/backends/imgui_impl_sdl2.cpp
   ${IMGUI_DIR}/backends/imgui_impl_sdlrenderer2.cpp)
-target_include_directories(ShadowgreatLauncher PRIVATE src ${IMGUI_DIR} ${IMGUI_DIR}/backends)
+target_include_directories(ShadowgreatLauncher PRIVATE src ${CMAKE_CURRENT_BINARY_DIR}/generated ${IMGUI_DIR} ${IMGUI_DIR}/backends)
 target_link_libraries(ShadowgreatLauncher PRIVATE SDL2::SDL2main SDL2::SDL2)
 if(WIN32)
   target_link_libraries(ShadowgreatLauncher PRIVATE comdlg32 winhttp)
   # Name, version and manifest (launcher.rc).
   enable_language(RC)
-  target_sources(ShadowgreatLauncher PRIVATE launcher.rc)
-  set_source_files_properties(launcher.rc PROPERTIES OBJECT_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/launcher.manifest)
+  target_sources(ShadowgreatLauncher PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/generated/launcher.rc)
+  set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/generated/launcher.rc PROPERTIES OBJECT_DEPENDS ${SG_MANIFEST})
 endif()
 
 # Everything the launcher needs goes beside it.

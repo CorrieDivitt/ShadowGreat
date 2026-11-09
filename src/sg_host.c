@@ -101,7 +101,10 @@ static void save_settings(void *ctx, FILE *out)
 static void power_on(void *ctx)
 {
     (void)ctx;
-    sg_log("--- Shadowgate started ---");
+#ifndef SG_VERSION
+#define SG_VERSION "development"
+#endif
+    sg_log("--- Shadowgate started (Shadowgreat %s) ---", SG_VERSION);
     sg_game_reset();
     for (size_t i = 0; i < SG_FEATURE_COUNT; ++i) {
         SgFeature *f = s_features[i];

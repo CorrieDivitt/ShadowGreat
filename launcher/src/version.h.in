@@ -1,0 +1,3 @@
+// version.h - made by CMake from the project's VERSION file. Don't edit.
+#pragma once
+#define SG_VERSION "@SG_VERSION@"

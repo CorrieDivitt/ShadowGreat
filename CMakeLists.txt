@@ -38,6 +38,11 @@ file(WRITE "${_sg_gen}/sg_hand_tiles.h.new"
     "#define SG_HAND_CHR_BYTES { ${_sg_hand_bytes} }\n")
 file(COPY_FILE "${_sg_gen}/sg_hand_tiles.h.new" "${_sg_gen}/sg_hand_tiles.h" ONLY_IF_DIFFERENT)
 
+# The Shadowgreat version, from the VERSION file (also used by the launcher
+# and tools/package.py).
+file(STRINGS "${CMAKE_SOURCE_DIR}/VERSION" SG_VERSION LIMIT_COUNT 1)
+string(STRIP "${SG_VERSION}" SG_VERSION)
+
 set(SHADOWGATE_FEATURES
     src/sg_host.c
     src/sg_game.c
@@ -66,6 +71,7 @@ nesrecomp_add_cycle_game(shadowgate
 target_include_directories(shadowgate PRIVATE "${CMAKE_SOURCE_DIR}/src"
     "${CMAKE_BINARY_DIR}/generated"
     "${NESRECOMP_ROOT}/runner/include")
+target_compile_definitions(shadowgate PRIVATE SG_VERSION="${SG_VERSION}")
 
 # ---- the narrator's voice (sg_voice.c) ----
 # The voice is an optional add-on: sherpa-onnx's DLLs and the Kokoro model go
