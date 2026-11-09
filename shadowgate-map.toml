@@ -408,6 +408,9 @@ source = "Data Crystal text table; A1 found 2026-11-05"
 0xCF = "'"                 # apostrophe, seen in our frame log 2026-11-08
 0xD5 = '"'                 # quotation mark, seen in the opening message 2026-11-08
 0xA1 = "."
+0xA4 = "-"                 # hyphen: LOOK-OUT, KNEE-DEEP (31 uses; message sweep 2026-11-08). Spoken as a space.
+0xCE = ";"                 # in-sentence pause; its one use: "...THE STARS; THE THRONE...". Spoken as a comma.
+# 0xA5 and 0xCB are in the character table but no message uses them (sweep 2026-11-08).
 0xB1 = "A"
 0xB2 = "B"
 0xB3 = "C"

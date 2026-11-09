@@ -273,8 +273,24 @@ static const struct { const char *from, *to; } PHRASE_FIXES[] = {
     { "PATH WINDS",    "PATH WYNDS" },      /* the prophecy: THE PATH WINDS ROUND */
     { "PASSAGE WINDS", "PASSAGE WYNDS" },   /* THE STONE PASSAGE WINDS TO AN UNSEEN END */
     { "SCRIPT WINDS",  "SCRIPT WYNDS" },    /* ...SCRIPT WINDS ITS WAY... */
+    /* Found by the message sweep (every message in the game), 2026-11-08.
+     * Item names the game squeezes to fit its word list: */
+    { "COPPCOIN",      "COPPER COIN" },
+    { "GOLDCOIN",      "GOLD COIN" },
+    { "HRSESHOE",      "HORSESHOE" },
+    { "TESTTUBE",      "TEST TUBE" },
+    { "WHITEGEM",      "WHITE GEM" },
+    /* The game's own typos: */
+    { "INTHE",         "IN THE" },          /* YOU PUT THE ... INTHE FIRE */
+    { "COULD FOLL",    "COULD FOOL" },      /* ...YOU NEVER COULD FOLL ME! */
+    /* The voice can't say digits; the game's only number: */
+    { "100 LEGS",      "ONE HUNDRED LEGS" },
+    /* Said two ways; the word lists only have the other one (sg-names: redd, livv): */
+    { "YOU'VE READ",   "YOU'VE REDD" },     /* ...YOU'VE READ THE SCROLL */
+    { "WAS READ",      "WAS REDD" },        /* THE ... WAS READ */
+    { "NOT LIVE",      "NOT LIVV" },        /* TARKUS WILL NOT LIVE TO SEE THE RISING SUN */
 };
-#define PHRASE_FIXES_VERSION 2         /* bump when the list changes (memory key) */
+#define PHRASE_FIXES_VERSION 3         /* bump when the list changes (memory key) */
 
 static bool letter(char c) { return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '\''; }
 

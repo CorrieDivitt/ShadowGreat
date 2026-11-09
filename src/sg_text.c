@@ -87,24 +87,31 @@ static const char *tile_char(uint8_t t)
     if (t == 0xCD) return ",";
     if (t == 0xCF) return "'";
     if (t == 0xD5) return "\"";
+    if (t == 0xA4) return "-";    /* LOOK-OUT, KNEE-DEEP... (31 uses; message sweep 2026-11-08) */
+    if (t == 0xCE) return ";";    /* "...THE STARS; THE THRONE..." (its one use)               */
     if (t == 0xA1) return ".";
     if (t >= 0xB1 && t <= 0xCA) return letters[t - 0xB1];
     return NULL;
 }
 
 /* One character code: the game's own table turns it into a tile, and the
- * tile into a letter. A tile we haven't mapped yet is shown as {tXX}. */
+ * tile into a letter. A tile we haven't mapped yet is shown as {tXX}.
+ * The voice gets a hyphen as a space (LOOK-OUT is said as LOOK OUT: both
+ * words are in the word lists, the joined one isn't), a semicolon as a comma
+ * pause, and an unmapped tile as a space, so it never glues two words
+ * together into one the voice would skip. */
 static void put_code(Out *spoken, Out *logged, unsigned code)
 {
     uint8_t tile = cyc_mod_peek((uint16_t)(SG_TABLE_CODE_TO_TILE + code));
     const char *c = tile_char(tile);
     if (c) {
-        put(spoken, tile == 0x8A ? "!" : c);   /* the voice needs only one */
+        put(spoken, tile == 0x8A ? "!" : tile == 0xA4 ? " " : tile == 0xCE ? "," : c);
         put(logged, c);
     } else {
         char tmp[16];
         snprintf(tmp, sizeof tmp, "{t%02X}", tile);
         put(logged, tmp);
+        put(spoken, " ");
     }
 }
 
