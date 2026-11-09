@@ -72,9 +72,11 @@ Folders find_folders(const LauncherSettings &s)
     f.recomp_ui = !s.recomp_ui_folder.empty() ? s.recomp_ui_folder
                 : first_of({ exe + "/recomp-ui", base + "/recomp-ui" }, is_recomp_ui);
 
+    // Build tools: an existing folder, or <launcher>/tools for the download.
     auto is_dir = [](const std::string &d) { return file_exists(d); };
     f.tools = !s.tools_folder.empty() ? s.tools_folder
             : first_of({ exe + "/tools", base + "/Tools" }, is_dir);
+    if (f.tools.empty()) f.tools = exe + "/tools";
 
     f.game = !s.game_folder.empty() ? s.game_folder : exe + "/game";
 
@@ -82,7 +84,6 @@ Folders find_folders(const LauncherSettings &s)
     if (!is_source(f.source))       add("the Shadowgreat source");
     if (!is_nesrecomp(f.nesrecomp)) add("nesrecomp");
     if (!is_recomp_ui(f.recomp_ui)) add("recomp-ui");
-    if (f.tools.empty())            add("the tools folder");
     return f;
 }
 
@@ -125,13 +126,33 @@ Tools find_tools(const std::string &tools)
     t.sdl2_dir = find_in(tools, "SDL2-", "x86_64-w64-mingw32/lib/cmake/SDL2");
     t.cmake = find_in(tools, "cmake", "bin/cmake.exe");
     if (t.cmake.empty()) t.cmake = on_path("cmake.exe");
+    // Always the launcher's own Python (nesrecomp needs 3.11 or newer).
+    if (file_exists(tools + "/python/python.exe")) t.python = tools + "/python/python.exe";
 
-    auto add = [&t](const char *what) { t.missing += t.missing.empty() ? what : std::string(", ") + what; };
-    if (t.clang.empty() || t.clangxx.empty()) add("the compiler (llvm-mingw)");
-    if (t.ninja.empty())    add("Ninja");
-    if (t.sdl2_dir.empty()) add("SDL2");
-    if (t.cmake.empty())    add("CMake");
+    // Download sizes in MB, matching fetch.py.
+    auto add = [&t](const char *what, const char *item, int mb) {
+        t.missing += t.missing.empty() ? what : std::string(", ") + what;
+        if (item) t.fetch_items += t.fetch_items.empty() ? item : std::string(" ") + item;
+        t.download_mb += mb;
+    };
+    if (t.python.empty()) { add("Python", nullptr, 22); t.need_python = true; }
+    if (t.clang.empty() || t.clangxx.empty()) add("the compiler (llvm-mingw)", "compiler", 191);
+    if (t.ninja.empty())    add("Ninja", "ninja", 1);
+    if (t.sdl2_dir.empty()) add("SDL2", "sdl2", 16);
+    if (t.cmake.empty())    add("CMake", "cmake", 54);
     return t;
+}
+
+Voice find_voice(const Folders &f)
+{
+    Voice v;
+    v.folder = f.game + "/voice";
+    v.dlls = file_exists(v.folder + "/sherpa-onnx-c-api.dll") && file_exists(v.folder + "/onnxruntime.dll");
+    v.model = file_exists(v.folder + "/kokoro-multi-lang-v1_0/model.onnx")
+           && file_exists(v.folder + "/kokoro-multi-lang-v1_0/voices.bin");
+    if (!v.dlls)  { v.fetch_items += "sherpa"; v.download_mb += 8; }
+    if (!v.model) { v.fetch_items += v.fetch_items.empty() ? "kokoro" : " kokoro"; v.download_mb += 350; }
+    return v;
 }
 
 std::string game_exe(const Folders &f) { return f.game + "/shadowgate.exe"; }

@@ -28,6 +28,7 @@ add_executable(ShadowgreatLauncher WIN32
   src/child_process.cpp
   src/rom_check.c
   src/sha1.c
+  src/sha256.c
   src/utf8_file.c
   ${IMGUI_DIR}/imgui.cpp
   ${IMGUI_DIR}/imgui_draw.cpp
@@ -44,7 +45,8 @@ endif()
 # Everything the launcher needs goes beside it.
 add_custom_command(TARGET ShadowgreatLauncher POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SDL2::SDL2> $<TARGET_FILE_DIR:ShadowgreatLauncher>
-  COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:ShadowgreatLauncher>/assets)
+  COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:ShadowgreatLauncher>/assets
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/fetch.py $<TARGET_FILE_DIR:ShadowgreatLauncher>)
 file(GLOB_RECURSE _lato "${RECOMP_UI_DIR}/assets/LatoLatin-Regular.ttf")
 if(_lato)
   list(GET _lato 0 _lato)

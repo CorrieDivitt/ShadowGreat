@@ -13,6 +13,7 @@ struct LauncherSettings {
     std::string game_folder;       // where the game is built (shadowgate.exe)
 
     std::string built_rom_sha1;    // the ROM the current build was made from
+    std::string voice_choice;      // "skip" = play without the narrator voice; "" = not asked yet
 };
 
 LauncherSettings launcher_settings_load();

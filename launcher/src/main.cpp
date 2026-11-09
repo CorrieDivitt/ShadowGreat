@@ -1,8 +1,9 @@
 // main.cpp - the Shadowgreat launcher (Phase 8).
 //
 // Picks the player's ROM and checks it is Shadowgate (USA) (milestone A),
-// builds the game on this PC and starts it (milestone B). Still to come: the
-// downloads (build tools; the optional narrator voice) and the options.
+// builds the game on this PC and starts it (milestone B), and downloads the
+// build tools and the optional narrator voice (milestone C). Still to come:
+// the options.
 // The launcher contains no game data; it only stores a checksum.
 //
 // Dear ImGui over SDL2's renderer, the same toolkit as the in-game menu.
@@ -21,7 +22,9 @@
 
 #include <cstdio>
 #include <cstring>
+#include <filesystem>
 #include <string>
+#include <system_error>
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -110,6 +113,7 @@ struct State {
     bool checked = false;
     Folders folders;
     Tools tools;
+    Voice voice;
     bool built = false;             // shadowgate.exe is there
     BuildStage last_stage = BuildStage::Idle;
     bool show_details = false;
@@ -134,6 +138,7 @@ void look_around(State &st)
 {
     st.folders = find_folders(st.settings);
     st.tools = find_tools(st.folders.tools);
+    st.voice = find_voice(st.folders);
     st.built = file_exists(game_exe(st.folders));
 }
 
@@ -172,70 +177,164 @@ void draw_log(State &st)
     ImGui::EndChild();
 }
 
+// Progress of the running job, with Cancel.
+void draw_progress(const BuildProgress &p)
+{
+    char overlay[64] = "";
+    bool counting = p.total > 0;
+    if (counting && p.stage == BuildStage::Downloading)
+        std::snprintf(overlay, sizeof overlay, "%.0f of %.0f MB", p.done / 1048576.0, p.total / 1048576.0);
+    else if (counting && p.stage == BuildStage::Compiling)
+        std::snprintf(overlay, sizeof overlay, "%lld of %lld", (long long)p.done, (long long)p.total);
+    else if (counting && p.stage == BuildStage::Unpacking)
+        std::snprintf(overlay, sizeof overlay, "%.0f%%", 100.0 * p.done / p.total);
+    float fraction = counting ? (float)((double)p.done / (double)p.total) : -1.0f * (float)ImGui::GetTime();
+    float cancel_w = ImGui::CalcTextSize("Cancel").x + ImGui::GetStyle().FramePadding.x * 2;
+    ImGui::ProgressBar(fraction, ImVec2(ImGui::GetContentRegionAvail().x - cancel_w - ImGui::GetStyle().ItemSpacing.x, 0),
+                       counting ? overlay : nullptr);
+    ImGui::SameLine();
+    if (ImGui::Button("Cancel")) build_cancel();
+    ImGui::TextColored(kMuted, "%s", p.message.c_str());
+}
+
+// Under the section whose job ran last: its result and the full output.
+void draw_job_result(State &st, const BuildProgress &p, JobKind kind)
+{
+    if (p.kind != kind) return;
+    if (!build_running() && (p.stage == BuildStage::Failed || p.stage == BuildStage::Cancelled))
+        ImGui::TextColored(kBad, "%s", p.message.c_str());
+    if (build_running() || p.stage != BuildStage::Idle) {
+        ImGui::PushID((int)kind);
+        ImGui::Checkbox("Show details", &st.show_details);
+        if (st.show_details) draw_log(st);
+        ImGui::PopID();
+    }
+}
+
 void draw_build(State &st, bool rom_ok)
 {
     BuildProgress p = build_progress();
     bool running = build_running();
-
-    // A build just ended: remember it, and look for the new shadowgate.exe.
-    if (p.stage != st.last_stage) {
-        if (p.stage == BuildStage::Finished) {
-            st.settings.built_rom_sha1 = st.check.sha1_body;
-            launcher_settings_save(st.settings);
-        }
-        if (p.stage == BuildStage::Failed) st.show_details = true;
-        if (!running) st.built = file_exists(game_exe(st.folders));
-        st.last_stage = p.stage;
-    }
+    bool mine = p.kind == JobKind::Build || p.kind == JobKind::Tools;
 
     if (!st.folders.ok()) {
         ImGui::TextColored(kBad, "Can't find %s.", st.folders.missing.c_str());
         ImGui::TextColored(kMuted, "Their places can be set in launcher.ini beside the launcher.");
         return;
     }
-    if (!st.tools.ok()) {
-        ImGui::TextColored(kBad, "Missing build tools: %s.", st.tools.missing.c_str());
-        ImGui::TextColored(kMuted, "Looked in %s. (A later update downloads them for you.)", st.folders.tools.c_str());
-        return;
-    }
-    if (!rom_ok) {
-        ImGui::TextColored(kMuted, "Choose your ROM first.");
-        return;
-    }
-
-    if (running) {
-        bool counting = p.stage == BuildStage::Compiling && p.total > 0;
-        char overlay[64] = "";
-        if (counting) std::snprintf(overlay, sizeof overlay, "%d of %d", p.done, p.total);
-        float fraction = counting ? (float)p.done / (float)p.total : -1.0f * (float)ImGui::GetTime();
-        float cancel_w = ImGui::CalcTextSize("Cancel").x + ImGui::GetStyle().FramePadding.x * 2;
-        ImGui::ProgressBar(fraction, ImVec2(ImGui::GetContentRegionAvail().x - cancel_w - ImGui::GetStyle().ItemSpacing.x, 0),
-                           counting ? overlay : nullptr);
+    if (running && mine) {
+        draw_progress(p);
+    } else if (!st.tools.ok()) {
+        ImGui::TextColored(kMuted, "The build tools are a one-time download of about %d MB:", st.tools.download_mb);
+        ImGui::TextColored(kMuted, "%s.", st.tools.missing.c_str());
+        ImGui::BeginDisabled(running);
+        if (ImGui::Button("Download the build tools")) {
+            look_around(st);
+            if (!st.tools.ok()) fetch_tools_start(st.folders, st.tools);
+        }
+        ImGui::EndDisabled();
         ImGui::SameLine();
-        if (ImGui::Button("Cancel")) build_cancel();
-        ImGui::TextColored(kMuted, "%s", p.message.c_str());
+        ImGui::TextColored(kMuted, "Into %s", st.folders.tools.c_str());
+    } else if (!rom_ok) {
+        ImGui::TextColored(kMuted, "Choose your ROM first.");
     } else {
-        const char *label = st.built ? "Rebuild" : "Build";
-        if (ImGui::Button(label)) {
+        ImGui::BeginDisabled(running);
+        if (ImGui::Button(st.built ? "Rebuild" : "Build")) {
             look_around(st);
             if (st.folders.ok() && st.tools.ok()) {
                 st.play_message.clear();
                 build_start(st.folders, st.tools, st.settings.rom_path);
             }
         }
+        ImGui::EndDisabled();
         ImGui::SameLine();
-        if (p.stage == BuildStage::Failed || p.stage == BuildStage::Cancelled)
-            ImGui::TextColored(kBad, "%s", p.message.c_str());
-        else if (st.built)
-            ImGui::TextColored(kGood, "%s", p.stage == BuildStage::Finished ? p.message.c_str() : "Built and ready to play.");
+        if (st.built)
+            ImGui::TextColored(kGood, "%s", p.kind == JobKind::Build && p.stage == BuildStage::Finished
+                                                 ? p.message.c_str() : "Built and ready to play.");
+        else if (p.kind == JobKind::Tools && p.stage == BuildStage::Finished)
+            ImGui::TextColored(kGood, "The build tools are ready. Now build the game (a few minutes, only once).");
         else
             ImGui::TextColored(kMuted, "Builds shadowgate.exe on this PC (a few minutes; only needed once).");
     }
+    draw_job_result(st, p, p.kind == JobKind::Tools ? JobKind::Tools : JobKind::Build);
+}
 
-    if (running || p.stage != BuildStage::Idle) {
-        ImGui::Checkbox("Show details", &st.show_details);
-        if (st.show_details) draw_log(st);
+// Remove the downloaded voice (the DLLs and the model), nothing else.
+bool remove_voice(const Voice &v)
+{
+    namespace fs = std::filesystem;
+    std::error_code ec;
+    bool ok = true;
+    for (const char *dll : { "onnxruntime.dll", "onnxruntime_providers_shared.dll",
+                             "sherpa-onnx-c-api.dll", "sherpa-onnx-cxx-api.dll" }) {
+        fs::path f = fs::u8path(v.folder + "/" + dll);
+        if (fs::exists(f, ec) && !fs::remove(f, ec)) ok = false;
     }
+    fs::remove_all(fs::u8path(v.folder + "/kokoro-multi-lang-v1_0"), ec);
+    if (ec) ok = false;
+    return ok;
+}
+
+void draw_voice(State &st)
+{
+    BuildProgress p = build_progress();
+    bool running = build_running();
+    static std::string s_remove_message;
+
+    if (running && p.kind == JobKind::Voice) {
+        draw_progress(p);
+    } else if (st.voice.installed()) {
+        ImGui::TextColored(kGood, "Installed. The narrator reads the game's messages aloud.");
+        ImGui::SameLine();
+        ImGui::BeginDisabled(running);
+        if (ImGui::SmallButton("Remove voice files")) {
+            s_remove_message = remove_voice(st.voice) ? "" : "Couldn't remove all of it. Is the game still running?";
+            st.settings.voice_choice = "skip";
+            launcher_settings_save(st.settings);
+            look_around(st);
+        }
+        ImGui::EndDisabled();
+    } else {
+        if (st.settings.voice_choice == "skip")
+            ImGui::TextColored(kMuted, "Skipped: the game plays without narration. You can add the voice any time.");
+        else
+            ImGui::TextColored(kMuted, "A narrator can read the message box aloud. It's a separate download of "
+                                       "about %d MB.", st.voice.download_mb);
+        ImGui::BeginDisabled(running);
+        if (ImGui::Button("Download voice files")) {
+            look_around(st);
+            st.settings.voice_choice.clear();
+            launcher_settings_save(st.settings);
+            if (!st.voice.installed()) fetch_voice_start(st.folders, st.tools, st.voice);
+        }
+        if (st.settings.voice_choice != "skip") {
+            ImGui::SameLine();
+            if (ImGui::Button("Play without voice")) {
+                st.settings.voice_choice = "skip";
+                launcher_settings_save(st.settings);
+            }
+        }
+        ImGui::EndDisabled();
+    }
+    if (!s_remove_message.empty()) ImGui::TextColored(kBad, "%s", s_remove_message.c_str());
+    draw_job_result(st, p, JobKind::Voice);
+}
+
+// A job just ended: remember a build, and look again at what's installed.
+void job_ended(State &st)
+{
+    BuildProgress p = build_progress();
+    bool running = build_running();
+    if (p.stage == st.last_stage) return;
+    if (!running) {
+        if (p.kind == JobKind::Build && p.stage == BuildStage::Finished) {
+            st.settings.built_rom_sha1 = st.check.sha1_body;
+            launcher_settings_save(st.settings);
+        }
+        if (p.stage == BuildStage::Failed) st.show_details = true;
+        look_around(st);
+    }
+    st.last_stage = p.stage;
 }
 
 void draw(State &st, SDL_Window *win)
@@ -281,14 +380,15 @@ void draw(State &st, SDL_Window *win)
     ImGui::Unindent();
     ImGui::Spacing();
 
+    job_ended(st);
     bool rom_ok = st.checked && st.check.ok;
     step_header(2, "Build the game", rom_ok);
     ImGui::Indent();
     draw_build(st, rom_ok);
     ImGui::Unindent();
     ImGui::Spacing();
-    step_header(3, "Narrator voice (optional)", false);
-    ImGui::Indent(); ImGui::TextColored(kMuted, "Coming soon: download the voice, or skip it."); ImGui::Unindent();
+    step_header(3, "Narrator voice (optional)", true);
+    ImGui::Indent(); draw_voice(st); ImGui::Unindent();
     ImGui::Spacing();
     step_header(4, "Options", false);
     ImGui::Indent(); ImGui::TextColored(kMuted, "Coming soon: mouse, hand pointer, narration."); ImGui::Unindent();
