@@ -28,6 +28,9 @@ struct GameOptions {
     int quote_ms = 800;             // pause after a closing quote
     int exclaim_ms = 600;           // pause after "!"
     bool torch = false;             // torch tracker
+    bool pad_pointer = true;        // a pad stick moves the pointer
+    int pointer_stick = 0;          // 0 = left, 1 = right
+    int pointer_speed = 5;          // 1-10
     bool skip_start_screen = false;
 };
 

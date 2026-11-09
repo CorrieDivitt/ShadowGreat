@@ -405,6 +405,24 @@ void draw_options(State &st)
         changed |= ImGui::Checkbox("##hand", &o.hand);
         ImGui::EndDisabled();
 
+        option_row("Stick moves the pointer", "Point with a gamepad stick; A or pressing a stick in clicks where it points.");
+        ImGui::BeginDisabled(!o.mouse);
+        changed |= ImGui::Checkbox("##pad", &o.pad_pointer);
+        ImGui::EndDisabled();
+        ImGui::BeginDisabled(!o.mouse || !o.pad_pointer);
+        option_row("Pointer stick", "Which stick moves the pointer. The left stick then stops working the D-pad.");
+        {
+            static const char *const sticks[] = { "Left stick", "Right stick" };
+            if (ImGui::BeginCombo("##stick", sticks[o.pointer_stick ? 1 : 0])) {
+                for (int i = 0; i < 2; ++i)
+                    if (ImGui::Selectable(sticks[i], i == o.pointer_stick)) { o.pointer_stick = i; changed = true; }
+                ImGui::EndCombo();
+            }
+        }
+        option_row("Pointer speed", "How fast the stick moves the pointer.");
+        changed |= slider("##speed", &o.pointer_speed, 1, 10, "%d", 1);
+        ImGui::EndDisabled();
+
         option_row("Narration voice", "Reads the message box aloud.");
         ImGui::BeginDisabled(!voice);
         bool narration = o.narration && voice;   // shown Off without the voice files

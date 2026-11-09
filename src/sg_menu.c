@@ -21,6 +21,7 @@
 #define SECTION "Shadowgreat"
 
 static const char *s_voice_names[8];
+static const char *s_stick_names[] = { "Left stick", "Right stick" };
 
 /* Descriptions are one line in the menu and are cut off at the edge, so
  * they are kept to about 40 characters. Pauses are whole numbers of
@@ -53,6 +54,15 @@ static RecompRuntimeUiItem s_items[] = {
     { "sg.torch", SECTION, "Torch tracker",
       "Actions left on each lit torch.",
       RECOMP_RUNTIME_UI_BOOL, 0, 1, 1, NULL, 0, NULL },
+    { "sg.pad", SECTION, "Stick moves the pointer",
+      "Point with a stick; A or a stick press clicks.",
+      RECOMP_RUNTIME_UI_BOOL, 0, 1, 1, NULL, 0, NULL },
+    { "sg.pad.stick", SECTION, "Pointer stick",
+      "Which stick moves the pointer.",
+      RECOMP_RUNTIME_UI_CHOICE, 0, 1, 1, s_stick_names, 2, NULL },
+    { "sg.pad.speed", SECTION, "Pointer speed",
+      "How fast the stick moves it.",
+      RECOMP_RUNTIME_UI_INT, 1, 10, 1, NULL, 0, NULL },
     { "sg.defaults", SECTION, "Defaults",
       "Restore Shadowgreat default options",
       RECOMP_RUNTIME_UI_ACTION, 0, 0, 0, NULL, 0, NULL },
@@ -70,6 +80,9 @@ static int get_value(void *ctx, const RecompRuntimeUiItem *it, int *out)
      * the saved setting itself stays as the player chose it. */
     else if (is(it, "sg.narration"))     *out = sg_feature_narration.enabled && sg_voice_built_in();
     else if (is(it, "sg.torch"))         *out = sg_feature_torch.enabled;
+    else if (is(it, "sg.pad"))           *out = sg_feature_pad.enabled;
+    else if (is(it, "sg.pad.stick"))     *out = sg_pad_get_stick();
+    else if (is(it, "sg.pad.speed"))     *out = sg_pad_get_speed();
     else if (is(it, "sg.voice"))         *out = sg_narration_get(SG_NARR_PRESET);
     else if (is(it, "sg.voice.volume"))  *out = sg_narration_get(SG_NARR_VOLUME);
     else if (is(it, "sg.voice.music"))   *out = sg_narration_get(SG_NARR_MUSIC);
@@ -86,6 +99,9 @@ static int set_value(void *ctx, const RecompRuntimeUiItem *it, int v)
     else if (is(it, "sg.hand"))          sg_feature_switch(&sg_feature_hand, v != 0);
     else if (is(it, "sg.narration"))     sg_feature_switch(&sg_feature_narration, v != 0);
     else if (is(it, "sg.torch"))         sg_feature_switch(&sg_feature_torch, v != 0);
+    else if (is(it, "sg.pad"))           sg_feature_switch(&sg_feature_pad, v != 0);
+    else if (is(it, "sg.pad.stick"))     sg_pad_set_stick(v);
+    else if (is(it, "sg.pad.speed"))     sg_pad_set_speed(v);
     else if (is(it, "sg.voice"))         sg_narration_set(SG_NARR_PRESET, v);
     else if (is(it, "sg.voice.volume"))  sg_narration_set(SG_NARR_VOLUME, v);
     else if (is(it, "sg.voice.music"))   sg_narration_set(SG_NARR_MUSIC, v);
@@ -104,6 +120,8 @@ static int run_action(void *ctx, const RecompRuntimeUiItem *it)
     sg_feature_switch(&sg_feature_hand, sg_feature_hand.default_on);
     sg_feature_switch(&sg_feature_narration, sg_feature_narration.default_on);
     sg_feature_switch(&sg_feature_torch, sg_feature_torch.default_on);
+    sg_feature_switch(&sg_feature_pad, sg_feature_pad.default_on);
+    sg_pad_defaults();
     sg_narration_defaults();
     return 1;
 }
@@ -113,6 +131,9 @@ static int is_enabled(void *ctx, const RecompRuntimeUiItem *it)
 {
     (void)ctx;
     if (is(it, "sg.hand")) return sg_feature_mouse.enabled;
+    if (is(it, "sg.pad")) return sg_feature_mouse.enabled;
+    if (is(it, "sg.pad.stick") || is(it, "sg.pad.speed"))
+        return sg_feature_mouse.enabled && sg_feature_pad.enabled;
     if (is(it, "sg.narration")) return sg_voice_built_in();
     if (it->key && !strncmp(it->key, "sg.voice", 8))
         return sg_voice_built_in() && sg_feature_narration.enabled;

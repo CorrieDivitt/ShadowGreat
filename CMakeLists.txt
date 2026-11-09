@@ -50,6 +50,7 @@ set(SHADOWGATE_FEATURES
     src/features/feat_hand.c
     src/features/feat_narration.c
     src/features/feat_torch.c
+    src/features/feat_pad.c
 )
 
 set(_sg_options "")
@@ -131,6 +132,37 @@ if(_sg_ui_src)
     else()
         message(WARNING "shadowgate: nesrecomp's cyc_ui_imgui.cpp has changed; "
                         "the in-game menu keeps its normal (unscaled) size")
+    endif()
+endif()
+
+# ---- the pad's B button is the NES B by default (patches/pad-b-button) ----
+get_target_property(_sg_srcs shadowgate SOURCES)
+set(_sg_in_src "")
+foreach(_s IN LISTS _sg_srcs)
+    if(_s MATCHES "cyc/cyc_input\\.c$")
+        set(_sg_in_src "${_s}")
+    endif()
+endforeach()
+if(_sg_in_src)
+    file(READ "${_sg_in_src}" _sg_text)
+    set(_sg_a "CYC_PAD_BUTTON(SDL_CONTROLLER_BUTTON_A), CYC_PAD_BUTTON(SDL_CONTROLLER_BUTTON_X),")
+    string(FIND "${_sg_text}" "${_sg_a}" _sg_at)
+    if(_sg_at GREATER_EQUAL 0)
+        string(REPLACE "${_sg_a}"
+               "CYC_PAD_BUTTON(SDL_CONTROLLER_BUTTON_A), CYC_PAD_BUTTON(SDL_CONTROLLER_BUTTON_B),  /* Shadowgreat: B on B */"
+               _sg_text "${_sg_text}")
+        set(_sg_out "${CMAKE_BINARY_DIR}/generated/cyc_input_pad_b.c")
+        file(WRITE "${_sg_out}.new" "${_sg_text}")
+        file(COPY_FILE "${_sg_out}.new" "${_sg_out}" ONLY_IF_DIFFERENT)
+        list(REMOVE_ITEM _sg_srcs "${_sg_in_src}")
+        list(APPEND _sg_srcs "${_sg_out}")
+        set_property(TARGET shadowgate PROPERTY SOURCES ${_sg_srcs})
+        get_filename_component(_sg_in_dir "${_sg_in_src}" DIRECTORY)
+        target_include_directories(shadowgate PRIVATE "${_sg_in_dir}")
+        message(STATUS "shadowgate: the pad's B button is the NES B by default")
+    else()
+        message(WARNING "shadowgate: nesrecomp's cyc_input.c has changed; "
+                        "the pad's X button stays the default NES B")
     endif()
 endif()
 

@@ -151,6 +151,14 @@ static const char *screen_box(int x, int y)
     return sg_hitbox_at(sg_game.screen, x, y);
 }
 
+/* A click from somewhere else (the pad's A, feat_pad.c), in game pixels. */
+void sg_mouse_click_at(int x, int y)
+{
+    s_click_x = x;
+    s_click_y = y;
+    s_click_pending = true;
+}
+
 static void mouse_event(const void *e)
 {
 #if defined(CYC_WITH_SDL)

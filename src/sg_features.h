@@ -49,6 +49,17 @@ extern SgFeature sg_feature_mouse;
 extern SgFeature sg_feature_hand;
 extern SgFeature sg_feature_narration;
 extern SgFeature sg_feature_torch;
+extern SgFeature sg_feature_pad;
+
+/* A left click at a game pixel, as if from the mouse (feat_mouse.c). */
+void sg_mouse_click_at(int x, int y);
+
+/* The pad pointer's own settings (feat_pad.c), for the in-game menu. */
+int  sg_pad_get_stick(void);       /* 0 = left stick, 1 = right stick */
+int  sg_pad_get_speed(void);       /* 1-10 */
+void sg_pad_set_stick(int stick);
+void sg_pad_set_speed(int speed);
+void sg_pad_defaults(void);
 
 /* Where the Windows pointer is, in game pixels (0-255, 0-239), or -1 when
  * it is off the picture. Updated by the mouse feature every frame. */

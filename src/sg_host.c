@@ -10,9 +10,10 @@
  *     Mouse = On
  *     Narration = On
  *     TorchTracker = Off
+ *     PadPointer = On
  *     NarratorVoice = Narrator      (a feature's own extra lines)
  *
- * The launcher (Phase 8) will edit these same lines.
+ * The launcher edits these same lines.
  */
 #include "cyc_host_extras.h"
 #include "sg_features.h"
@@ -27,6 +28,7 @@
 
 /* ---- the feature list: add new features here ---- */
 static SgFeature *const s_features[] = {
+    &sg_feature_pad,        /* before mouse: its A click is acted on in the same frame */
     &sg_feature_mouse,
     &sg_feature_torch,      /* before the hand, so the hand draws on top */
     &sg_feature_hand,       /* after mouse: uses its pointer position */

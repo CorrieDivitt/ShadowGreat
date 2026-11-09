@@ -138,6 +138,9 @@ GameOptions game_options_read(const std::string &config_path)
     o.quote_ms = seconds_to_ms(ini.get("Game", "QuotePause", ""), d.quote_ms);
     o.exclaim_ms = seconds_to_ms(ini.get("Game", "ExclaimPause", ""), d.exclaim_ms);
     o.torch = on(ini.get("Game", "TorchTracker", ""), d.torch);
+    o.pad_pointer = on(ini.get("Game", "PadPointer", ""), d.pad_pointer);
+    o.pointer_stick = same(ini.get("Game", "PointerStick", "Left"), "Right") ? 1 : 0;
+    o.pointer_speed = clamp(std::atoi(ini.get("Game", "PointerSpeed", std::to_string(d.pointer_speed)).c_str()), 1, 10);
     o.skip_start_screen = on(ini.get("Launcher", "SkipLauncher", ""), d.skip_start_screen);
     return o;
 }
@@ -158,6 +161,9 @@ bool game_options_write(const std::string &config_path, const GameOptions &o)
     std::snprintf(pause, sizeof pause, "%.2f", clamp(o.exclaim_ms, 0, 2000) / 1000.0);
     ini.set("Game", "ExclaimPause", pause);
     ini.set("Game", "TorchTracker", o.torch ? "On" : "Off");
+    ini.set("Game", "PadPointer", o.pad_pointer ? "On" : "Off");
+    ini.set("Game", "PointerStick", o.pointer_stick ? "Right" : "Left");
+    ini.set("Game", "PointerSpeed", std::to_string(clamp(o.pointer_speed, 1, 10)));
     ini.set("Launcher", "SkipLauncher", o.skip_start_screen ? "1" : "0");
     return ini.save();
 }
