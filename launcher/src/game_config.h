@@ -27,6 +27,9 @@ struct GameOptions {
     int music = 40;                 // 0-100: game sound while the narrator talks
     int quote_ms = 800;             // pause after a closing quote
     int exclaim_ms = 600;           // pause after "!"
+    // Each narrator's own voice, in hundredths: speed, depth, pause
+    // ([Game] DungeonMasterSpeed etc.; as sg_voice.c's presets).
+    int tune[3][3] = { { 122, 85, 50 }, { 112, 95, 60 }, { 100, 100, 60 } };
     bool torch = false;             // torch tracker
     bool pad_pointer = true;        // a pad stick moves the pointer
     int pointer_stick = 0;          // 0 = left, 1 = right
@@ -36,6 +39,11 @@ struct GameOptions {
 
 extern const char *const kVoiceNames[];
 extern const int kVoiceCount;
+enum { kTuneSpeed, kTuneDepth, kTunePause };
+
+// The Narrator Options back to normal, keeping the chosen narrator: its
+// speed, depth and pause, and the pauses after quotes and "!".
+void game_options_narrator_defaults(GameOptions &o);
 
 GameOptions game_options_read(const std::string &config_path);
 bool game_options_write(const std::string &config_path, const GameOptions &o);

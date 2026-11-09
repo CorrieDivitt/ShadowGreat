@@ -123,6 +123,30 @@ static int seconds_to_ms(const std::string &v, int fallback)
     return clamp((int)(s * 1000.0 + 0.5), 0, 2000);
 }
 
+// "Dungeon Master" + "Speed" -> "DungeonMasterSpeed" (as feat_narration.c)
+static std::string tune_key(int voice, int which)
+{
+    static const char *const words[] = { "Speed", "Depth", "Pause" };
+    std::string key;
+    for (const char *p = kVoiceNames[voice]; *p; ++p)
+        if (*p != ' ') key += *p;
+    return key + words[which];
+}
+
+static int tune_clamp(int which, int v)
+{
+    return which == kTunePause ? clamp(v, 0, 200) : clamp(v, 50, 150);
+}
+
+void game_options_narrator_defaults(GameOptions &o)
+{
+    const GameOptions d;
+    const int v = clamp(o.voice, 0, kVoiceCount - 1);
+    for (int w = 0; w < 3; ++w) o.tune[v][w] = d.tune[v][w];
+    o.quote_ms = d.quote_ms;
+    o.exclaim_ms = d.exclaim_ms;
+}
+
 GameOptions game_options_read(const std::string &config_path)
 {
     GameOptions o, d;
@@ -141,6 +165,14 @@ GameOptions game_options_read(const std::string &config_path)
     o.music = clamp(std::atoi(ini.get("Game", "MusicWhileSpeaking", std::to_string(d.music)).c_str()), 0, 100);
     o.quote_ms = seconds_to_ms(ini.get("Game", "QuotePause", ""), d.quote_ms);
     o.exclaim_ms = seconds_to_ms(ini.get("Game", "ExclaimPause", ""), d.exclaim_ms);
+    for (int v = 0; v < kVoiceCount; ++v)
+        for (int w = 0; w < 3; ++w) {
+            std::string s = ini.get("Game", tune_key(v, w), "");
+            char *end = nullptr;
+            double x = s.empty() ? 0.0 : std::strtod(s.c_str(), &end);
+            if (!s.empty() && end != s.c_str())
+                o.tune[v][w] = tune_clamp(w, (int)(x * 100.0 + 0.5));
+        }
     o.torch = on(ini.get("Game", "TorchTracker", ""), d.torch);
     o.pad_pointer = on(ini.get("Game", "PadPointer", ""), d.pad_pointer);
     o.pointer_stick = same(ini.get("Game", "PointerStick", "Left"), "Right") ? 1 : 0;
@@ -164,6 +196,11 @@ bool game_options_write(const std::string &config_path, const GameOptions &o)
     ini.set("Game", "QuotePause", pause);
     std::snprintf(pause, sizeof pause, "%.2f", clamp(o.exclaim_ms, 0, 2000) / 1000.0);
     ini.set("Game", "ExclaimPause", pause);
+    for (int v = 0; v < kVoiceCount; ++v)
+        for (int w = 0; w < 3; ++w) {
+            std::snprintf(pause, sizeof pause, "%.2f", tune_clamp(w, o.tune[v][w]) / 100.0);
+            ini.set("Game", tune_key(v, w), pause);
+        }
     ini.set("Game", "TorchTracker", o.torch ? "On" : "Off");
     ini.set("Game", "PadPointer", o.pad_pointer ? "On" : "Off");
     ini.set("Game", "PointerStick", o.pointer_stick ? "Right" : "Left");

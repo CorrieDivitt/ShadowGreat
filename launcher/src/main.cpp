@@ -379,6 +379,27 @@ bool slider(const char *id, int *v, int lo, int hi, const char *format, int step
     return ImGui::IsItemDeactivatedAfterEdit();
 }
 
+// A heading row, as in the in-game menu ("" = just a gap).
+void heading_row(const char *title)
+{
+    ImGui::TableNextRow();
+    ImGui::TableSetColumnIndex(0);
+    ImGui::Dummy(ImVec2(0.0f, 4.0f * g_scale));
+    if (title[0]) ImGui::TextColored(kAccent, "%s", title);
+}
+
+// A Speed / Depth / Pause slider: kept in hundredths, shown as 1.22. A value
+// that's off the steps (Dungeon Master's 1.22) is kept until it's moved.
+bool tune_slider(const char *id, int *v, int lo, int hi, const char *format, int step)
+{
+    float f = *v / 100.0f;
+    if (ImGui::SliderFloat(id, &f, lo / 100.0f, hi / 100.0f, format, ImGuiSliderFlags_AlwaysClamp)) {
+        int n = (int)(f * 100.0f + 0.5f);
+        *v = (n + step / 2) / step * step;
+    }
+    return ImGui::IsItemDeactivatedAfterEdit();
+}
+
 void draw_options(State &st)
 {
     bool playing = game_running();
@@ -410,13 +431,13 @@ void draw_options(State &st)
         ImGui::TableSetupColumn("label", ImGuiTableColumnFlags_WidthFixed, 300.0f * g_scale);
         ImGui::TableSetupColumn("value", ImGuiTableColumnFlags_WidthStretch);
 
+        heading_row("Control Options");
         option_row("Mouse control", "Left click selects, right click is B.");
         changed |= ImGui::Checkbox("##mouse", &o.mouse);
         option_row("Hand follows the mouse", "The game's hand is the pointer.");
         ImGui::BeginDisabled(!o.mouse);
         changed |= ImGui::Checkbox("##hand", &o.hand);
         ImGui::EndDisabled();
-
         option_row("Analog stick as mouse", "Point with analog stick; A or pressing a stick in clicks where it points.");
         ImGui::BeginDisabled(!o.mouse);
         changed |= ImGui::Checkbox("##pad", &o.pad_pointer);
@@ -435,6 +456,15 @@ void draw_options(State &st)
         changed |= slider("##speed", &o.pointer_speed, 1, 10, "%d", 1);
         ImGui::EndDisabled();
 
+        heading_row("Sound Options");
+        ImGui::BeginDisabled(!voice || !o.narration);
+        option_row("Voice volume", "How loud the narrator is.");
+        changed |= slider("##volume", &o.volume, 0, 100, "%d", 5);
+        option_row("Music volume during narration", "Game sound during speech.");
+        changed |= slider("##music", &o.music, 0, 100, "%d", 5);
+        ImGui::EndDisabled();
+
+        heading_row("Narrator Options");
         option_row("Narrator", "Reads the message box aloud.");
         ImGui::BeginDisabled(!voice);
         bool narration = o.narration && voice;   // shown Off without the voice files
@@ -449,16 +479,23 @@ void draw_options(State &st)
                 if (ImGui::Selectable(kVoiceNames[i], i == o.voice)) { o.voice = i; changed = true; }
             ImGui::EndCombo();
         }
-        option_row("Voice volume", "How loud the narrator is.");
-        changed |= slider("##volume", &o.volume, 0, 100, "%d", 5);
-        option_row("Music volume during narration", "Game sound during speech.");
-        changed |= slider("##music", &o.music, 0, 100, "%d", 5);
         option_row("Pause after quotations", "Quiet after a closing quote.");
         changed |= slider("##quote", &o.quote_ms, 0, 2000, "%d ms", 100);
         option_row("Pause after \"!\"", "Quiet after an exclamation mark.");
         changed |= slider("##exclaim", &o.exclaim_ms, 0, 2000, "%d ms", 100);
+        int *tune = o.tune[o.voice];                // this narrator's own voice
+        option_row("Speed", "Speed of narrator speech");
+        changed |= tune_slider("##vspeed", &tune[kTuneSpeed], 50, 150, "%.2f", 5);
+        option_row("Depth", "Depth of narrator voice");
+        changed |= tune_slider("##vdepth", &tune[kTuneDepth], 50, 150, "%.2f", 5);
+        option_row("Pause", "Pause length");
+        changed |= tune_slider("##vpause", &tune[kTunePause], 0, 200, "%.1f", 10);
+        option_row("Narrator defaults", "Restore default narrator voice");
+        if (ImGui::Button("Restore Defaults##narrator")) { game_options_narrator_defaults(o); changed = true; }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Restore default narrator voice");
         ImGui::EndDisabled();
 
+        heading_row("");
         option_row("Torch tracker", "Show remaining torch life: orange at 15, red at 7.");
         changed |= ImGui::Checkbox("##torch", &o.torch);
 
