@@ -20,5 +20,7 @@ int run_process(const std::string &command_line, const std::string &work_folder,
 void cancel_process();
 void reset_cancel();
 
-// Start a program and don't wait for it (the game).
+// Start the game and don't wait for it. game_running() says whether the
+// game it started last is still open.
 bool start_program(const std::string &exe, const std::string &work_folder);
+bool game_running();

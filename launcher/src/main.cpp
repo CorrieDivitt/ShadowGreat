@@ -2,13 +2,14 @@
 //
 // Picks the player's ROM and checks it is Shadowgate (USA) (milestone A),
 // builds the game on this PC and starts it (milestone B), and downloads the
-// build tools and the optional narrator voice (milestone C). Still to come:
-// the options.
+// build tools and the optional narrator voice (milestone C), and sets the
+// Shadowgreat options before playing (milestone D).
 // The launcher contains no game data; it only stores a checksum.
 //
 // Dear ImGui over SDL2's renderer, the same toolkit as the in-game menu.
 
 #include "build_job.h"
+#include "game_config.h"
 #include "launcher_settings.h"
 #include "paths.h"
 #include "child_process.h"
@@ -119,7 +120,12 @@ struct State {
     bool show_details = false;
     size_t log_lines_seen = 0;
     std::string play_message;
+    GameOptions options;            // as in the game's config.ini
+    std::string options_message;    // couldn't save them
+    bool game_was_running = false;
 };
+
+std::string config_path(const State &st) { return st.folders.game + "/config.ini"; }
 
 // The game's own pre-game screen (nesrecomp) remembers the ROM in rom.cfg
 // beside shadowgate.exe: one line, the path. Fill it in with the ROM chosen
@@ -140,6 +146,7 @@ void look_around(State &st)
     st.tools = find_tools(st.folders.tools);
     st.voice = find_voice(st.folders);
     st.built = file_exists(game_exe(st.folders));
+    if (!game_running()) st.options = game_options_read(config_path(st));
 }
 
 void check_rom(State &st)
@@ -337,6 +344,100 @@ void job_ended(State &st)
     st.last_stage = p.stage;
 }
 
+// ---- 4. Options ---------------------------------------------------------------------
+// The same Shadowgreat options as the in-game menu (Esc), saved straight into
+// the game's config.ini. While the game is open they're changed there instead
+// (the game saves its own copy when it closes), so here they wait.
+void option_row(const char *label, const char *help)
+{
+    ImGui::TableNextRow();
+    ImGui::TableSetColumnIndex(0);
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted(label);
+    if (help && ImGui::IsItemHovered()) ImGui::SetTooltip("%s", help);
+    ImGui::TableSetColumnIndex(1);
+    ImGui::SetNextItemWidth(-FLT_MIN);
+}
+
+// A slider whose new value is kept when it's let go.
+bool slider(const char *id, int *v, int lo, int hi, const char *format, int step)
+{
+    ImGui::SliderInt(id, v, lo, hi, format, ImGuiSliderFlags_AlwaysClamp);
+    if (step > 1) *v = (*v + step / 2) / step * step;
+    return ImGui::IsItemDeactivatedAfterEdit();
+}
+
+void draw_options(State &st)
+{
+    bool playing = game_running();
+    if (st.game_was_running && !playing) look_around(st);    // the game may have changed them
+    st.game_was_running = playing;
+
+    if (!st.built) {
+        ImGui::TextColored(kMuted, "Build the game first.");
+        return;
+    }
+    if (playing)
+        ImGui::TextColored(kMuted, "The game is open: change these in its menu (Esc). They show here when it closes.");
+
+    GameOptions &o = st.options;
+    bool changed = false;
+    bool voice = st.voice.installed();
+    ImGui::BeginDisabled(playing);
+    if (ImGui::BeginTable("##options", 2, ImGuiTableFlags_SizingStretchProp)) {
+        ImGui::TableSetupColumn("label", ImGuiTableColumnFlags_WidthFixed, 300.0f * g_scale);
+        ImGui::TableSetupColumn("value", ImGuiTableColumnFlags_WidthStretch);
+
+        option_row("Mouse control", "Left click selects, right click is B.");
+        changed |= ImGui::Checkbox("##mouse", &o.mouse);
+        option_row("Hand follows the mouse", "The game's hand is the pointer.");
+        ImGui::BeginDisabled(!o.mouse);
+        changed |= ImGui::Checkbox("##hand", &o.hand);
+        ImGui::EndDisabled();
+
+        option_row("Narration voice", "Reads the message box aloud.");
+        ImGui::BeginDisabled(!voice);
+        bool narration = o.narration && voice;   // shown Off without the voice files
+        if (ImGui::Checkbox("##narration", &narration)) { o.narration = narration; changed = true; }
+        ImGui::EndDisabled();
+        if (!voice) { ImGui::SameLine(); ImGui::TextColored(kMuted, "Needs the voice files (step 3)."); }
+
+        ImGui::BeginDisabled(!voice || !o.narration);
+        option_row("Narrator", "A new voice starts with the next message.");
+        if (ImGui::BeginCombo("##voice", kVoiceNames[o.voice])) {
+            for (int i = 0; i < kVoiceCount; ++i)
+                if (ImGui::Selectable(kVoiceNames[i], i == o.voice)) { o.voice = i; changed = true; }
+            ImGui::EndCombo();
+        }
+        option_row("Voice volume", "How loud the narrator is.");
+        changed |= slider("##volume", &o.volume, 0, 100, "%d", 5);
+        option_row("Music while the narrator talks", "Game sound during speech (100 = no dip).");
+        changed |= slider("##music", &o.music, 0, 100, "%d", 5);
+        option_row("Pause after quotations", "Quiet after a closing quote.");
+        changed |= slider("##quote", &o.quote_ms, 0, 2000, "%d ms", 100);
+        option_row("Pause after \"!\"", "Quiet after an exclamation mark.");
+        changed |= slider("##exclaim", &o.exclaim_ms, 0, 2000, "%d ms", 100);
+        ImGui::EndDisabled();
+
+        option_row("Skip the game's start screen",
+                   "Play goes straight into the game. The start screen has the display and controller settings.");
+        changed |= ImGui::Checkbox("##skip", &o.skip_start_screen);
+        ImGui::EndTable();
+    }
+    if (ImGui::Button("Restore Defaults")) {
+        GameOptions d;
+        d.skip_start_screen = o.skip_start_screen;   // not one of the Shadowgreat options
+        o = d;
+        changed = true;
+    }
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Restore Shadowgreat default options");
+    ImGui::EndDisabled();
+
+    if (changed && !playing)
+        st.options_message = game_options_write(config_path(st), o) ? "" : "Couldn't save the options to config.ini.";
+    if (!st.options_message.empty()) ImGui::TextColored(kBad, "%s", st.options_message.c_str());
+}
+
 void draw(State &st, SDL_Window *win)
 {
     ImGuiIO &io = ImGui::GetIO();
@@ -390,11 +491,12 @@ void draw(State &st, SDL_Window *win)
     step_header(3, "Narrator voice (optional)", true);
     ImGui::Indent(); draw_voice(st); ImGui::Unindent();
     ImGui::Spacing();
-    step_header(4, "Options", false);
-    ImGui::Indent(); ImGui::TextColored(kMuted, "Coming soon: mouse, hand pointer, narration."); ImGui::Unindent();
+    step_header(4, "Options", st.built);
+    ImGui::Indent(); draw_options(st); ImGui::Unindent();
 
     // Play, bottom right (below everything when the window is short)
-    const char *play = "Play";
+    bool playing = game_running();
+    const char *play = playing ? "Playing..." : "Play";
     const ImGuiStyle &style = ImGui::GetStyle();
     ImVec2 play_size(ImGui::CalcTextSize(play).x + 60.0f * g_scale + style.FramePadding.x * 2,
                      ImGui::GetFrameHeight() * 1.4f);
@@ -407,7 +509,7 @@ void draw(State &st, SDL_Window *win)
     }
     ImGui::SetCursorPos(ImVec2(ImGui::GetWindowWidth() - play_size.x - style.WindowPadding.x,
                                ImGui::GetCursorPosY() > bottom ? ImGui::GetCursorPosY() : bottom));
-    bool can_play = rom_ok && st.built && !build_running();
+    bool can_play = rom_ok && st.built && !build_running() && !playing;
     ImGui::BeginDisabled(!can_play);
     ImGui::PushStyleColor(ImGuiCol_Button, can_play ? ImVec4(0.62f, 0.17f, 0.14f, 1.0f) : style.Colors[ImGuiCol_Button]);
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.74f, 0.22f, 0.18f, 1.0f));
@@ -437,15 +539,22 @@ int main(int argc, char **argv)
     if (SDL_GetDisplayDPI(0, &dpi, nullptr, nullptr) != 0 || dpi < 48.0f) dpi = 96.0f;
     float scale = dpi / 96.0f;
     g_scale = scale;
+    int width = (int)(900 * scale), height = (int)(820 * scale);
+    SDL_Rect usable;                          // fit on small screens (the page scrolls)
+    if (SDL_GetDisplayUsableBounds(0, &usable) == 0) {
+        if (width > usable.w * 9 / 10) width = usable.w * 9 / 10;
+        if (height > usable.h * 9 / 10) height = usable.h * 9 / 10;
+    }
     SDL_Window *win = SDL_CreateWindow("Shadowgreat", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                                       (int)(860 * scale), (int)(600 * scale),
+                                       width, height,
                                        SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
     SDL_Renderer *ren = win ? SDL_CreateRenderer(win, -1, SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_ACCELERATED) : nullptr;
     if (!ren) {
         std::fprintf(stderr, "window: %s\n", SDL_GetError());
         return 1;
     }
-    SDL_SetWindowMinimumSize(win, (int)(640 * scale), (int)(480 * scale));
+    SDL_SetWindowMinimumSize(win, width < (int)(640 * scale) ? width : (int)(640 * scale),
+                             height < (int)(480 * scale) ? height : (int)(480 * scale));
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();

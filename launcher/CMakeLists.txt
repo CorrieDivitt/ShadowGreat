@@ -24,6 +24,7 @@ add_executable(ShadowgreatLauncher WIN32
   src/main.cpp
   src/launcher_settings.cpp
   src/build_job.cpp
+  src/game_config.cpp
   src/paths.cpp
   src/child_process.cpp
   src/rom_check.c

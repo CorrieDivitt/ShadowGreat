@@ -140,6 +140,17 @@ int run_process(const std::string &command_line, const std::string &work_folder,
     return s_cancelled ? -2 : (int)code;
 }
 
+static HANDLE s_game;
+
+bool game_running()
+{
+    if (!s_game) return false;
+    if (WaitForSingleObject(s_game, 0) == WAIT_TIMEOUT) return true;
+    CloseHandle(s_game);
+    s_game = nullptr;
+    return false;
+}
+
 bool start_program(const std::string &exe, const std::string &work_folder)
 {
     STARTUPINFOW si;
@@ -150,7 +161,8 @@ bool start_program(const std::string &exe, const std::string &work_folder)
     if (!CreateProcessW(nullptr, &cmd[0], nullptr, nullptr, FALSE, 0, nullptr, wd.c_str(), &si, &pi))
         return false;
     CloseHandle(pi.hThread);
-    CloseHandle(pi.hProcess);
+    if (s_game) CloseHandle(s_game);
+    s_game = pi.hProcess;
     return true;
 }
 
@@ -165,5 +177,6 @@ int run_process(const std::string &, const std::string &, const std::function<vo
     return -1;
 }
 bool start_program(const std::string &, const std::string &) { return false; }
+bool game_running() { return false; }
 
 #endif
