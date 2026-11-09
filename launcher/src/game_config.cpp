@@ -102,7 +102,7 @@ void IniFile::set(const std::string &section, const std::string &key, const std:
 }
 
 // ---- the options ------------------------------------------------------------------
-const char *const kVoiceNames[] = { "Narrator", "Grim", "Plain" };
+const char *const kVoiceNames[] = { "Dungeon Master", "Old Man", "Woman" };
 const int kVoiceCount = 3;
 
 static bool on(const std::string &v, bool fallback)
@@ -133,6 +133,10 @@ GameOptions game_options_read(const std::string &config_path)
     o.narration = on(ini.get("Game", "Narration", ""), d.narration);
     std::string voice = ini.get("Game", "NarratorVoice", kVoiceNames[0]);
     for (int i = 0; i < kVoiceCount; ++i) if (same(voice, kVoiceNames[i])) o.voice = i;
+    if (voice.size() == 1 && voice[0] >= '1' && voice[0] <= '3') o.voice = voice[0] - '1';
+    // the voices' names before 2026-11-08 (as in feat_narration.c)
+    if (same(voice, "Narrator") || same(voice, "Plain")) o.voice = 0;
+    if (same(voice, "Grim")) o.voice = 1;
     o.volume = clamp(std::atoi(ini.get("Game", "VoiceVolume", std::to_string(d.volume)).c_str()), 0, 100);
     o.music = clamp(std::atoi(ini.get("Game", "MusicWhileSpeaking", std::to_string(d.music)).c_str()), 0, 100);
     o.quote_ms = seconds_to_ms(ini.get("Game", "QuotePause", ""), d.quote_ms);

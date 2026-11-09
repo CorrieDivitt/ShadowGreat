@@ -35,12 +35,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* The three presets chosen by the user on 2026-11-08 (Phase 7 doc). */
+/* The three voices, chosen by the user from samples on 2026-11-08
+ * (p10-narrators). Dungeon Master is the original narrator; Old Man and
+ * Woman replaced the earlier Grim and Plain. */
 const SgVoicePreset sg_voice_presets[] = {
-    /* name        sid blend  mix   speed  pitch  pause */
-    { "Narrator",  27,  -1,  0.0f,  1.22f, 0.85f, 0.5f },  /* bm_lewis, deeper   */
-    { "Grim",      27,  14,  0.4f,  1.22f, 1.00f, 0.5f },  /* 60 % lewis + 40 % am_fenrir */
-    { "Plain",     27,  -1,  0.0f,  1.00f, 1.00f, 0.5f },  /* bm_lewis as is     */
+    /* name              sid blend  mix   speed  pitch  pause */
+    { "Dungeon Master",  27,  -1,  0.0f,  1.22f, 0.85f, 0.5f },  /* bm_lewis, deeper  */
+    { "Old Man",         19,  -1,  0.0f,  1.12f, 0.95f, 0.6f },  /* am_santa, a little deeper */
+    { "Woman",            6,  -1,  0.0f,  1.00f, 1.00f, 0.6f },  /* af_nicole as is   */
 };
 const int sg_voice_preset_count = (int)(sizeof sg_voice_presets / sizeof sg_voice_presets[0]);
 
@@ -335,7 +337,7 @@ static char *clean_text(const char *raw)
     return out;
 }
 
-/* ---- Grim's blended voice ----
+/* ---- a blended voice (for a preset with blend_sid >= 0; none uses one now) ----
  * Kokoro's voices.bin holds one block of numbers per voice. A blend is just
  * a weighted average of two blocks. We write a copy of voices.bin beside the
  * .exe (sg-voices.bin) with the blend in the last slot, which is a voice for

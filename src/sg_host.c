@@ -11,7 +11,7 @@
  *     Narration = On
  *     TorchTracker = Off
  *     PadPointer = On
- *     NarratorVoice = Narrator      (a feature's own extra lines)
+ *     NarratorVoice = Dungeon Master   (a feature's own extra lines)
  *
  * The launcher edits these same lines.
  */

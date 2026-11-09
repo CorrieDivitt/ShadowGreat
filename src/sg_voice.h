@@ -14,7 +14,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-/* A choosable voice. Chosen in config.ini: NarratorVoice = Narrator */
+/* A choosable voice. Chosen in config.ini: NarratorVoice = Dungeon Master */
 typedef struct SgVoicePreset {
     const char *name;
     int   sid;          /* Kokoro voice number (27 = bm_lewis)                  */

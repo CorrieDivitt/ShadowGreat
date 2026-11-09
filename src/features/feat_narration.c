@@ -7,7 +7,7 @@
  *
  * config.ini [Game] lines:
  *   Narration        = On             the whole feature (voice + log)
- *   NarratorVoice    = Narrator       Narrator, Grim or Plain
+ *   NarratorVoice    = Dungeon Master Dungeon Master, Old Man or Woman (or 1-3)
  *   VoiceVolume      = 100            0-100
  *   MusicWhileSpeaking = 40           0-100: game sound level while the voice talks
  *   QuotePause       = 0.8            seconds of quiet after a closing quote
@@ -58,7 +58,7 @@ static bool     s_at_page_end;        /* the game is waiting for A        */
 static SgScreen s_last_screen;
 
 /* Defaults (also what "Restore defaults" in the menu goes back to) */
-#define DEFAULT_PRESET        0      /* Narrator */
+#define DEFAULT_PRESET        0      /* Dungeon Master */
 #define DEFAULT_VOLUME        100
 #define DEFAULT_MUSIC         40
 #define DEFAULT_QUOTE_PAUSE   0.8f
@@ -213,6 +213,10 @@ static bool narration_setting(const char *key, const char *value)
             if (sg_same_word(value, sg_voice_presets[i].name)) s_preset = i;
         int n = atoi(value);                  /* 1, 2 or 3 also works */
         if (n >= 1 && n <= sg_voice_preset_count) s_preset = n - 1;
+        /* The voices' names before 2026-11-08: Narrator and Plain were
+         * Dungeon Master's voice; Grim was the other deep man, now Old Man. */
+        if (sg_same_word(value, "Narrator") || sg_same_word(value, "Plain")) s_preset = 0;
+        if (sg_same_word(value, "Grim")) s_preset = 1;
         return true;
     }
     if (sg_same_word(key, "VoiceVolume")) {

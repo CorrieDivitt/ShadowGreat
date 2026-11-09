@@ -25,7 +25,7 @@ code into a native Windows program, and [recomp-ui](https://github.com/mstan/rec
 - Stays in step with the box: it pauses at the end of each page until you press A (or click), and stops when the box closes.
 - The game's **music dips** while the narrator talks, then comes back.
 - Short **pauses after quotations and after "!"**, adjustable.
-- Three voices: **Narrator** (deep), **Grim**, **Plain**.
+- Three voices: **Dungeon Master** (deep, the default), **Old Man** and **Woman**.
 - It's a separate download (about 358 MB). You can play without it and add or remove it any time.
 
 ### Torch tracker (optional)
@@ -92,7 +92,7 @@ All are in the in-game menu (Esc → Shadowgreat), in the launcher's Options ste
 | Mouse control | `Mouse` | On |
 | Hand follows the mouse | `HandFollowsMouse` | On |
 | Narration voice | `Narration` | On (needs the voice files) |
-| Narrator | `NarratorVoice` | `Narrator` (or `Grim`, `Plain`) |
+| Narrator | `NarratorVoice` | `Dungeon Master` (or `Old Man`, `Woman`) |
 | Voice volume | `VoiceVolume` | 100 |
 | Music while the narrator talks | `MusicWhileSpeaking` | 40 (100 = no dip) |
 | Pause after quotations | `QuotePause` | 0.80 seconds |
