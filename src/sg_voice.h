@@ -51,6 +51,10 @@ void sg_voice_say(const char *text);
  * (about 1.5 s) and is used from the next message. */
 void sg_voice_set_preset(int preset);
 void sg_voice_set_volume(int volume, int music);
+/* The narrator's own speed, depth and pause, replacing the preset's speed,
+ * pitch and pause (call again after sg_voice_set_preset). From the next
+ * message; depth at once. */
+void sg_voice_set_tuning(float speed, float depth, float pause);
 
 /* Extra pauses, in seconds as heard: after the closing quote of spoken
  * dialogue, and after an exclamation mark. Call before sg_voice_start(). */

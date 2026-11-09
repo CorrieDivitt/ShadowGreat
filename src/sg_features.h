@@ -82,10 +82,16 @@ typedef enum SgNarrSetting {
     SG_NARR_MUSIC,           /* 0-100: game sound while the voice talks */
     SG_NARR_QUOTE_TENTHS,    /* pause after quotes, tenths of a second */
     SG_NARR_EXCLAIM_TENTHS,  /* pause after "!", tenths of a second    */
+    SG_NARR_SPEED,           /* this narrator's speed, hundredths (50-150) */
+    SG_NARR_DEPTH,           /* this narrator's depth, hundredths (50-150) */
+    SG_NARR_PAUSE,           /* this narrator's pause, hundredths (0-200)  */
 } SgNarrSetting;
 int  sg_narration_get(SgNarrSetting which);
 void sg_narration_set(SgNarrSetting which, int value);
 void sg_narration_defaults(void);   /* every narration setting back to normal */
+/* The chosen narrator's speed, depth and pause, and the two pauses after
+ * quotes and "!", back to normal. The narrator itself stays as chosen. */
+void sg_narration_narrator_defaults(void);
 
 /* The in-game menu rows (sg_menu.c; only in builds with recomp-ui). */
 struct CycHostExtras;

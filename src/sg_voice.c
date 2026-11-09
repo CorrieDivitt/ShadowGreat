@@ -744,6 +744,17 @@ void sg_voice_set_preset(int preset)
     }
 }
 
+static float clamp_tuning(float v, float lo, float hi) { return v < lo ? lo : v > hi ? hi : v; }
+
+void sg_voice_set_tuning(float speed, float depth, float pause)
+{
+    if (s_lock) SDL_LockMutex(s_lock);
+    s_preset.speed = clamp_tuning(speed, 0.5f, 1.5f);
+    s_preset.pitch = clamp_tuning(depth, 0.5f, 1.5f);
+    s_preset.pause = clamp_tuning(pause, 0.0f, 2.0f);
+    if (s_lock) SDL_UnlockMutex(s_lock);
+}
+
 void sg_voice_set_volume(int volume, int music)
 {
     if (s_lock) SDL_LockMutex(s_lock);
@@ -861,6 +872,7 @@ void sg_voice_page(int page) { (void)page; }
 void sg_voice_release(void) {}
 void sg_voice_set_preset(int preset) { (void)preset; }
 void sg_voice_set_volume(int volume, int music) { (void)volume; (void)music; }
+void sg_voice_set_tuning(float speed, float depth, float pause) { (void)speed; (void)depth; (void)pause; }
 void sg_voice_set_pauses(float quote_seconds, float exclaim_seconds) { (void)quote_seconds; (void)exclaim_seconds; }
 void sg_voice_stop(void) {}
 void sg_voice_mix(int16_t *pcm, size_t count, unsigned rate) { (void)pcm; (void)count; (void)rate; }

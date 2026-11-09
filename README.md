@@ -113,6 +113,9 @@ All are in the in-game menu (Esc → Shadowgreat), in the launcher's Options ste
 | Music volume during narration | `MusicWhileSpeaking` | 40 (100 = no dip) |
 | Pause after quotations | `QuotePause` | 0.80 seconds |
 | Pause after "!" | `ExclaimPause` | 0.60 seconds |
+| Speed (each narrator, in-game menu only) | `DungeonMasterSpeed`, `OldManSpeed`, `WomanSpeed` | 1.22, 1.12, 1.00 (0.5-1.5) |
+| Depth (each narrator, in-game menu only) | `DungeonMasterDepth`, `OldManDepth`, `WomanDepth` | 0.85, 0.95, 1.00 (0.5-1.5; lower = deeper) |
+| Pause (each narrator, in-game menu only) | `DungeonMasterPause`, `OldManPause`, `WomanPause` | 0.5, 0.6, 0.6 (0-2) |
 | Torch tracker | `TorchTracker` | Off |
 | Analog stick as mouse | `PadPointer` | On (needs Mouse control) |
 | Analog stick | `PointerStick` | `Left` (or `Right`) |

@@ -89,6 +89,11 @@ if(NOT NESRECOMP_HEADLESS)
     message(STATUS "shadowgate: voice support ON (uses the voice package if it is installed)")
 endif()
 
+# Our patch snippets are read while configuring, so a change to one must
+# configure again (otherwise the old generated file is kept).
+file(GLOB_RECURSE _sg_patch_files CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/patches/*.inc")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${_sg_patch_files})
+
 # ---- in-game menu scaled with the window (patches/menu-scale/README.md) ----
 # Only for builds with recomp-ui. Builds a patched copy of nesrecomp's
 # cyc_ui_imgui.cpp in the build folder; nesrecomp's own file is untouched.
@@ -183,10 +188,14 @@ endforeach()
 if(_sg_rt_src)
     file(READ "${_sg_rt_src}" _sg_text)
     file(READ "${CMAKE_SOURCE_DIR}/patches/menu-action-label/value.inc" _sg_value)
+    file(READ "${CMAKE_SOURCE_DIR}/patches/menu-action-label/number.inc" _sg_number)
     set(_sg_a "        std::snprintf(out, out_size, \"OPEN\");\n")
+    set(_sg_b "    } else {\n        std::snprintf(out, out_size, \"%d\", value);\n    }\n")
     string(FIND "${_sg_text}" "${_sg_a}" _sg_at)
-    if(_sg_at GREATER_EQUAL 0)
+    string(FIND "${_sg_text}" "${_sg_b}" _sg_at_b)
+    if(_sg_at GREATER_EQUAL 0 AND _sg_at_b GREATER_EQUAL 0)
         string(REPLACE "${_sg_a}" "${_sg_value}" _sg_text "${_sg_text}")
+        string(REPLACE "${_sg_b}" "${_sg_number}" _sg_text "${_sg_text}")
         set(_sg_out "${CMAKE_BINARY_DIR}/generated/runtime_ui_imgui_labels.cpp")
         file(WRITE "${_sg_out}.new" "${_sg_text}")
         file(COPY_FILE "${_sg_out}.new" "${_sg_out}" ONLY_IF_DIFFERENT)
@@ -195,10 +204,10 @@ if(_sg_rt_src)
         set_property(TARGET shadowgate PROPERTY SOURCES ${_sg_srcs})
         get_filename_component(_sg_rt_dir "${_sg_rt_src}" DIRECTORY)
         target_include_directories(shadowgate PRIVATE "${_sg_rt_dir}")
-        message(STATUS "shadowgate: menu reset row says Restore Defaults")
+        message(STATUS "shadowgate: menu reset row says Restore Defaults; voice rows show 1.22")
     else()
         message(WARNING "shadowgate: recomp-ui's runtime_ui_imgui.cpp has changed; "
-                        "the reset row shows OPEN")
+                        "the reset row shows OPEN and the voice rows show 122")
     endif()
 endif()
 

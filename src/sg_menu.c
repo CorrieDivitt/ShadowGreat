@@ -66,6 +66,20 @@ static RecompRuntimeUiItem s_items[] = {
     { "sg.voice.exclaim", NARRATOR, "Pause after \"!\" (ms)",
       "Quiet after an exclamation mark.",
       RECOMP_RUNTIME_UI_INT, 0, 2000, 100, NULL, 0, NULL },
+    /* Each narrator's own voice, in hundredths; shown as 1.22 etc. by
+     * patches/menu-action-label. Changing the narrator shows its values. */
+    { "sg.voice.speed", NARRATOR, "Speed",
+      "Speed of narrator speech",
+      RECOMP_RUNTIME_UI_INT, 50, 150, 5, NULL, 0, NULL },
+    { "sg.voice.depth", NARRATOR, "Depth",
+      "Depth of narrator voice",
+      RECOMP_RUNTIME_UI_INT, 50, 150, 5, NULL, 0, NULL },
+    { "sg.voice.pause", NARRATOR, "Pause",
+      "Pause length",
+      RECOMP_RUNTIME_UI_INT, 0, 200, 10, NULL, 0, NULL },
+    { "sg.voice.defaults", NARRATOR, "Narrator defaults",
+      "Restore default narrator voice",
+      RECOMP_RUNTIME_UI_ACTION, 0, 0, 0, NULL, 0, NULL },
     { "sg.torch", SECTION, "Torch tracker",
       "Show remaining torch life",
       RECOMP_RUNTIME_UI_BOOL, 0, 1, 1, NULL, 0, NULL },
@@ -94,13 +108,28 @@ static int get_value(void *ctx, const RecompRuntimeUiItem *it, int *out)
     else if (is(it, "sg.voice.music"))   *out = sg_narration_get(SG_NARR_MUSIC);
     else if (is(it, "sg.voice.quote"))   *out = 100 * sg_narration_get(SG_NARR_QUOTE_TENTHS);
     else if (is(it, "sg.voice.exclaim")) *out = 100 * sg_narration_get(SG_NARR_EXCLAIM_TENTHS);
+    else if (is(it, "sg.voice.speed"))   *out = sg_narration_get(SG_NARR_SPEED);
+    else if (is(it, "sg.voice.depth"))   *out = sg_narration_get(SG_NARR_DEPTH);
+    else if (is(it, "sg.voice.pause"))   *out = sg_narration_get(SG_NARR_PAUSE);
     else return 0;
     return 1;
+}
+
+/* - / + moves a value like 1.22 to the next step (1.20 or 1.25), so the
+ * three voice rows stay on their 0.05 / 0.1 steps after one press. */
+static int on_step(const RecompRuntimeUiItem *it, int now, int v)
+{
+    const int step = it->step > 0 ? it->step : 1;
+    if (now % step == 0 || v == now) return v;
+    int down = now >= 0 ? now / step * step : -((-now + step - 1) / step) * step;
+    v = v > now ? down + step : down;
+    return v < it->minimum ? it->minimum : v > it->maximum ? it->maximum : v;
 }
 
 static int set_value(void *ctx, const RecompRuntimeUiItem *it, int v)
 {
     (void)ctx;
+    int now = 0;
     if (is(it, "sg.mouse"))              sg_feature_switch(&sg_feature_mouse, v != 0);
     else if (is(it, "sg.hand"))          sg_feature_switch(&sg_feature_hand, v != 0);
     else if (is(it, "sg.narration"))     sg_feature_switch(&sg_feature_narration, v != 0);
@@ -113,6 +142,9 @@ static int set_value(void *ctx, const RecompRuntimeUiItem *it, int v)
     else if (is(it, "sg.voice.music"))   sg_narration_set(SG_NARR_MUSIC, v);
     else if (is(it, "sg.voice.quote"))   sg_narration_set(SG_NARR_QUOTE_TENTHS, (v + 50) / 100);
     else if (is(it, "sg.voice.exclaim")) sg_narration_set(SG_NARR_EXCLAIM_TENTHS, (v + 50) / 100);
+    else if (is(it, "sg.voice.speed")) { get_value(NULL, it, &now); sg_narration_set(SG_NARR_SPEED, on_step(it, now, v)); }
+    else if (is(it, "sg.voice.depth")) { get_value(NULL, it, &now); sg_narration_set(SG_NARR_DEPTH, on_step(it, now, v)); }
+    else if (is(it, "sg.voice.pause")) { get_value(NULL, it, &now); sg_narration_set(SG_NARR_PAUSE, on_step(it, now, v)); }
     else return 0;
     return 1;
 }
@@ -120,6 +152,11 @@ static int set_value(void *ctx, const RecompRuntimeUiItem *it, int v)
 static int run_action(void *ctx, const RecompRuntimeUiItem *it)
 {
     (void)ctx;
+    if (is(it, "sg.voice.defaults")) {
+        sg_log("menu: restoring the narrator defaults");
+        sg_narration_narrator_defaults();
+        return 1;
+    }
     if (!is(it, "sg.defaults")) return 0;
     sg_log("menu: restoring the Shadowgreat defaults");
     sg_feature_switch(&sg_feature_mouse, sg_feature_mouse.default_on);

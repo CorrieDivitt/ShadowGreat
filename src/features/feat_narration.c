@@ -11,6 +11,10 @@
  *   VoiceVolume      = 100            0-100
  *   MusicWhileSpeaking = 40           0-100: game sound level while the voice talks
  *   QuotePause       = 0.8            seconds of quiet after a closing quote
+ *   <Narrator>Speed / <Narrator>Depth / <Narrator>Pause   each narrator's own
+ *                    voice, e.g. DungeonMasterSpeed = 1.22, OldManDepth = 0.95,
+ *                    WomanPause = 0.6 (speed and depth 0.5-1.5, pause 0-2;
+ *                    missing = that narrator's normal voice)
  *   ExclaimPause     = 0.6            seconds of quiet after "!"
  *   VoiceFolder      = voice          the voice package: sherpa-onnx DLLs (beside the .exe, or a full path)
  *   VoiceModelFolder =                the Kokoro model; empty = VoiceFolder/kokoro-multi-lang-v1_0
@@ -69,6 +73,54 @@ static int  s_volume = DEFAULT_VOLUME;
 static int  s_music = DEFAULT_MUSIC;
 static float s_quote_pause = DEFAULT_QUOTE_PAUSE;
 static float s_exclaim_pause = DEFAULT_EXCLAIM_PAUSE;
+
+/* Each narrator's own speed, depth and pause, in hundredths (Kokoro speed,
+ * playback pitch factor and silence scale). Start as the preset's values. */
+#define MAX_NARRATORS 8
+enum { TUNE_SPEED, TUNE_DEPTH, TUNE_PAUSE, TUNE_COUNT };
+static const char *const k_tune_words[TUNE_COUNT] = { "Speed", "Depth", "Pause" };
+static int  s_tune[MAX_NARRATORS][TUNE_COUNT];
+static bool s_tune_ready;
+
+static int hundredths(float v) { return (int)(v * 100.0f + (v < 0 ? -0.5f : 0.5f)); }
+
+static int tune_clamp(int which, int v)
+{
+    const int lo = which == TUNE_PAUSE ? 0 : 50, hi = which == TUNE_PAUSE ? 200 : 150;
+    return v < lo ? lo : v > hi ? hi : v;
+}
+
+static void tune_reset(void)
+{
+    for (int i = 0; i < sg_voice_preset_count && i < MAX_NARRATORS; ++i) {
+        s_tune[i][TUNE_SPEED] = hundredths(sg_voice_presets[i].speed);
+        s_tune[i][TUNE_DEPTH] = hundredths(sg_voice_presets[i].pitch);
+        s_tune[i][TUNE_PAUSE] = hundredths(sg_voice_presets[i].pause);
+    }
+    s_tune_ready = true;
+}
+
+static void tune_init(void) { if (!s_tune_ready) tune_reset(); }
+
+/* "Dungeon Master" + "Speed" -> "DungeonMasterSpeed" */
+static void tune_key(int narrator, int which, char *out, size_t size)
+{
+    size_t o = 0;
+    for (const char *p = sg_voice_presets[narrator].name; *p && o + 1 < size; ++p)
+        if (*p != ' ') out[o++] = *p;
+    out[o] = '\0';
+    snprintf(out + o, size - o, "%s", k_tune_words[which]);
+}
+
+/* Give the voice the current narrator's own values. */
+static void tune_apply(void)
+{
+    tune_init();
+    if (s_preset < 0 || s_preset >= MAX_NARRATORS) return;
+    sg_voice_set_tuning(s_tune[s_preset][TUNE_SPEED] / 100.0f,
+                        s_tune[s_preset][TUNE_DEPTH] / 100.0f,
+                        s_tune[s_preset][TUNE_PAUSE] / 100.0f);
+}
 
 /* A message is only spoken once the narration box is really on screen
  * ($E5 = $6C, shadowgate-map.toml). Things like the inventory headings
@@ -155,6 +207,7 @@ static void narration_start(void)
     s_waiting_for_box = false;
     sg_voice_set_pauses(s_quote_pause, s_exclaim_pause);
     sg_voice_start(s_preset, s_voice_dir, s_model_dir, s_volume, s_music);
+    tune_apply();
     s_last_screen = SG_SCREEN_UNKNOWN;
     if (nes_mod_set_function_hook_enabled(HOOK_ID, 1) &&
         nes_mod_set_function_hook_enabled(HOOK_ID_2, 1) &&
@@ -179,6 +232,9 @@ int sg_narration_get(SgNarrSetting which)
     case SG_NARR_MUSIC:          return s_music;
     case SG_NARR_QUOTE_TENTHS:   return (int)(s_quote_pause * 10.0f + 0.5f);
     case SG_NARR_EXCLAIM_TENTHS: return (int)(s_exclaim_pause * 10.0f + 0.5f);
+    case SG_NARR_SPEED: tune_init(); return s_tune[s_preset][TUNE_SPEED];
+    case SG_NARR_DEPTH: tune_init(); return s_tune[s_preset][TUNE_DEPTH];
+    case SG_NARR_PAUSE: tune_init(); return s_tune[s_preset][TUNE_PAUSE];
     }
     return 0;
 }
@@ -187,27 +243,57 @@ void sg_narration_set(SgNarrSetting which, int v)
 {
     switch (which) {
     case SG_NARR_PRESET:
-        if (v >= 0 && v < sg_voice_preset_count) { s_preset = v; sg_voice_set_preset(v); }
+        if (v >= 0 && v < sg_voice_preset_count && v < MAX_NARRATORS) {
+            s_preset = v;
+            sg_voice_set_preset(v);
+            tune_apply();               /* this narrator's own speed, depth and pause */
+        }
         break;
     case SG_NARR_VOLUME: s_volume = v < 0 ? 0 : v > 100 ? 100 : v; sg_voice_set_volume(s_volume, s_music); break;
     case SG_NARR_MUSIC:  s_music  = v < 0 ? 0 : v > 100 ? 100 : v; sg_voice_set_volume(s_volume, s_music); break;
     case SG_NARR_QUOTE_TENTHS:   s_quote_pause = v / 10.0f;   sg_voice_set_pauses(s_quote_pause, s_exclaim_pause); break;
     case SG_NARR_EXCLAIM_TENTHS: s_exclaim_pause = v / 10.0f; sg_voice_set_pauses(s_quote_pause, s_exclaim_pause); break;
+    case SG_NARR_SPEED: tune_init(); s_tune[s_preset][TUNE_SPEED] = tune_clamp(TUNE_SPEED, v); tune_apply(); break;
+    case SG_NARR_DEPTH: tune_init(); s_tune[s_preset][TUNE_DEPTH] = tune_clamp(TUNE_DEPTH, v); tune_apply(); break;
+    case SG_NARR_PAUSE: tune_init(); s_tune[s_preset][TUNE_PAUSE] = tune_clamp(TUNE_PAUSE, v); tune_apply(); break;
     }
 }
 
-void sg_narration_defaults(void)
+void sg_narration_narrator_defaults(void)
 {
-    sg_narration_set(SG_NARR_PRESET, DEFAULT_PRESET);
-    sg_narration_set(SG_NARR_VOLUME, DEFAULT_VOLUME);
-    sg_narration_set(SG_NARR_MUSIC, DEFAULT_MUSIC);
+    tune_init();                         /* this narrator's own voice back to normal */
+    if (s_preset >= 0 && s_preset < sg_voice_preset_count && s_preset < MAX_NARRATORS) {
+        s_tune[s_preset][TUNE_SPEED] = hundredths(sg_voice_presets[s_preset].speed);
+        s_tune[s_preset][TUNE_DEPTH] = hundredths(sg_voice_presets[s_preset].pitch);
+        s_tune[s_preset][TUNE_PAUSE] = hundredths(sg_voice_presets[s_preset].pause);
+    }
+    tune_apply();
     s_quote_pause = DEFAULT_QUOTE_PAUSE;
     s_exclaim_pause = DEFAULT_EXCLAIM_PAUSE;
     sg_voice_set_pauses(s_quote_pause, s_exclaim_pause);
 }
 
+void sg_narration_defaults(void)
+{
+    tune_reset();                        /* every narrator's own voice back to normal */
+    sg_narration_set(SG_NARR_PRESET, DEFAULT_PRESET);
+    sg_narration_narrator_defaults();
+    sg_narration_set(SG_NARR_VOLUME, DEFAULT_VOLUME);
+    sg_narration_set(SG_NARR_MUSIC, DEFAULT_MUSIC);
+}
+
 static bool narration_setting(const char *key, const char *value)
 {
+    tune_init();
+    for (int i = 0; i < sg_voice_preset_count && i < MAX_NARRATORS; ++i)
+        for (int w = 0; w < TUNE_COUNT; ++w) {
+            char name[64];
+            tune_key(i, w, name, sizeof name);
+            if (sg_same_word(key, name)) {
+                s_tune[i][w] = tune_clamp(w, hundredths((float)atof(value)));
+                return true;
+            }
+        }
     if (sg_same_word(key, "NarratorVoice")) {
         for (int i = 0; i < sg_voice_preset_count; ++i)
             if (sg_same_word(value, sg_voice_presets[i].name)) s_preset = i;
@@ -249,6 +335,13 @@ static void narration_save(FILE *f)
     fprintf(f, "MusicWhileSpeaking = %d\n", s_music);
     fprintf(f, "QuotePause = %.2f\n", s_quote_pause);
     fprintf(f, "ExclaimPause = %.2f\n", s_exclaim_pause);
+    tune_init();
+    for (int i = 0; i < sg_voice_preset_count && i < MAX_NARRATORS; ++i)
+        for (int w = 0; w < TUNE_COUNT; ++w) {
+            char name[64];
+            tune_key(i, w, name, sizeof name);
+            fprintf(f, "%s = %.2f\n", name, s_tune[i][w] / 100.0f);
+        }
     fprintf(f, "VoiceFolder = %s\n", s_voice_dir);
     fprintf(f, "VoiceModelFolder = %s\n", s_model_dir);
 }
