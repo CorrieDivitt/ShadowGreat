@@ -6,12 +6,13 @@
 // Everything they write (including the code made from the ROM) goes in the
 // game folder on this PC.
 //
-// Downloading: Python first (curl and tar are part of Windows 10 and 11),
-// checked against its SHA-256; then fetch.py downloads, checks and unpacks
-// everything else. Output is saved to launcher-build.log beside the launcher.
+// Downloading: Python first, by the launcher itself (WinHTTP, and its own
+// .tar.gz unpacking; no other program is started for it), checked against
+// its SHA-256; then fetch.py downloads, checks and unpacks everything else. Output is saved to launcher-build.log beside the launcher.
 #include "build_job.h"
 #include "child_process.h"
-#include "sha256.h"
+#include "http_download.h"
+#include "untar.h"
 #include "utf8_file.h"
 
 #include <SDL.h>
@@ -20,11 +21,6 @@
 #include <cstring>
 #include <filesystem>
 #include <system_error>
-
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#endif
 
 namespace {
 
@@ -138,22 +134,6 @@ int run(const std::string &command, const std::string &where, std::string *error
     return run_process(command, where, add_line, error);
 }
 
-// curl.exe and tar.exe from Windows itself.
-std::string windows_tool(const char *name)
-{
-#ifdef _WIN32
-    wchar_t dir[MAX_PATH];
-    UINT n = GetSystemDirectoryW(dir, MAX_PATH);
-    char utf8[MAX_PATH * 4] = "";
-    if (n) WideCharToMultiByte(CP_UTF8, 0, dir, -1, utf8, sizeof utf8, nullptr, nullptr);
-    std::string s = std::string(utf8) + "\\" + name;
-    for (char &c : s) if (c == '\\') c = '/';
-    return s;
-#else
-    return name;
-#endif
-}
-
 void finish(int rc, const std::string &error, const char *what_failed, const char *done_message)
 {
     if (rc == -2)      set_stage(BuildStage::Cancelled, "Cancelled. You can start it again any time.");
@@ -195,33 +175,66 @@ int do_build(const Job &j, std::string *error)
 // ---- downloading -----------------------------------------------------------------
 int get_python(const Job &j, std::string *error)
 {
+    (void)error;
     set_stage(BuildStage::Downloading, "Downloading Python (about 22 MB)...");
     std::string work = j.f.tools + "/.downloads";
     std::error_code ec;
     std::filesystem::create_directories(std::filesystem::u8path(work), ec);
     std::string archive = work + "/python.tar.gz";
-    int rc = run(quote_arg(windows_tool("curl.exe")) + " -L --fail -sS --retry 2 -o " + quote_arg(archive)
-                 + " " + quote_arg(kPythonUrl), j.f.tools, error);
-    if (rc != 0) {
-        finish(rc, *error, "Couldn't download Python. Check the internet connection and try again.\n"
-                           "Show the details below for more.", "");
-        return rc ? rc : 1;
+    add_line(std::string("> download ") + kPythonUrl);
+
+    auto report = [](long long done, long long total) {
+        static Uint32 last;
+        Uint32 now = SDL_GetTicks();
+        if (now - last < 150 && done != total) return;
+        last = now;
+        char line[64];
+        std::snprintf(line, sizeof line, "@bytes %lld %lld", done, total);
+        add_line(line);
+    };
+    std::string sum, problem;
+    for (int attempt = 1; attempt <= 3; ++attempt) {
+        problem = http_download(kPythonUrl, archive, &sum, report, [] { return cancel_requested(); });
+        if (problem.empty() || problem == "cancelled") break;
+        add_line("couldn't download Python (try " + std::to_string(attempt) + " of 3): " + problem);
+        SDL_Delay(3000);
     }
-    char sum[65];
-    if (!sha256_file(archive.c_str(), sum) || std::strcmp(sum, kPythonSha256) != 0) {
-        add_line(std::string("python.tar.gz SHA-256 is ") + sum + ", expected " + kPythonSha256);
+    if (problem == "cancelled") {
+        std::filesystem::remove(std::filesystem::u8path(archive), ec);
+        finish(-2, "", "", "");
+        return -2;
+    }
+    if (!problem.empty()) {
+        set_stage(BuildStage::Failed, "Couldn't download Python. Check the internet connection and try again.\n("
+                                      + problem + ")");
+        return 1;
+    }
+    if (sum != kPythonSha256) {
+        add_line("python.tar.gz SHA-256 is " + sum + ", expected " + kPythonSha256);
         set_stage(BuildStage::Failed, "The Python download was damaged or has changed (its fingerprint "
                                       "doesn't match), so it was not used. Please try again.");
         std::filesystem::remove(std::filesystem::u8path(archive), ec);
         return 1;
     }
+
     set_stage(BuildStage::Unpacking, "Unpacking Python...");
-    rc = run(quote_arg(windows_tool("tar.exe")) + " -xf " + quote_arg(archive) + " -C " + quote_arg(j.f.tools),
-             j.f.tools, error);
+    add_line("> unpack python.tar.gz into " + j.f.tools);
+    problem = extract_tar_gz(archive, j.f.tools, [](long long done, long long total) {
+        static Uint32 last;
+        Uint32 now = SDL_GetTicks();
+        if (now - last < 150 && done != total) return;
+        last = now;
+        char line[64];
+        std::snprintf(line, sizeof line, "@unpack %lld %lld", done, total);
+        add_line(line);
+    });
     std::filesystem::remove(std::filesystem::u8path(archive), ec);
-    if (rc == 0 && !file_exists(j.f.tools + "/python/python.exe")) rc = 1;
-    if (rc != 0) finish(rc, *error, "Couldn't unpack Python. Show the details below.", "");
-    return rc;
+    if (problem.empty() && !file_exists(j.f.tools + "/python/python.exe")) problem = "python.exe isn't there";
+    if (!problem.empty()) {
+        set_stage(BuildStage::Failed, "Couldn't unpack Python: " + problem);
+        return 1;
+    }
+    return 0;
 }
 
 int run_fetch(const Job &j, const std::string &python, const std::string &dest, const std::string &items,

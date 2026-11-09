@@ -19,8 +19,14 @@ int run_process(const std::string &command_line, const std::string &work_folder,
 // Safe from any thread. Stays in effect until reset_cancel().
 void cancel_process();
 void reset_cancel();
+bool cancel_requested();
 
 // Start the game and don't wait for it. game_running() says whether the
 // game it started last is still open.
-bool start_program(const std::string &exe, const std::string &work_folder);
+// arguments: already quoted (quote_arg), or "".
+bool start_program(const std::string &exe, const std::string &arguments, const std::string &work_folder);
 bool game_running();
+
+// After the game has closed: true if it closed within a few seconds of
+// starting (it didn't really start), with its exit code. Asked once.
+bool game_closed_at_once(unsigned long *exit_code);

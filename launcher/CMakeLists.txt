@@ -30,6 +30,9 @@ add_executable(ShadowgreatLauncher WIN32
   src/rom_check.c
   src/sha1.c
   src/sha256.c
+  src/inflate.c
+  src/untar.cpp
+  src/http_download.cpp
   src/utf8_file.c
   ${IMGUI_DIR}/imgui.cpp
   ${IMGUI_DIR}/imgui_draw.cpp
@@ -40,7 +43,11 @@ add_executable(ShadowgreatLauncher WIN32
 target_include_directories(ShadowgreatLauncher PRIVATE src ${IMGUI_DIR} ${IMGUI_DIR}/backends)
 target_link_libraries(ShadowgreatLauncher PRIVATE SDL2::SDL2main SDL2::SDL2)
 if(WIN32)
-  target_link_libraries(ShadowgreatLauncher PRIVATE comdlg32)
+  target_link_libraries(ShadowgreatLauncher PRIVATE comdlg32 winhttp)
+  # Name, version and manifest (launcher.rc).
+  enable_language(RC)
+  target_sources(ShadowgreatLauncher PRIVATE launcher.rc)
+  set_source_files_properties(launcher.rc PROPERTIES OBJECT_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/launcher.manifest)
 endif()
 
 # Everything the launcher needs goes beside it.

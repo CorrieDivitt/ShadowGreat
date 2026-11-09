@@ -19,6 +19,7 @@ std::string quote_arg(const std::string &arg)
 
 static std::atomic<bool> s_cancelled{ false };
 void reset_cancel() { s_cancelled = false; }
+bool cancel_requested() { return s_cancelled; }
 
 #ifdef _WIN32
 
@@ -141,28 +142,43 @@ int run_process(const std::string &command_line, const std::string &work_folder,
 }
 
 static HANDLE s_game;
+static ULONGLONG s_game_started;
+static bool s_closed_at_once;
+static DWORD s_exit_code;
 
 bool game_running()
 {
     if (!s_game) return false;
     if (WaitForSingleObject(s_game, 0) == WAIT_TIMEOUT) return true;
+    GetExitCodeProcess(s_game, &s_exit_code);
+    s_closed_at_once = GetTickCount64() - s_game_started < 5000;
     CloseHandle(s_game);
     s_game = nullptr;
     return false;
 }
 
-bool start_program(const std::string &exe, const std::string &work_folder)
+bool game_closed_at_once(unsigned long *exit_code)
+{
+    if (!s_closed_at_once) return false;
+    s_closed_at_once = false;
+    if (exit_code) *exit_code = s_exit_code;
+    return true;
+}
+
+bool start_program(const std::string &exe, const std::string &arguments, const std::string &work_folder)
 {
     STARTUPINFOW si;
     ZeroMemory(&si, sizeof si);
     si.cb = sizeof si;
     PROCESS_INFORMATION pi;
-    std::wstring cmd = W(quote_arg(exe)), wd = W(work_folder);
+    std::wstring cmd = W(quote_arg(exe) + (arguments.empty() ? "" : " " + arguments)), wd = W(work_folder);
     if (!CreateProcessW(nullptr, &cmd[0], nullptr, nullptr, FALSE, 0, nullptr, wd.c_str(), &si, &pi))
         return false;
     CloseHandle(pi.hThread);
     if (s_game) CloseHandle(s_game);
     s_game = pi.hProcess;
+    s_game_started = GetTickCount64();
+    s_closed_at_once = false;
     return true;
 }
 
@@ -176,7 +192,8 @@ int run_process(const std::string &, const std::string &, const std::function<vo
     if (error) *error = "the launcher only runs programs on Windows";
     return -1;
 }
-bool start_program(const std::string &, const std::string &) { return false; }
+bool start_program(const std::string &, const std::string &, const std::string &) { return false; }
 bool game_running() { return false; }
+bool game_closed_at_once(unsigned long *) { return false; }
 
 #endif

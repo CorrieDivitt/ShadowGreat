@@ -370,7 +370,17 @@ bool slider(const char *id, int *v, int lo, int hi, const char *format, int step
 void draw_options(State &st)
 {
     bool playing = game_running();
-    if (st.game_was_running && !playing) look_around(st);    // the game may have changed them
+    if (st.game_was_running && !playing) {
+        look_around(st);                                       // the game may have changed them
+        unsigned long code = 0;
+        if (game_closed_at_once(&code)) {
+            char text[512];
+            std::snprintf(text, sizeof text,
+                          "The game closed straight away (exit code 0x%08lX). Its log is %s/shadowgate.log; "
+                          "also check Windows Security > Protection history.", code, st.folders.game.c_str());
+            st.play_message = text;
+        }
+    }
     st.game_was_running = playing;
 
     if (!st.built) {
@@ -501,14 +511,16 @@ void draw(State &st, SDL_Window *win)
     ImVec2 play_size(ImGui::CalcTextSize(play).x + 60.0f * g_scale + style.FramePadding.x * 2,
                      ImGui::GetFrameHeight() * 1.4f);
     float bottom = ImGui::GetWindowHeight() - play_size.y - style.WindowPadding.y;
-    if (!st.play_message.empty()) {
-        float y = bottom + (play_size.y - ImGui::GetTextLineHeight()) * 0.5f;
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() > y ? ImGui::GetCursorPosY() : y);
-        ImGui::TextColored(kBad, "%s", st.play_message.c_str());
-        ImGui::SameLine();
+    float row = ImGui::GetCursorPosY() > bottom ? ImGui::GetCursorPosY() : bottom;
+    if (!st.play_message.empty()) {           // beside Play, wrapping before it
+        ImGui::SetCursorPosY(row);
+        ImGui::PushTextWrapPos(ImGui::GetWindowWidth() - play_size.x - style.WindowPadding.x - style.ItemSpacing.x * 2);
+        ImGui::PushStyleColor(ImGuiCol_Text, kBad);
+        ImGui::TextWrapped("%s", st.play_message.c_str());
+        ImGui::PopStyleColor();
+        ImGui::PopTextWrapPos();
     }
-    ImGui::SetCursorPos(ImVec2(ImGui::GetWindowWidth() - play_size.x - style.WindowPadding.x,
-                               ImGui::GetCursorPosY() > bottom ? ImGui::GetCursorPosY() : bottom));
+    ImGui::SetCursorPos(ImVec2(ImGui::GetWindowWidth() - play_size.x - style.WindowPadding.x, row));
     bool can_play = rom_ok && st.built && !build_running() && !playing;
     ImGui::BeginDisabled(!can_play);
     ImGui::PushStyleColor(ImGuiCol_Button, can_play ? ImVec4(0.62f, 0.17f, 0.14f, 1.0f) : style.Colors[ImGuiCol_Button]);
@@ -516,7 +528,9 @@ void draw(State &st, SDL_Window *win)
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.84f, 0.26f, 0.21f, 1.0f));
     if (ImGui::Button(play, play_size)) {
         write_rom_cfg(st);
-        st.play_message = start_program(game_exe(st.folders), st.folders.game)
+        // The ROM goes on the command line too: with the start screen
+        // skipped, the game doesn't read rom.cfg and would have no ROM.
+        st.play_message = start_program(game_exe(st.folders), quote_arg(st.settings.rom_path), st.folders.game)
                         ? std::string() : "Couldn't start shadowgate.exe.";
     }
     ImGui::PopStyleColor(3);
