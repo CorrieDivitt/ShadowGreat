@@ -17,6 +17,7 @@ build-*/
 build_*/
 generated/
 out/
+dist/
 
 # Personal saves, save states and config written beside the program
 saves/
