@@ -70,7 +70,8 @@ SHA-256 fingerprint before it's used.
 - An internet connection for the first setup (the build tools and the voice). After that, none.
 
 ### Install
-1. Download the latest `Shadowgreat-<version>.zip` (for example `Shadowgreat-1.0.0.zip`).
+1. Download the latest `Shadowgreat-<version>.zip` (for example `Shadowgreat-1.0.0.zip`) from the
+   [Releases page](https://github.com/CorrieDivitt/ShadowGreat/releases).
 2. Unzip it to a folder with a **short path**, for example `C:\Games\Shadowgreat`.
 3. Run `ShadowgreatLauncher.exe` and follow the steps from top to bottom.
 

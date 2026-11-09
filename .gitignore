@@ -50,3 +50,6 @@ launcher.ini
 *.suo
 Thumbs.db
 desktop.ini
+
+# Python caches
+__pycache__/
