@@ -44,7 +44,7 @@ code into a native Windows program, and [recomp-ui](https://github.com/mstan/rec
 - Off by default, so the game plays like the original until you turn it on.
 
 ### Options while you play
-- Press **Esc** for the in-game menu. The **Shadowgreat** section has every option, and changes apply at once.
+- Press **Esc** for the in-game menu. The **Shadowgreat** section has every option, grouped under **Control Options**, **Sound Options** and **Narrator Options** (choose a heading to show or hide its options), and changes apply at once.
 - The menu scales with the window, so it stays readable on large and 4K screens.
 - **Restore Defaults** puts every Shadowgreat option back.
 
@@ -107,15 +107,15 @@ All are in the in-game menu (Esc → Shadowgreat), in the launcher's Options ste
 |---|---|---|
 | Mouse control | `Mouse` | On |
 | Hand follows the mouse | `HandFollowsMouse` | On |
-| Narration voice | `Narration` | On (needs the voice files) |
-| Narrator | `NarratorVoice` | `Dungeon Master` (or `Old Man`, `Woman`) |
+| Narrator | `Narration` | On (needs the voice files) |
+| Narration voice | `NarratorVoice` | `Dungeon Master` (or `Old Man`, `Woman`) |
 | Voice volume | `VoiceVolume` | 100 |
-| Music while the narrator talks | `MusicWhileSpeaking` | 40 (100 = no dip) |
+| Music volume during narration | `MusicWhileSpeaking` | 40 (100 = no dip) |
 | Pause after quotations | `QuotePause` | 0.80 seconds |
 | Pause after "!" | `ExclaimPause` | 0.60 seconds |
 | Torch tracker | `TorchTracker` | Off |
-| Stick moves the pointer | `PadPointer` | On (needs Mouse control) |
-| Pointer stick | `PointerStick` | `Left` (or `Right`) |
+| Analog stick as mouse | `PadPointer` | On (needs Mouse control) |
+| Analog stick | `PointerStick` | `Left` (or `Right`) |
 | Pointer speed | `PointerSpeed` | 5 (1-10) |
 | Skip the game's start screen | `[Launcher] SkipLauncher` | 0 (off) |
 

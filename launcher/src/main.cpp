@@ -417,12 +417,12 @@ void draw_options(State &st)
         changed |= ImGui::Checkbox("##hand", &o.hand);
         ImGui::EndDisabled();
 
-        option_row("Stick moves the pointer", "Point with a gamepad stick; A or pressing a stick in clicks where it points.");
+        option_row("Analog stick as mouse", "Point with analog stick; A or pressing a stick in clicks where it points.");
         ImGui::BeginDisabled(!o.mouse);
         changed |= ImGui::Checkbox("##pad", &o.pad_pointer);
         ImGui::EndDisabled();
         ImGui::BeginDisabled(!o.mouse || !o.pad_pointer);
-        option_row("Pointer stick", "Which stick moves the pointer. The left stick then stops working the D-pad.");
+        option_row("Analog stick", "Which stick moves the pointer. The left stick then stops working the D-pad.");
         {
             static const char *const sticks[] = { "Left stick", "Right stick" };
             if (ImGui::BeginCombo("##stick", sticks[o.pointer_stick ? 1 : 0])) {
@@ -435,7 +435,7 @@ void draw_options(State &st)
         changed |= slider("##speed", &o.pointer_speed, 1, 10, "%d", 1);
         ImGui::EndDisabled();
 
-        option_row("Narration voice", "Reads the message box aloud.");
+        option_row("Narrator", "Reads the message box aloud.");
         ImGui::BeginDisabled(!voice);
         bool narration = o.narration && voice;   // shown Off without the voice files
         if (ImGui::Checkbox("##narration", &narration)) { o.narration = narration; changed = true; }
@@ -443,7 +443,7 @@ void draw_options(State &st)
         if (!voice) { ImGui::SameLine(); ImGui::TextColored(kMuted, "Needs the voice files (step 3)."); }
 
         ImGui::BeginDisabled(!voice || !o.narration);
-        option_row("Narrator", "A new voice starts with the next message.");
+        option_row("Narration voice", "A new voice starts with the next message.");
         if (ImGui::BeginCombo("##voice", kVoiceNames[o.voice])) {
             for (int i = 0; i < kVoiceCount; ++i)
                 if (ImGui::Selectable(kVoiceNames[i], i == o.voice)) { o.voice = i; changed = true; }
@@ -451,7 +451,7 @@ void draw_options(State &st)
         }
         option_row("Voice volume", "How loud the narrator is.");
         changed |= slider("##volume", &o.volume, 0, 100, "%d", 5);
-        option_row("Music while the narrator talks", "Game sound during speech (100 = no dip).");
+        option_row("Music volume during narration", "Game sound during speech.");
         changed |= slider("##music", &o.music, 0, 100, "%d", 5);
         option_row("Pause after quotations", "Quiet after a closing quote.");
         changed |= slider("##quote", &o.quote_ms, 0, 2000, "%d ms", 100);
@@ -459,7 +459,7 @@ void draw_options(State &st)
         changed |= slider("##exclaim", &o.exclaim_ms, 0, 2000, "%d ms", 100);
         ImGui::EndDisabled();
 
-        option_row("Torch tracker", "Actions left on each lit torch: orange at 15, red at 7.");
+        option_row("Torch tracker", "Show remaining torch life: orange at 15, red at 7.");
         changed |= ImGui::Checkbox("##torch", &o.torch);
 
         option_row("Skip the game's start screen",

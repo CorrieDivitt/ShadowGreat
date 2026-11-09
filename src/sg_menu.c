@@ -19,6 +19,12 @@
 #include "recomp_runtime_ui.h"
 
 #define SECTION "Shadowgreat"
+/* Headings inside our section. With patches/menu-folders each opens in
+ * place (its rows appear indented below it); without the patch they open as
+ * pages of their own. Torch tracker and Defaults sit below the headings. */
+#define CONTROLS SECTION "/Control Options"
+#define SOUND    SECTION "/Sound Options"
+#define NARRATOR SECTION "/Narrator Options"
 
 static const char *s_voice_names[8];
 static const char *s_stick_names[] = { "Left stick", "Right stick" };
@@ -27,42 +33,42 @@ static const char *s_stick_names[] = { "Left stick", "Right stick" };
  * they are kept to about 40 characters. Pauses are whole numbers of
  * milliseconds so the rows get the menu's - / + buttons. */
 static RecompRuntimeUiItem s_items[] = {
-    { "sg.mouse", SECTION, "Mouse control",
+    { "sg.mouse", CONTROLS, "Mouse control",
       "Left click selects, right click is B.",
       RECOMP_RUNTIME_UI_BOOL, 0, 1, 1, NULL, 0, NULL },
-    { "sg.hand", SECTION, "Hand follows the mouse",
+    { "sg.hand", CONTROLS, "Hand follows the mouse",
       "The game's hand is the pointer.",
       RECOMP_RUNTIME_UI_BOOL, 0, 1, 1, NULL, 0, NULL },
-    { "sg.narration", SECTION, "Narration voice",
-      "Reads the message box aloud.",
+    { "sg.pad", CONTROLS, "Analog stick as mouse",
+      "Point with analog stick",
       RECOMP_RUNTIME_UI_BOOL, 0, 1, 1, NULL, 0, NULL },
-    { "sg.voice", SECTION, "Narrator",
-      "A new voice starts with the next message.",
-      RECOMP_RUNTIME_UI_CHOICE, 0, 0, 1, s_voice_names, 0, NULL },
-    { "sg.voice.volume", SECTION, "Voice volume",
+    { "sg.pad.stick", CONTROLS, "Analog stick",
+      "Which stick moves the pointer.",
+      RECOMP_RUNTIME_UI_CHOICE, 0, 1, 1, s_stick_names, 2, NULL },
+    { "sg.pad.speed", CONTROLS, "Pointer speed",
+      "How fast the stick moves it.",
+      RECOMP_RUNTIME_UI_INT, 1, 10, 1, NULL, 0, NULL },
+    { "sg.voice.volume", SOUND, "Voice volume",
       "How loud the narrator is.",
       RECOMP_RUNTIME_UI_INT, 0, 100, 5, NULL, 0, NULL },
-    { "sg.voice.music", SECTION, "Music while the narrator talks",
-      "Game sound during speech (100 = no dip).",
+    { "sg.voice.music", SOUND, "Music volume during narration",
+      "Game sound during speech.",
       RECOMP_RUNTIME_UI_INT, 0, 100, 5, NULL, 0, NULL },
-    { "sg.voice.quote", SECTION, "Pause after quotations (ms)",
+    { "sg.narration", NARRATOR, "Narrator",
+      "Reads the message box aloud.",
+      RECOMP_RUNTIME_UI_BOOL, 0, 1, 1, NULL, 0, NULL },
+    { "sg.voice", NARRATOR, "Narration voice",
+      "A new voice starts with the next message.",
+      RECOMP_RUNTIME_UI_CHOICE, 0, 0, 1, s_voice_names, 0, NULL },
+    { "sg.voice.quote", NARRATOR, "Pause after quotations (ms)",
       "Quiet after a closing quote.",
       RECOMP_RUNTIME_UI_INT, 0, 2000, 100, NULL, 0, NULL },
-    { "sg.voice.exclaim", SECTION, "Pause after \"!\" (ms)",
+    { "sg.voice.exclaim", NARRATOR, "Pause after \"!\" (ms)",
       "Quiet after an exclamation mark.",
       RECOMP_RUNTIME_UI_INT, 0, 2000, 100, NULL, 0, NULL },
     { "sg.torch", SECTION, "Torch tracker",
-      "Actions left on each lit torch.",
+      "Show remaining torch life",
       RECOMP_RUNTIME_UI_BOOL, 0, 1, 1, NULL, 0, NULL },
-    { "sg.pad", SECTION, "Stick moves the pointer",
-      "Point with a stick; A or a stick press clicks.",
-      RECOMP_RUNTIME_UI_BOOL, 0, 1, 1, NULL, 0, NULL },
-    { "sg.pad.stick", SECTION, "Pointer stick",
-      "Which stick moves the pointer.",
-      RECOMP_RUNTIME_UI_CHOICE, 0, 1, 1, s_stick_names, 2, NULL },
-    { "sg.pad.speed", SECTION, "Pointer speed",
-      "How fast the stick moves it.",
-      RECOMP_RUNTIME_UI_INT, 1, 10, 1, NULL, 0, NULL },
     { "sg.defaults", SECTION, "Defaults",
       "Restore Shadowgreat default options",
       RECOMP_RUNTIME_UI_ACTION, 0, 0, 0, NULL, 0, NULL },
