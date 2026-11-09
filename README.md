@@ -31,7 +31,6 @@ code into a native Windows program, and [recomp-ui](https://github.com/mstan/rec
 ### Torch tracker (optional)
 - Shows how many actions each lit torch has left, above the torch.
 - Turns **orange at 15** (when the flame gets smaller) and **red at 7** (when the warning music starts).
-- Both lit torches burn at the same time, one action each; a new torch lasts 60 actions.
 - Off by default, so the game plays like the original until you turn it on.
 
 ### Options while you play
@@ -137,10 +136,6 @@ build fails, tick *Show details*; the full output is also saved in `launcher-bui
 - The voice is made on your PC as you play, so a slow or busy PC can add a short delay before it starts
   speaking. Lines it has already spoken start at once.
 - The first word of a line can occasionally sound a little odd; that's the voice model, not a bug.
-
-**Rarely seen:** once, the window's title bar (move, resize, close) stopped responding while F11 still
-worked. It hasn't happened again. If it does, press F11 twice, or close the game from the menu
-(Esc → System → Quit), and please report what you were doing.
 
 ---
 
