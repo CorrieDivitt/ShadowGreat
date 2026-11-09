@@ -429,6 +429,9 @@ void draw_options(State &st)
         changed |= slider("##exclaim", &o.exclaim_ms, 0, 2000, "%d ms", 100);
         ImGui::EndDisabled();
 
+        option_row("Torch tracker", "Actions left on each lit torch: orange at 15, red at 7.");
+        changed |= ImGui::Checkbox("##torch", &o.torch);
+
         option_row("Skip the game's start screen",
                    "Play goes straight into the game. The start screen has the display and controller settings.");
         changed |= ImGui::Checkbox("##skip", &o.skip_start_screen);

@@ -28,9 +28,9 @@
 /* ---- the feature list: add new features here ---- */
 static SgFeature *const s_features[] = {
     &sg_feature_mouse,
+    &sg_feature_torch,      /* before the hand, so the hand draws on top */
     &sg_feature_hand,       /* after mouse: uses its pointer position */
     &sg_feature_narration,
-    &sg_feature_torch,
 };
 #define SG_FEATURE_COUNT (sizeof(s_features) / sizeof(s_features[0]))
 

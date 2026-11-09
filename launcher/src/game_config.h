@@ -27,6 +27,7 @@ struct GameOptions {
     int music = 40;                 // 0-100: game sound while the narrator talks
     int quote_ms = 800;             // pause after a closing quote
     int exclaim_ms = 600;           // pause after "!"
+    bool torch = false;             // torch tracker
     bool skip_start_screen = false;
 };
 

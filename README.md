@@ -1,7 +1,7 @@
 # Shadowgreat
 
 **Shadowgate (NES) as a native Windows game, built on your own PC from your own ROM**, with mouse
-control, an optional narrator voice, and options you can change while you play.
+control, an optional narrator voice, a torch tracker, and options you can change while you play.
 
 Shadowgreat is built with [nesrecomp](https://github.com/mstan/nesrecomp), which turns the NES game's
 code into a native Windows program, and [recomp-ui](https://github.com/mstan/recomp-ui) for its menus.
@@ -28,6 +28,12 @@ code into a native Windows program, and [recomp-ui](https://github.com/mstan/rec
 - Three voices: **Narrator** (deep), **Grim**, **Plain**.
 - It's a separate download (about 358 MB). You can play without it and add or remove it any time.
 
+### Torch tracker (optional)
+- Shows how many actions each lit torch has left, above the torch.
+- Turns **orange at 15** (when the flame gets smaller) and **red at 7** (when the warning music starts).
+- Both lit torches burn at the same time, one action each; a new torch lasts 60 actions.
+- Off by default, so the game plays like the original until you turn it on.
+
 ### Options while you play
 - Press **Esc** for the in-game menu. The **Shadowgreat** section has every option, and changes apply at once.
 - The menu scales with the window, so it stays readable on large and 4K screens.
@@ -43,10 +49,6 @@ One window takes you from your ROM to playing:
 
 Every download comes from its own project's official release on GitHub and is checked against a fixed
 SHA-256 fingerprint before it's used.
-
-### Coming next
-- **Torch tracker** (in development): shows how many actions your lit torch has left, turning red when 6 or
-  fewer are left. Off by default.
 
 ---
 
@@ -96,6 +98,7 @@ All are in the in-game menu (Esc → Shadowgreat), in the launcher's Options ste
 | Music while the narrator talks | `MusicWhileSpeaking` | 40 (100 = no dip) |
 | Pause after quotations | `QuotePause` | 0.80 seconds |
 | Pause after "!" | `ExclaimPause` | 0.60 seconds |
+| Torch tracker | `TorchTracker` | Off |
 | Skip the game's start screen | `[Launcher] SkipLauncher` | 0 (off) |
 
 ---

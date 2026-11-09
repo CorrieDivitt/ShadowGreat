@@ -145,9 +145,9 @@ verified = true
 [[ram]]
 addr = 0x04F7
 name = "torch_right_charges"
-doc = "How much the right torch has left. 0x00 when no right torch is held (seen 2026-11-07); counting down not yet seen."
-source = "TASVideos 1651S; partly tested in Mesen 2026-11-07"
-verified = false
+doc = "How much the right torch has left. 0x00 when no right torch is lit. Counts down one per action at the same time as the left torch when both are lit (left 13 / right 59 -> 12 / 58), and a new torch starts at 60. Holds 0xF0 at power-on, before a game starts."
+source = "TASVideos 1651S; seen in Mesen 2026-11-07; countdown seen in the torch tracker's log 2026-11-08"
+verified = true
 
 [[ram]]
 addr = 0x0500
@@ -710,3 +710,14 @@ inventory_heading = 0xBE00   # $BE00-$BEFF: "GOODS" / "SPELL" / "KEY 1" / "TORCH
 letters = { S = 0xB6, E = 0x9F, T = 0x58, I = 0x59, N = 0x4B, G = 0xC1, F = 0x5A, L = 0xB4, A = 0xF6, V = 0x5D, Y = 0xB5, O = 0x4A }
 file_select  = { x = 112, y = 176, check = "FILE at tile (14,15)" }   # below FILE 3 / NEW
 save_confirm = { x = 112, y = 168, check = "SAVE at tile (14,14)" }   # below NO; doorway dark area is x 80-175
+
+[torch_tracker]
+# Our torch counts (src/features/feat_torch.c), read from $04F4 / $04F7; nothing is written.
+# Play screen layout measured from a screenshot 2026-11-08: rows 0-16 are black above the
+# inventory panel (its top border is row 17); torches at x 143-152 and 231-240.
+number_top = 8                 # rows 8-15 (rows 0-7 can be hidden by overscan)
+centres = { left = 148, right = 236 }
+digits = "message lettering, tiles 0x80-0x89 = 0-9; checked first against the verb letters (rows 19-28), whose bank is the one readable after the frame"
+colors = { normal = 0x37, low = 0x27, warning = 0x16 }   # panel tan; orange; torch-flame red
+low_at = 15                    # 15 or fewer actions left: orange (the flame gets smaller then)
+warn_at = 7                    # 7 or fewer actions left: red (the game's warning music starts then)

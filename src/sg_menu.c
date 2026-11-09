@@ -50,6 +50,9 @@ static RecompRuntimeUiItem s_items[] = {
     { "sg.voice.exclaim", SECTION, "Pause after \"!\" (ms)",
       "Quiet after an exclamation mark.",
       RECOMP_RUNTIME_UI_INT, 0, 2000, 100, NULL, 0, NULL },
+    { "sg.torch", SECTION, "Torch tracker",
+      "Actions left on each lit torch.",
+      RECOMP_RUNTIME_UI_BOOL, 0, 1, 1, NULL, 0, NULL },
     { "sg.defaults", SECTION, "Defaults",
       "Restore Shadowgreat default options",
       RECOMP_RUNTIME_UI_ACTION, 0, 0, 0, NULL, 0, NULL },
@@ -66,6 +69,7 @@ static int get_value(void *ctx, const RecompRuntimeUiItem *it, int *out)
     /* Shown Off while the voice package is missing (the row is greyed then);
      * the saved setting itself stays as the player chose it. */
     else if (is(it, "sg.narration"))     *out = sg_feature_narration.enabled && sg_voice_built_in();
+    else if (is(it, "sg.torch"))         *out = sg_feature_torch.enabled;
     else if (is(it, "sg.voice"))         *out = sg_narration_get(SG_NARR_PRESET);
     else if (is(it, "sg.voice.volume"))  *out = sg_narration_get(SG_NARR_VOLUME);
     else if (is(it, "sg.voice.music"))   *out = sg_narration_get(SG_NARR_MUSIC);
@@ -81,6 +85,7 @@ static int set_value(void *ctx, const RecompRuntimeUiItem *it, int v)
     if (is(it, "sg.mouse"))              sg_feature_switch(&sg_feature_mouse, v != 0);
     else if (is(it, "sg.hand"))          sg_feature_switch(&sg_feature_hand, v != 0);
     else if (is(it, "sg.narration"))     sg_feature_switch(&sg_feature_narration, v != 0);
+    else if (is(it, "sg.torch"))         sg_feature_switch(&sg_feature_torch, v != 0);
     else if (is(it, "sg.voice"))         sg_narration_set(SG_NARR_PRESET, v);
     else if (is(it, "sg.voice.volume"))  sg_narration_set(SG_NARR_VOLUME, v);
     else if (is(it, "sg.voice.music"))   sg_narration_set(SG_NARR_MUSIC, v);
@@ -98,6 +103,7 @@ static int run_action(void *ctx, const RecompRuntimeUiItem *it)
     sg_feature_switch(&sg_feature_mouse, sg_feature_mouse.default_on);
     sg_feature_switch(&sg_feature_hand, sg_feature_hand.default_on);
     sg_feature_switch(&sg_feature_narration, sg_feature_narration.default_on);
+    sg_feature_switch(&sg_feature_torch, sg_feature_torch.default_on);
     sg_narration_defaults();
     return 1;
 }

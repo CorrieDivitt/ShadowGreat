@@ -137,6 +137,7 @@ GameOptions game_options_read(const std::string &config_path)
     o.music = clamp(std::atoi(ini.get("Game", "MusicWhileSpeaking", std::to_string(d.music)).c_str()), 0, 100);
     o.quote_ms = seconds_to_ms(ini.get("Game", "QuotePause", ""), d.quote_ms);
     o.exclaim_ms = seconds_to_ms(ini.get("Game", "ExclaimPause", ""), d.exclaim_ms);
+    o.torch = on(ini.get("Game", "TorchTracker", ""), d.torch);
     o.skip_start_screen = on(ini.get("Launcher", "SkipLauncher", ""), d.skip_start_screen);
     return o;
 }
@@ -156,6 +157,7 @@ bool game_options_write(const std::string &config_path, const GameOptions &o)
     ini.set("Game", "QuotePause", pause);
     std::snprintf(pause, sizeof pause, "%.2f", clamp(o.exclaim_ms, 0, 2000) / 1000.0);
     ini.set("Game", "ExclaimPause", pause);
+    ini.set("Game", "TorchTracker", o.torch ? "On" : "Off");
     ini.set("Launcher", "SkipLauncher", o.skip_start_screen ? "1" : "0");
     return ini.save();
 }
