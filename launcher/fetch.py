@@ -55,10 +55,15 @@ ITEMS = {
         sha256="bace36e94b31c68ab6fa295f26dfa11219e0701cf7c94b0284a7d1cb13dac536"),
     "sherpa": dict(
         name="sherpa-onnx (runs the voice)",
-        url=GH + "/k2-fsa/sherpa-onnx/releases/download/v2.0.1/sherpa-onnx-v2.0.1-win-x64-shared-MT-Release-lib.tar.bz2",
-        size=7899712,
-        sha256="afa4de3ca4ab0afd53bb4aab40d28ee15608364b549ffc0fe0caf6489bfc39a5",
-        take="sherpa-onnx-v2.0.1-win-x64-shared-MT-Release-lib/lib/", only=".dll"),   # just the DLLs
+        url=(GH + "/k2-fsa/sherpa-onnx/releases/download/v2.0.1/sherpa-onnx-v2.0.1-win-x64-shared-MT-Release-lib.tar.bz2"
+             if sys.platform == "win32" else
+             GH + "/k2-fsa/sherpa-onnx/releases/download/v2.0.1/sherpa-onnx-v2.0.1-linux-x64-shared-lib.tar.bz2"),
+        size=7899712 if sys.platform == "win32" else 9710131,
+        sha256=("afa4de3ca4ab0afd53bb4aab40d28ee15608364b549ffc0fe0caf6489bfc39a5" if sys.platform == "win32" else
+                "532c45bbd41036d83cd70606797529aa8086c2053395a58967736c727625b120"),
+        take=("sherpa-onnx-v2.0.1-win-x64-shared-MT-Release-lib/lib/" if sys.platform == "win32" else
+              "sherpa-onnx-v2.0.1-linux-x64-shared-lib/lib/"),
+        only=".dll" if sys.platform == "win32" else ".so"),
     "kokoro": dict(
         name="the Kokoro voice model",
         url=GH + "/k2-fsa/sherpa-onnx/releases/download/tts-models/kokoro-multi-lang-v1_0.tar.bz2",

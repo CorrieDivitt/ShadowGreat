@@ -295,7 +295,8 @@ bool remove_voice(const Voice &v)
     std::error_code ec;
     bool ok = true;
     for (const char *dll : { "onnxruntime.dll", "onnxruntime_providers_shared.dll",
-                             "sherpa-onnx-c-api.dll", "sherpa-onnx-cxx-api.dll" }) {
+                             "sherpa-onnx-c-api.dll", "sherpa-onnx-cxx-api.dll",
+                             "libonnxruntime.so", "libsherpa-onnx-c-api.so", "libsherpa-onnx-cxx-api.so" }) {
         fs::path f = fs::u8path(v.folder + "/" + dll);
         if (fs::exists(f, ec) && !fs::remove(f, ec)) ok = false;
     }

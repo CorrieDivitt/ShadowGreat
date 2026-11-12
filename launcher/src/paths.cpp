@@ -220,8 +220,7 @@ Voice find_voice(const Folders &f)
 #ifdef _WIN32
     v.dlls = file_exists(v.folder + "/sherpa-onnx-c-api.dll") && file_exists(v.folder + "/onnxruntime.dll");
 #else
-    v.dlls = (file_exists(v.folder + "/libsherpa-onnx-c-api.so") || file_exists(v.folder + "/sherpa-onnx-c-api.dll"))
-          && (file_exists(v.folder + "/libonnxruntime.so") || file_exists(v.folder + "/onnxruntime.dll"));
+    v.dlls = file_exists(v.folder + "/libsherpa-onnx-c-api.so") && file_exists(v.folder + "/libonnxruntime.so");
 #endif
     v.model = file_exists(v.folder + "/kokoro-multi-lang-v1_0/model.onnx")
            && file_exists(v.folder + "/kokoro-multi-lang-v1_0/voices.bin");
