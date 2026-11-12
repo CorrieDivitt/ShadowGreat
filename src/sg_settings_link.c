@@ -34,17 +34,35 @@ RecompRuntimeUi *cyc_ui_runtime(void);   /* nesrecomp runner/cyc/cyc_ui_menu.c *
 /* nesrecomp's NES colour table (also used by feat_hand.c). */
 extern uint32_t hw_palette_argb[512];
 
-#define WORD          "SETTINGS"
-#define WORD_LEN      8
 #define HOVER_COLOR   0x30          /* NES white while the pointer is on it */
 
-/* Where it goes (top-left pixel of the first letter), measured from
- * screenshots 2026-11-08. The dark doorway runs from x 80 to 175, so the
- * 64-pixel word lines up with FILE / SAVE? at x 112 and just fits. */
+#if defined(SG_ROM_REGION_SWEDEN)
+#define WORD          "INSTÄLLNINGAR"
+#define WORD_LEN      13
+#define LETTER_STEP   7
+#define WORD_WIDTH    (WORD_LEN * LETTER_STEP + 1)
+#define LINK_X        82
+/* Tile numbers in the Swedish screen's letter set: I N S T Ä L L N I N G A R */
+static const uint8_t SETTINGS_TILES[WORD_LEN] = {
+    0x59, 0x4B, 0xB6, 0x58, 0x49, 0xB4, 0xB4, 0x4B, 0x59, 0x4B, 0xC1, 0xF6, 0x9D
+};
+#else
+#define WORD          "SETTINGS"
+#define WORD_LEN      8
+#define LETTER_STEP   8
+#define WORD_WIDTH    (WORD_LEN * 8)
+#define LINK_X        112
 /* Tile numbers in these screens' letter set (found in the ROM's CHR by
  * matching the letters seen on screen, 2026-11-08; shadowgate-map.toml). */
 static const uint8_t SETTINGS_TILES[WORD_LEN] = {
     0xB6, 0x9F, 0x58, 0x58, 0x59, 0x4B, 0xC1, 0xB6,      /* S E T T I N G S */
+};
+#endif
+
+/* The standard Shadowgate letter 'G' glyph (fallback for regional ROMs like Sweden
+ * where tile 0xC1 was replaced with a solid filler tile). */
+static const uint8_t GLYPH_G[8] = {
+    0x7C, 0xE2, 0xE0, 0xEE, 0xE6, 0xE6, 0x7C, 0x00
 };
 
 typedef struct {
@@ -54,11 +72,11 @@ typedef struct {
     uint8_t known[4];         /* ... and the tiles it should be made of        */
 } Place;
 static const Place PLACES[] = {
-    /* below FILE 3 / NEW; FILE 1 is at (112,120) */
-    { SG_SCREEN_FILE_SELECT,  112, 176, 14, 15, { 0x5A, 0x59, 0xB4, 0x9F } },  /* F I L E */
+    /* below FILE 3 / NEW (or NYTT); FILE 1 is at (112,120) */
+    { SG_SCREEN_FILE_SELECT,  LINK_X, 176, 14, 15, { 0x5A, 0x59, 0xB4, 0x9F } },  /* F I L E */
     /* below NO; SAVE? is at (112,112) */
-    { SG_SCREEN_SAVE_CONFIRM, 112, 168, 14, 14, { 0xB6, 0xF6, 0x5D, 0x9F } },  /* S A V E (USA/Europe) */
-    { SG_SCREEN_SAVE_CONFIRM, 112, 168, 14, 14, { 0xB6, 0xFD, 0xF6, 0x9D } },  /* S P A R (Sweden) */
+    { SG_SCREEN_SAVE_CONFIRM, LINK_X, 168, 14, 14, { 0xB6, 0xF6, 0x5D, 0x9F } },  /* S A V E (USA/Europe) */
+    { SG_SCREEN_SAVE_CONFIRM, LINK_X, 168, 14, 14, { 0xB6, 0xFD, 0xF6, 0x9D } },  /* S P A R (Sweden) */
 };
 
 /* Does the screen show its word with the tiles we expect? */
@@ -87,7 +105,7 @@ static bool s_drawn;   /* only clickable while it is actually shown */
 bool sg_settings_link_hit(int x, int y)
 {
     const Place *p = place_now();
-    return p && s_drawn && x >= p->x - 2 && x < p->x + WORD_LEN * 8 + 2 && y >= p->y - 3 && y < p->y + 8 + 3;
+    return p && s_drawn && x >= p->x - 2 && x < p->x + WORD_WIDTH + 2 && y >= p->y - 3 && y < p->y + 8 + 3;
 }
 
 bool sg_settings_link_open(void)
@@ -141,12 +159,12 @@ void sg_settings_link_draw(uint32_t *buf, int width, int height, int x0)
     uint16_t table = cyc_render_line_bg_table(p->y - 24);   /* where the game's text is */
     for (int i = 0; i < WORD_LEN; ++i) {
         uint16_t pattern = (uint16_t)(table + SETTINGS_TILES[i] * 16);
+        bool use_glyph_g = (SETTINGS_TILES[i] == 0xC1 && cyc_render_chr(pattern) == 0xFF && cyc_render_chr((uint16_t)(pattern + 7)) == 0xFF);
         for (int r = 0; r < 8; ++r) {
-            uint8_t lo = cyc_render_chr((uint16_t)(pattern + r));
-            uint8_t hi = cyc_render_chr((uint16_t)(pattern + r + 8));
+            uint8_t row_bits = use_glyph_g ? GLYPH_G[r] : (uint8_t)(cyc_render_chr((uint16_t)(pattern + r)) | cyc_render_chr((uint16_t)(pattern + r + 8)));
             for (int c = 0; c < 8; ++c) {
-                if (!(((lo | hi) >> (7 - c)) & 1)) continue;
-                int x = p->x + i * 8 + c, y = p->y + r;
+                if (!((row_bits >> (7 - c)) & 1)) continue;
+                int x = p->x + i * LETTER_STEP + c, y = p->y + r;
                 buf[y * width + x0 + x] = color;
             }
         }

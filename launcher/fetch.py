@@ -361,7 +361,7 @@ def ensure_swedish_lexicon(voice_dir):
             elif ipa_str[i] in tokens_str:
                 toks.append(ipa_str[i])
                 i += 1
-            elif ipa_str[i] in ("\u02c8", "\u02cc", "\u02d0"):
+            elif ipa_str[i] in ("\u02d0",):
                 toks.append(ipa_str[i])
                 i += 1
             else:
