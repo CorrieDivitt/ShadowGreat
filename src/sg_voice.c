@@ -48,7 +48,7 @@ const SgVoicePreset sg_voice_presets[] = {
 #elif defined(SG_ROM_REGION_SWEDEN)
 const SgVoicePreset sg_voice_presets[] = {
     /* name              sid blend  mix   speed  pitch  pause */
-    { "Dungeon Master",  27,  -1,  0.0f,  1.15f, 0.90f, 0.5f },  /* bm_lewis - deep male narrator */
+    { "Dungeon Master",  14,  -1,  0.0f,  1.05f, 1.00f, 0.5f },  /* am_fenrir - deep natural male narrator */
     { "Gammal man",      19,  -1,  0.0f,  1.05f, 0.95f, 0.6f },  /* am_santa - mature male */
     { "Kvinna",           6,  -1,  0.0f,  1.00f, 1.00f, 0.6f },  /* af_nicole - female */
 };
@@ -475,6 +475,16 @@ static const struct { const char *from, *to; } PHRASE_FIXES[] = {
     { "ÄRVÄRDIG",           "ÄR VÄRDIG" },
     { "ÖDESTÅR",            "ÖDE STÅR" },
     { "ALLDLES",            "ALLDELES" },
+    { "DOKUM.",             "DOKUMENT" },
+    { "DOKUM",              "DOKUMENT" },
+    { "ELDGAFFL",           "ELDGAFFEL" },
+    { "SKRIVBRD",           "SKRIVBORD" },
+    { "TROLLFORM",          "TROLLFORMEL" },
+    { "VARULVN",            "VARULVEN" },
+    { "KOPPMYNT",           "KOPPARMYNT" },
+    { "STORMYNT",           "STORT MYNT" },
+    { "EKARI",              "EKAR I" },
+    { "100",                "HUNDRA" },
 };
 #else
 static const struct { const char *from, *to; } PHRASE_FIXES[] = {

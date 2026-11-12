@@ -1,3 +1,12 @@
+1 e t
+2 t v o ː
+3 t r e ː
+4 f y ː r a
+5 f e ː m
+6 s ɛ k s
+7 ʃ u ː
+8 ɔ t a
+9 n i ː ə
 aha a h ɑ ː
 alligatorerna a l ɪ ɡ ɑ ː t ɔ r ɳ a
 anordningar ɑ ː n u ː ɖ n ɪ ŋ a r
@@ -11,8 +20,10 @@ behemothen b e ː h e ː m ɔ t ɛ n
 bestarna b ɛ s t a ɳ a
 besten b ɛ s t ɛ n
 blint b l ɪ n t
+brasved b r ɑ ː s v e ː d
 broväg b r u ː v ɛ ː ɡ
 brädorna b r ɛ ː d u ː ɳ a
+bälgen b ɛ l j ɛ n
 cylindern s y l ɪ n d ɛ ɳ
 dekorerat d ɛ k ʊ r e ː r a t
 demonen d ɛ m u ː n ɛ n
@@ -33,6 +44,7 @@ flamman f l a m a n
 flisor f l i ː s u ː r
 flodvattnet f l u ː d v a t n ɛ t
 frambesvärja f r a m b ɛ s v ɛ ː r j a
+färjkarl f ɛ r j k ɑ ː l
 färjkarlen f ɛ r j k ɑ ː l ɛ n
 förgöras f œ r j ø ː r a s
 förjaga f œ r j ɑ ː ɡ a
@@ -56,11 +68,13 @@ gravkammaren ɡ r ɑ ː v k a m a r ɛ n
 grottans ɡ r ɔ t a n s
 guldföremål ɡ ø l d f ø ː r ɛ m o ː l
 hampa h a m p a
+handsken h a n d s k ɛ n
 hjältedåd j ɛ l t ɛ d o ː d
 hmm h m
 huggen h ø ɡ ɛ n
 huggna h ø ɡ n a
 humana h u m ɑ ː n a
+hästskon h ɛ s t s k u ː n
 höstarna h ø s t a ɳ a
 igenbommade ɪ j e ː n b ɔ m a d ɛ
 illumina ɪ l u ː m ɪ n a
@@ -82,6 +96,7 @@ klickande k l ɪ k a n d ɛ
 klippavsatsen k l ɪ p a v s a t s ɛ n
 klyftans k l y f t a n s
 klyvas k l y ː v a s
+kopparmynt k ɔ p a r m y ː n t
 kopparmyntet k ɔ p a r m y ː n t ɛ t
 krafternas k r a f t ɛ ɳ a s
 kungatronen k ø ŋ a t r u ː n ɛ n
@@ -113,6 +128,7 @@ pergament p ɛ r ɡ a m ɛ n t
 platina p l ɑ ː t ɪ n a
 polygon p ɔ l y ɡ u ː n
 profeten p r ʊ f e ː t ɛ n
+provrör p r u ː v r ø ː r
 putsad p ø t s a d
 rakbladsvassa r ɑ ː k b l ɑ ː d s v a s a
 repen r e ː p ɛ n
@@ -125,6 +141,7 @@ roas r u ː a s
 rustningen r ø s t n ɪ ŋ ɛ n
 sammanfoga s a m a n f u ː ɡ a
 sarkofagen s a r k ʊ f ɑ ː ɡ ɛ n
+sfinx s f ɪ ŋ k s
 shadowgate ʃ a d o w ɡ e ː t
 sigillet s ɪ j ɪ l ɛ t
 silverflaska s ɪ l v ɛ r f l a s k a
@@ -140,6 +157,7 @@ skuggvålnad s k ø ɡ v o ː l n a d
 skönhetssömn ʃ ø ː n h e ː t s ø m n
 slemmad s l ɛ m a d
 slemmet s l ɛ m ɛ t
+slungan s l ø ŋ a n
 slängkappan s l ɛ ŋ k a p a n
 smidd s m ɪ d
 spegelsalen s p e ː ɡ ɛ l s ɑ ː l ɛ n
@@ -158,6 +176,7 @@ stenskallen s t e ː n s k a l ɛ n
 stenstatyn s t e ː n s t a t y ː n
 stentrappa s t e ː n t r a p a
 stenväggen s t e ː n v ɛ ɡ ɛ n
+stjärnkarta ʃ ɛ ː ɳ k ɑ ː t a
 stjärnljuset ʃ ɛ ː ɳ j u ː s ɛ t
 stormhaven s t ɔ r m h ɑ ː v ɛ n
 storport s t u ː r p ɔ r t
@@ -177,6 +196,7 @@ terrakk t ɛ r a k
 tillyxad t ɪ l y k s a d
 titanen t ɪ t ɑ ː n ɛ n
 torlin t u ː r l ɪ n
+trollformel t r ɔ l f ɔ r m ɛ l
 trollkarlen t r ɔ l k ɑ ː l ɛ n
 tronen t r u ː n ɛ n
 tronhallen t r u ː n h a l ɛ n
@@ -203,6 +223,9 @@ vålnaden v o ː l n a d ɛ n
 warlock v ɔ r l ɔ k
 warlocks v ɔ r l ɔ k s
 yeklum j ɛ k l ø m
+ynklige ɪ ŋ k l ɪ ɡ ɛ
 ädelstenen ɛ ː d ɛ l s t e ː n ɛ n
 älvornas ɛ l v u ː ɳ a s
+öppnad ø p n a d
+öppnat ø p n a t
 övervinner ø ː v ɛ r v ɪ n ɛ r

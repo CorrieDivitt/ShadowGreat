@@ -143,7 +143,11 @@ static void put_word(Out *spoken, Out *logged, uint16_t list, unsigned n)
     }
 #ifdef SG_TABLE_HUFFMAN
     (void)list;
+#if defined(SG_ROM_REGION_GERMANY)
     unsigned base = n * 16 + 1;
+#else
+    unsigned base = n * 16;
+#endif
     for (int i = 0; i < 12; ++i) {
         if (base + i >= sizeof(s_words)) break;
         uint8_t c = s_words[base + i];
