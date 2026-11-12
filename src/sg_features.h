@@ -68,8 +68,21 @@ extern int sg_pointer_x, sg_pointer_y;
 /* The game's two "is A pressed?" checks in the message box ($C7F4 while
  * printing, $C9F9 at a page end). Both features use them, so the hook
  * lives in feat_mouse.c and tells the narration feature too. */
+#ifndef SG_SITE_TEXT_A
+#ifdef SITE_TEXT_A
+#define SG_SITE_TEXT_A SITE_TEXT_A
+#else
 #define SG_SITE_TEXT_A 0xC7F4
+#endif
+#endif
+
+#ifndef SG_SITE_PAGE_A
+#ifdef SITE_PAGE_A
+#define SG_SITE_PAGE_A SITE_PAGE_A
+#else
 #define SG_SITE_PAGE_A 0xC9F9
+#endif
+#endif
 void sg_narration_print_site(uint16_t addr);
 
 /* Switch a feature On or Off while the game runs (the in-game menu). */
