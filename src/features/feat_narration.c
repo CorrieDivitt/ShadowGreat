@@ -304,8 +304,10 @@ static bool narration_setting(const char *key, const char *value)
          * Also alias English names across French/localized presets. */
         if (sg_same_word(value, "Narrator") || sg_same_word(value, "Plain") ||
             sg_same_word(value, "Dungeon Master")) s_preset = 0;
-        if (sg_same_word(value, "Grim") || sg_same_word(value, "Old Man")) s_preset = 1;
-        if (sg_same_word(value, "Woman") || sg_same_word(value, "Female")) s_preset = 2;
+        if (sg_same_word(value, "Grim") || sg_same_word(value, "Old Man") ||
+            sg_same_word(value, "Alter Mann")) s_preset = 1;
+        if (sg_same_word(value, "Woman") || sg_same_word(value, "Female") ||
+            sg_same_word(value, "Erzählerin") || sg_same_word(value, "Narratrice")) s_preset = 2;
         return true;
     }
     if (sg_same_word(key, "VoiceVolume")) {

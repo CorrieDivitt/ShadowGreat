@@ -214,6 +214,105 @@ def ensure_french_lexicon(voice_dir):
         say("could not save French voice lexicon: %s" % e)
 
 
+def ensure_german_lexicon(voice_dir):
+    de_lex = os.path.join(voice_dir, "lexicon-de.txt")
+    if os.path.exists(de_lex) and os.path.getsize(de_lex) > 1000:
+        return
+    tokens_file = os.path.join(voice_dir, "kokoro-multi-lang-v1_0", "tokens.txt")
+    if not os.path.exists(tokens_file):
+        tokens_file = os.path.join(voice_dir, "tokens.txt")
+    if not os.path.exists(tokens_file):
+        return
+
+    tokens_str = set()
+    try:
+        with open(tokens_file, "r", encoding="utf-8") as f:
+            for line in f:
+                p = line.strip().split()
+                if p:
+                    tokens_str.add(p[0])
+    except Exception:
+        return
+
+    raw_cache = os.path.join(voice_dir, ".de_raw.txt")
+    lines = None
+    if os.path.exists(raw_cache):
+        try:
+            with open(raw_cache, "r", encoding="utf-8") as f:
+                lines = f.read().splitlines()
+        except Exception:
+            lines = None
+
+    if lines is None:
+        dict_url = "https://raw.githubusercontent.com/open-dict-data/ipa-dict/master/data/de.txt"
+        try:
+            req = urllib.request.Request(dict_url, headers={"User-Agent": "Shadowgreat-launcher"})
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                lines = resp.read().decode("utf-8").splitlines()
+        except Exception as e:
+            say("could not download German IPA dictionary: %s" % e)
+            return
+
+    replacements = [
+        ("t͡s", "ʦ"), ("t͡ʃ", "ʧ"), ("d͡ʒ", "ʤ"), ("p͡f", "p f"),
+        ("tʃ", "ʧ"), ("dʒ", "ʤ"), ("ts", "ʦ"), ("pf", "p f"),
+        ("ʏ", "ɪ"), ("l̩", "l"), ("n̩", "n"), ("m̩", "m"), ("r̩", "r"),
+        ("\u032f", ""), ("\u0329", ""), ("\u0361", ""),
+    ]
+
+    out_lines = []
+    seen = set()
+
+    for line in lines:
+        parts = line.strip().split("\t")
+        if len(parts) != 2:
+            continue
+        raw_word = parts[0].strip().lower()
+        if " " in raw_word:
+            continue
+        ipa = parts[1].split(",")[0].strip("/[] ")
+        for a, b in replacements:
+            ipa = ipa.replace(a, b)
+        tokens = []
+        i = 0
+        while i < len(ipa):
+            if i + 1 < len(ipa) and ipa[i:i+2] in tokens_str:
+                tokens.append(ipa[i:i+2])
+                i += 2
+            elif ipa[i] in tokens_str:
+                tokens.append(ipa[i])
+                i += 1
+            elif ipa[i] in ("\u0303", "\u02c8", "\u02cc", "\u02d0"):
+                tokens.append(ipa[i])
+                i += 1
+            else:
+                i += 1
+        if not tokens:
+            continue
+        tok_str = " ".join(tokens)
+        variants = [raw_word]
+        if "ß" in raw_word:
+            variants.append(raw_word.replace("ß", "ss"))
+        if "ss" in raw_word:
+            variants.append(raw_word.replace("ss", "ß"))
+        trans = raw_word.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss")
+        if trans != raw_word:
+            variants.append(trans)
+        for w in variants:
+            if w and w not in seen:
+                seen.add(w)
+                out_lines.append(w + " " + tok_str + "\n")
+
+    tmp_out = de_lex + ".tmp"
+    try:
+        with open(tmp_out, "w", encoding="utf-8") as f:
+            f.writelines(out_lines)
+        os.replace(tmp_out, de_lex)
+        say("prepared German voice lexicon (%d words) in %s" % (len(out_lines), de_lex))
+    except Exception as e:
+        say("could not save German voice lexicon: %s" % e)
+
+
 def install(key, dest, number, count):
     item = ITEMS[key]
     say("@step", number, count, item["name"])
@@ -238,6 +337,7 @@ def install(key, dest, number, count):
     os.remove(archive)
     if key == "kokoro":
         ensure_french_lexicon(target)
+        ensure_german_lexicon(target)
     say("installed %s in %s" % (item["name"], target))
 
 

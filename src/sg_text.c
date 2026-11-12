@@ -92,8 +92,22 @@ static const char *tile_char(uint8_t t)
     if (t == 0xA1) return ".";
     if (t >= 0xB1 && t <= 0xCA) return letters[t - 0xB1];
     /* Regional accented tiles */
+#if defined(SG_ROM_REGION_GERMANY)
+    if (t == 0xD6) return "Ä";
+    if (t == 0xD7) return "Ö";
+    if (t == 0xD8) return "Ü";
+    if (t == 0xD9) return "ß";
+#elif defined(SG_ROM_REGION_SWEDEN)
+    if (t == 0xD6) return "Å";
+    if (t == 0xD7) return "Ä";
+    if (t == 0xD8) return "Ö";
+#elif defined(SG_ROM_REGION_FRANCE)
     if (t == 0xD6 || t == 0xD7 || t == 0xD8) return "E";
     if (t == 0xD9) return "C";
+#else
+    if (t == 0xD6 || t == 0xD7 || t == 0xD8) return "E";
+    if (t == 0xD9) return "C";
+#endif
     if (t == 0xCB) return "";
     return NULL;
 }
@@ -181,31 +195,6 @@ bool sg_text_decode(uint16_t addr, char *spoken, size_t spoken_size,
         case 0x1D: put(&s, " "); put(&l, " / "); break;    /* new line */
         case 0x1B:
         case 0x1C: put(&s, "\f"); put(&l, " // "); break; /* end of page */
-        case 0x20:
-        case 0x21:
-        case 0x24:
-        case 0x25:
-        case 0x26:
-        case 0x27:
-        case 0x28:
-        case 0x29:
-        case 0x2A:
-        case 0x2D:
-        case 0x2E:
-        case 0x2F:
-        case 0x30:
-        case 0x31:
-        case 0x32:
-        case 0x33:
-        case 0x34:
-        case 0x35:
-        case 0x36:
-        case 0x37:
-        case 0x38:
-        case 0x39:
-        case 0x3A:
-            put_code(&s, &l, c);
-            break;
         case 0x3E: {
             b.bits_left = 0;
             unsigned lo = read_bits(&b, 8), hi = read_bits(&b, 8);
@@ -228,9 +217,13 @@ bool sg_text_decode(uint16_t addr, char *spoken, size_t spoken_size,
             break;
         }
         default: {
-            char unk[16];
-            snprintf(unk, sizeof unk, "{%02X}", c);
-            put(&l, unk);
+            if (c < 0x3E) {
+                put_code(&s, &l, c);
+            } else {
+                char unk[16];
+                snprintf(unk, sizeof unk, "{%02X}", c);
+                put(&l, unk);
+            }
             break;
         }
         }

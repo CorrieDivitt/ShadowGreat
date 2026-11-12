@@ -38,7 +38,14 @@
 /* The three voices, chosen by the user from samples on 2026-11-08
  * (p10-narrators). Dungeon Master is the original narrator; Old Man and
  * Woman replaced the earlier Grim and Plain. */
-#if defined(SG_ROM_REGION_FRANCE)
+#if defined(SG_ROM_REGION_GERMANY)
+const SgVoicePreset sg_voice_presets[] = {
+    /* name              sid blend  mix   speed  pitch  pause */
+    { "Dungeon Master",  27,  -1,  0.0f,  1.15f, 0.90f, 0.5f },  /* bm_lewis - deep male narrator */
+    { "Alter Mann",      19,  -1,  0.0f,  1.05f, 0.95f, 0.6f },  /* am_santa - mature male */
+    { "Erzählerin",       6,  -1,  0.0f,  1.00f, 1.00f, 0.6f },  /* af_nicole - female */
+};
+#elif defined(SG_ROM_REGION_FRANCE)
 const SgVoicePreset sg_voice_presets[] = {
     /* name              sid blend  mix   speed  pitch  pause */
     { "Maitre du Donjon",27,  -1,  0.0f,  1.10f, 0.90f, 0.5f },  /* bm_lewis - deep male narrator */
@@ -238,7 +245,7 @@ static int load_word_list(const char *path)
 
 static bool word_char(char c)
 {
-    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '\'';
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '\'' || (unsigned char)c >= 0x80;
 }
 
 static void report_unknown_words(const char *text)
@@ -253,8 +260,15 @@ static void report_unknown_words(const char *text)
         size_t s = 0;
         while (s < n && w[s] == '\'') ++s;
         if (s >= n) continue;
-        for (size_t i = s; i < n; ++i)
-            if (w[i] >= 'A' && w[i] <= 'Z') w[i] = (char)(w[i] - 'A' + 'a');
+        for (size_t i = s; i < n; ++i) {
+            if (w[i] >= 'A' && w[i] <= 'Z') {
+                w[i] = (char)(w[i] - 'A' + 'a');
+            } else if ((unsigned char)w[i] == 0xC3 && i + 1 < n) {
+                if ((unsigned char)w[i + 1] == 0x84) w[i + 1] = (char)0xA4;
+                else if ((unsigned char)w[i + 1] == 0x96) w[i + 1] = (char)0xB6;
+                else if ((unsigned char)w[i + 1] == 0x9C) w[i + 1] = (char)0xBC;
+            }
+        }
         uint64_t h = fingerprint(w + s, n - s);
         if (known_has(h)) continue;
         bool seen = false;
@@ -275,6 +289,109 @@ static void report_unknown_words(const char *text)
 /* Words the dictionaries say the wrong way in one place in the game. The
  * replacement is a made-up spelling with its own line in sg-names.txt.
  * Whole words only; the game's text is in capitals. */
+#if defined(SG_ROM_REGION_GERMANY)
+static const struct { const char *from, *to; } PHRASE_FIXES[] = {
+    { "ABERDIE",       "ABER DIE" },
+    { "ABERNICHTS",    "ABER NICHTS" },
+    { "ANDAS",         "AN DAS" },
+    { "ANDERENSEITE",  "ANDEREN SEITE" },
+    { "ARTZAUBERWORT", "ART ZAUBERWORT" },
+    { "AUGENZUAMMEN",  "AUGEN ZUSAMMEN" },
+    { "AUSSOLIDEM",    "AUS SOLIDEM" },
+    { "BESSERVERBRINGEN", "BESSER VERBRINGEN" },
+    { "BRÜCKELEICHT",  "BRÜCKE LEICHT" },
+    { "DALÖST",        "DA LÖST" },
+    { "DASBILD",       "DAS BILD" },
+    { "DASGROLLEN",    "DAS GROLLEN" },
+    { "DASLICHT",      "DAS LICHT" },
+    { "DAßDU",         "DAß DU" },
+    { "DEINEKRÄFTE",   "DEINE KRÄFTE" },
+    { "DEINEMGEWICHT", "DEINEM GEWICHT" },
+    { "DEMFEIND",      "DEM FEIND" },
+    { "DENWEG",        "DEN WEG" },
+    { "DERFACKEL",     "DER FACKEL" },
+    { "DERSIEG",       "DER SIEG" },
+    { "DERZWÖLF",      "DER ZWÖLF" },
+    { "DICHDEN",       "DICH DEN" },
+    { "DICHSCHON",     "DICH SCHON" },
+    { "DIEHAND",       "DIE HAND" },
+    { "DIESICH",       "DIE SICH" },
+    { "DIRAUF",        "DIR AUF" },
+    { "DIRDEN",        "DIR DEN" },
+    { "DUDAS",         "DU DAS" },
+    { "DUDIE",         "DU DIE" },
+    { "DURCHSCHLAGENBETHMOTH", "DURCHSCHLAGEN BETHMOTH" },
+    { "DÄMONVERSPERRT","DÄMON VERSPERRT" },
+    { "EINENDURCHLÖCHERTEN", "EINEN DURCHLÖCHERTEN" },
+    { "EINFACHWUNDERBAR", "EINFACH WUNDERBAR" },
+    { "EINHEXENBESEN", "EIN HEXENBESEN" },
+    { "EINKLEINES",    "EIN KLEINES" },
+    { "EINMAGISCHES",  "EIN MAGISCHES" },
+    { "ERHÄLST",       "ERHÄLTST" },
+    { "ESINS",         "ES INS" },
+    { "ETWASFEHLT",    "ETWAS FEHLT" },
+    { "FACKELHÄLST",   "FACKEL HÄLTST" },
+    { "FACKELHÄLTST",  "FACKEL HÄLTST" },
+    { "FÜRCHTESR",     "FÜRCHTEST" },
+    { "GEHTDA",        "GEHT DA" },
+    { "GERADZU",       "GERADEZU" },
+    { "GERÄUSCHZERPLATZEN", "GERÄUSCH ZERPLATZEN" },
+    { "GEWISSERMAßENDIE", "GEWISSERMAßEN DIE" },
+    { "GLÄNZTALS",     "GLÄNZT ALS" },
+    { "GRABWERDEN",    "GRAB WERDEN" },
+    { "GÜCKWUNSCH",    "GLÜCKWUNSCH" },
+    { "HERSCHT",       "HERRSCHT" },
+    { "HERZAN",        "HERZ AN" },
+    { "HILFEEE",       "HILFE" },
+    { "HOLZFÜR",       "HOLZ FÜR" },
+    { "HÖHLESTEIGT",   "HÖHLE STEIGT" },
+    { "HÄLST",         "HÄLTST" },
+    { "IRGENWIE",      "IRGENDWIE" },
+    { "ISTEIN",        "IST EIN" },
+    { "KLEINESZAHNRAD","KLEINES ZAHNRAD" },
+    { "LICHTSTRAHLSCHEINT", "LICHTSTRAHL SCHEINT" },
+    { "LUFTAUS",       "LUFT AUS" },
+    { "MAULWEIT",      "MAUL WEIT" },
+    { "MITEINEM",      "MIT EINEM" },
+    { "MITUNGLAUBLICHER", "MIT UNGLAUBLICHER" },
+    { "NAHEAN",        "NAHE AN" },
+    { "NICHTSMEHR",    "NICHTS MEHR" },
+    { "NICHTUND",      "NICHT UND" },
+    { "PLATINHORNHERAUFZUBESCHÖREN", "PLATINHORN HERAUFZUBESCHWÖREN" },
+    { "PLÖZLICH",      "PLÖTZLICH" },
+    { "SCHRECKNICHT",  "SCHRECK NICHT" },
+    { "SECHSSTRAHLIGERSTERN", "SECHSSTRAHLIGER STERN" },
+    { "SICHÜBER",      "SICH ÜBER" },
+    { "SIEHTNUR",      "SIEHT NUR" },
+    { "SIEHTZIEMLICH", "SIEHT ZIEMLICH" },
+    { "SOSCHMAL",      "SO SCHMAL" },
+    { "SPRINGENDICH",  "SPRINGEN DICH" },
+    { "TALISMANN",     "TALISMAN" },
+    { "TROPT",         "TROPFT" },
+    { "UNDBILDET",     "UND BILDET" },
+    { "UNDVERBIRGT",   "UND VERBIRGT" },
+    { "UNTERNEBMEN",   "UNTERNEHMEN" },
+    { "VERGITTERTEFENSTER", "VERGITTERTE FENSTER" },
+    { "VERWEHTIM",     "VERWEHT IM" },
+    { "VORDEINEN",     "VOR DEINEN" },
+    { "WIEDEREINEN",   "WIEDER EINEN" },
+    { "WIEEINE",       "WIE EINE" },
+    { "WIEVERSTEINERT","WIE VERSTEINERT" },
+    { "WINDETSICH",    "WINDET SICH" },
+    { "WIRSTAUCH",     "WIRST AUCH" },
+    { "ZAUBERFACKELNACH", "ZAUBERFACKEL NACH" },
+    { "ZAUBERHAFTEATMOSPHÄRE", "ZAUBERHAFTE ATMOSPHÄRE" },
+    { "ZAUBERSPRÜCHEGEGEN", "ZAUBERSPRÜCHE GEGEN" },
+    { "ZOMBI",         "ZOMBIE" },
+    { "ZUDIR",         "ZU DIR" },
+    { "ZUHÄLST",       "ZU HÄLTST" },
+    { "ZUHÄLTST",      "ZU HÄLTST" },
+    { "ZUVIEL",        "ZU VIEL" },
+    { "UNHEILSTIFTERIST", "UNHEILSTIFTER IST" },
+    { "NÄMLICHDU",     "NÄMLICH DU" },
+    { "100 BEINE",     "HUNDERT BEINE" },
+};
+#else
 static const struct { const char *from, *to; } PHRASE_FIXES[] = {
     /* "winds" as in a winding path (sg-names: wynds). The game also says
      * "THE SWIRLING WINDS", which stays as it is. Found by scanning every
@@ -299,9 +416,10 @@ static const struct { const char *from, *to; } PHRASE_FIXES[] = {
     { "WAS READ",      "WAS REDD" },        /* THE ... WAS READ */
     { "NOT LIVE",      "NOT LIVV" },        /* TARKUS WILL NOT LIVE TO SEE THE RISING SUN */
 };
-#define PHRASE_FIXES_VERSION 3         /* bump when the list changes (memory key) */
+#endif
+#define PHRASE_FIXES_VERSION 4         /* bump when the list changes (memory key) */
 
-static bool letter(char c) { return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '\''; }
+static bool letter(char c) { return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '\'' || (unsigned char)c >= 0x80; }
 
 static char *fix_phrases(const char *in)
 {
@@ -358,6 +476,14 @@ static char *clean_text(const char *raw)
     }
     while (o && out[o - 1] == ' ') --o;
     out[o] = 0;
+    /* Lowercase UTF-8 umlauts for TTS lexicon matching */
+    for (size_t i = 0; i + 1 < o; ++i) {
+        if ((unsigned char)out[i] == 0xC3) {
+            if ((unsigned char)out[i + 1] == 0x84) out[i + 1] = (char)0xA4;      /* Ä -> ä */
+            else if ((unsigned char)out[i + 1] == 0x96) out[i + 1] = (char)0xB6; /* Ö -> ö */
+            else if ((unsigned char)out[i + 1] == 0x9C) out[i + 1] = (char)0xBC; /* Ü -> ü */
+        }
+    }
     free(in);
     return out;
 }
@@ -467,7 +593,19 @@ static const SherpaOnnxOfflineTts *load_model(int *sid)
         s_unavailable = true;
         return NULL;
     }
-#if defined(SG_ROM_REGION_FRANCE)
+#if defined(SG_ROM_REGION_GERMANY)
+    char de_lex[1200], de_names[1200];
+    join(de_lex, sizeof de_lex, s_base, "lexicon-de.txt");
+    if (!file_exists(de_lex)) join(de_lex, sizeof de_lex, s_voice_dir, "/lexicon-de.txt");
+    join(de_names, sizeof de_names, s_base, "sg-german.txt");
+    if (!file_exists(de_names)) join(de_names, sizeof de_names, s_voice_dir, "/sg-german.txt");
+
+    snprintf(lexicons, sizeof lexicons, "%s%s%s",
+             file_exists(de_lex) ? de_lex : "",
+             (file_exists(de_lex) && file_exists(de_names)) ? "," : "",
+             file_exists(de_names) ? de_names : "");
+    if (!file_exists(de_lex)) sg_log("voice: lexicon-de.txt is missing in %s; German voice may skip words", s_voice_dir);
+#elif defined(SG_ROM_REGION_FRANCE)
     char fr_lex[1200], fr_names[1200];
     join(fr_lex, sizeof fr_lex, s_base, "lexicon-fr.txt");
     if (!file_exists(fr_lex)) join(fr_lex, sizeof fr_lex, s_voice_dir, "/lexicon-fr.txt");
@@ -522,7 +660,10 @@ static const SherpaOnnxOfflineTts *load_model(int *sid)
         words_loaded = true;
         char p[1200];
         int total = 0, n;
-#if defined(SG_ROM_REGION_FRANCE)
+#if defined(SG_ROM_REGION_GERMANY)
+        if (file_exists(de_lex) && (n = load_word_list(de_lex)) > 0) total += n;
+        if (file_exists(de_names) && (n = load_word_list(de_names)) > 0) total += n;
+#elif defined(SG_ROM_REGION_FRANCE)
         if (file_exists(fr_lex) && (n = load_word_list(fr_lex)) > 0) total += n;
         if (file_exists(fr_names) && (n = load_word_list(fr_names)) > 0) total += n;
 #else
@@ -657,7 +798,7 @@ static int voice_thread(void *unused)
                 char kind = *mark;
                 if (*mark) *mark++ = 0;
                 bool words = false;
-                for (const char *c = piece; *c; ++c) if (*c != ' ') words = true;
+                for (const char *c = piece; *c; ++c) if (word_char(*c) && *c != '\'') words = true;
                 SDL_LockMutex(s_lock);
                 size_t piece_start = s_pcm_len;
                 SDL_UnlockMutex(s_lock);
@@ -672,7 +813,7 @@ static int voice_thread(void *unused)
                 }
                 bool more = false;            /* no pause at a page end: the game waits there anyway */
                 for (const char *c = mark; kind && *c; ++c)
-                    if (*c != ' ' && *c != MARK_QUOTE_PAUSE && *c != MARK_EXCLAIM_PAUSE) more = true;
+                    if (word_char(*c) && *c != '\'') more = true;
                 if (words && more)
                     pad_pause(&job, piece_start, kind == MARK_QUOTE_PAUSE ? s_quote_pause : s_exclaim_pause);
                 piece = kind ? mark : NULL;
