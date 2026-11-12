@@ -111,7 +111,20 @@ static std::string on_path(const char *program)
     WideCharToMultiByte(CP_UTF8, 0, out, -1, utf8, sizeof utf8, nullptr, nullptr);
     return S(P(utf8));
 #else
-    (void)program;
+    const char *p = std::getenv("PATH");
+    if (!p) return std::string();
+    std::string path_str(p);
+    size_t start = 0;
+    while (start < path_str.size()) {
+        size_t end = path_str.find(':', start);
+        if (end == std::string::npos) end = path_str.size();
+        std::string dir = path_str.substr(start, end - start);
+        if (!dir.empty()) {
+            std::string full = dir + "/" + program;
+            if (file_exists(full)) return S(P(full));
+        }
+        start = end + 1;
+    }
     return std::string();
 #endif
 }
@@ -119,6 +132,7 @@ static std::string on_path(const char *program)
 Tools find_tools(const std::string &tools)
 {
     Tools t;
+#ifdef _WIN32
     t.clang = find_in(tools, "llvm-mingw", "bin/clang.exe");
     t.clangxx = find_in(tools, "llvm-mingw", "bin/clang++.exe");
     t.ninja = file_exists(tools + "/ninja/ninja.exe") ? tools + "/ninja/ninja.exe"
@@ -126,8 +140,29 @@ Tools find_tools(const std::string &tools)
     t.sdl2_dir = find_in(tools, "SDL2-", "x86_64-w64-mingw32/lib/cmake/SDL2");
     t.cmake = find_in(tools, "cmake", "bin/cmake.exe");
     if (t.cmake.empty()) t.cmake = on_path("cmake.exe");
-    // Always the launcher's own Python (nesrecomp needs 3.11 or newer).
     if (file_exists(tools + "/python/python.exe")) t.python = tools + "/python/python.exe";
+#else
+    t.clang = find_in(tools, "llvm", "bin/clang");
+    if (t.clang.empty()) t.clang = on_path("clang");
+    if (t.clang.empty()) t.clang = on_path("gcc");
+
+    t.clangxx = find_in(tools, "llvm", "bin/clang++");
+    if (t.clangxx.empty()) t.clangxx = on_path("clang++");
+    if (t.clangxx.empty()) t.clangxx = on_path("g++");
+
+    t.ninja = file_exists(tools + "/ninja/ninja") ? tools + "/ninja/ninja"
+            : file_exists(tools + "/ninja") ? tools + "/ninja" : std::string();
+    if (t.ninja.empty()) t.ninja = on_path("ninja");
+    if (t.ninja.empty()) t.ninja = on_path("ninja-build");
+
+    t.cmake = find_in(tools, "cmake", "bin/cmake");
+    if (t.cmake.empty()) t.cmake = on_path("cmake");
+
+    if (file_exists(tools + "/python/bin/python3")) t.python = tools + "/python/bin/python3";
+    if (t.python.empty()) t.python = on_path("python3");
+
+    t.sdl2_dir = find_in(tools, "SDL2-", "lib/cmake/SDL2");
+#endif
 
     // Download sizes in MB, matching fetch.py.
     auto add = [&t](const char *what, const char *item, int mb) {
@@ -138,7 +173,9 @@ Tools find_tools(const std::string &tools)
     if (t.python.empty()) { add("Python", nullptr, 22); t.need_python = true; }
     if (t.clang.empty() || t.clangxx.empty()) add("the compiler (llvm-mingw)", "compiler", 191);
     if (t.ninja.empty())    add("Ninja", "ninja", 1);
+#ifdef _WIN32
     if (t.sdl2_dir.empty()) add("SDL2", "sdl2", 16);
+#endif
     if (t.cmake.empty())    add("CMake", "cmake", 54);
     return t;
 }
@@ -147,7 +184,12 @@ Voice find_voice(const Folders &f)
 {
     Voice v;
     v.folder = f.game + "/voice";
+#ifdef _WIN32
     v.dlls = file_exists(v.folder + "/sherpa-onnx-c-api.dll") && file_exists(v.folder + "/onnxruntime.dll");
+#else
+    v.dlls = (file_exists(v.folder + "/libsherpa-onnx-c-api.so") || file_exists(v.folder + "/sherpa-onnx-c-api.dll"))
+          && (file_exists(v.folder + "/libonnxruntime.so") || file_exists(v.folder + "/onnxruntime.dll"));
+#endif
     v.model = file_exists(v.folder + "/kokoro-multi-lang-v1_0/model.onnx")
            && file_exists(v.folder + "/kokoro-multi-lang-v1_0/voices.bin");
     if (!v.dlls)  { v.fetch_items += "sherpa"; v.download_mb += 8; }
@@ -155,4 +197,8 @@ Voice find_voice(const Folders &f)
     return v;
 }
 
+#ifdef _WIN32
 std::string game_exe(const Folders &f) { return f.game + "/shadowgate.exe"; }
+#else
+std::string game_exe(const Folders &f) { return f.game + "/shadowgate"; }
+#endif

@@ -101,12 +101,101 @@ std::string http_download(const std::string &url, const std::string &path, std::
     return error;
 }
 
-#else   // not Windows: only so the code can be checked elsewhere
+#else   // POSIX / Linux (libcurl)
 
-std::string http_download(const std::string &, const std::string &, std::string *,
-                          const std::function<void(long long, long long)> &, const std::function<bool()> &)
+#include <curl/curl.h>
+
+namespace {
+struct DownloadContext {
+    FILE *out = nullptr;
+    Sha256 *sum = nullptr;
+    long long total = 0;
+    long long done = 0;
+    const std::function<void(long long, long long)> *progress = nullptr;
+    const std::function<bool()> *stop = nullptr;
+    bool cancelled = false;
+};
+
+static size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata)
 {
-    return "downloads only work on Windows";
+    DownloadContext *ctx = static_cast<DownloadContext *>(userdata);
+    if (ctx->stop && (*ctx->stop)()) {
+        ctx->cancelled = true;
+        return 0;
+    }
+    size_t bytes = size * nmemb;
+    if (ctx->out && std::fwrite(ptr, 1, bytes, ctx->out) != bytes) return 0;
+    if (ctx->sum) sha256_update(ctx->sum, ptr, bytes);
+    ctx->done += (long long)bytes;
+    if (ctx->progress) (*ctx->progress)(ctx->done, ctx->total);
+    return bytes;
+}
+
+static int xferinfo_callback(void *clientp, curl_off_t dltotal, curl_off_t dlnow,
+                             curl_off_t, curl_off_t)
+{
+    DownloadContext *ctx = static_cast<DownloadContext *>(clientp);
+    if (ctx->stop && (*ctx->stop)()) {
+        ctx->cancelled = true;
+        return 1;
+    }
+    if (dltotal > 0) ctx->total = (long long)dltotal;
+    if (ctx->progress && dlnow > 0) (*ctx->progress)((long long)dlnow, ctx->total);
+    return 0;
+}
+}
+
+std::string http_download(const std::string &url, const std::string &path, std::string *out_sha256,
+                          const std::function<void(long long, long long)> &progress,
+                          const std::function<bool()> &stop)
+{
+    CURL *curl = curl_easy_init();
+    if (!curl) return "Failed to initialize curl";
+
+    FILE *out = utf8_fopen(path.c_str(), "wb");
+    if (!out) {
+        curl_easy_cleanup(curl);
+        return "couldn't write " + path;
+    }
+
+    Sha256 sum;
+    sha256_init(&sum);
+
+    DownloadContext ctx;
+    ctx.out = out;
+    ctx.sum = &sum;
+    ctx.progress = &progress;
+    ctx.stop = &stop;
+
+    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, "Shadowgreat-launcher");
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &ctx);
+    curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, xferinfo_callback);
+    curl_easy_setopt(curl, CURLOPT_XFERINFODATA, &ctx);
+    curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 300L);
+
+    CURLcode res = curl_easy_perform(curl);
+    std::fclose(out);
+
+    long http_code = 0;
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+    curl_easy_cleanup(curl);
+
+    if (ctx.cancelled) return "cancelled";
+    if (res != CURLE_OK) {
+        return std::string("Download failed: ") + curl_easy_strerror(res);
+    }
+    if (http_code != 200) {
+        return "the server answered " + std::to_string(http_code);
+    }
+
+    char hex[65];
+    sha256_hex(&sum, hex);
+    if (out_sha256) *out_sha256 = hex;
+    return "";
 }
 
 #endif

@@ -32,6 +32,8 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <commdlg.h>
+#else
+#include "tinyfiledialogs.h"
 #endif
 
 namespace {
@@ -104,7 +106,16 @@ std::string pick_rom_file(SDL_Window *win)
     return std::string(utf8);
 #else
     (void)win;
-    return std::string();
+    const char *filter_patterns[] = { "*.nes" };
+    const char *file = tinyfd_openFileDialog(
+        "Choose your Shadowgate .nes file",
+        "",
+        1,
+        filter_patterns,
+        "NES ROM (*.nes)",
+        0
+    );
+    return file ? std::string(file) : std::string();
 #endif
 }
 
