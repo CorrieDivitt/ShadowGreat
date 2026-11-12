@@ -106,6 +106,11 @@ target_compile_definitions(shadowgate PRIVATE
     SG_CODE_PRINT_MESSAGE_2=${_sg_prop_SG_CODE_PRINT_MESSAGE_2}
     SG_TABLE_CODE_TO_TILE=${_sg_prop_SG_TABLE_CODE_TO_TILE})
 
+if(_sg_prop_SG_TABLE_HUFFMAN)
+    target_compile_definitions(shadowgate PRIVATE
+        SG_TABLE_HUFFMAN=${_sg_prop_SG_TABLE_HUFFMAN})
+endif()
+
 # ---- the narrator's voice (sg_voice.c) ----
 # The voice is an optional add-on: sherpa-onnx's DLLs and the Kokoro model go
 # in a "voice" folder beside the .exe (the launcher downloads them on request).
@@ -119,6 +124,11 @@ if(NOT NESRECOMP_HEADLESS)
     add_custom_command(TARGET shadowgate POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_SOURCE_DIR}/voice/sg-names.txt" $<TARGET_FILE_DIR:shadowgate>)
+    if(EXISTS "${CMAKE_SOURCE_DIR}/voice/sg-french.txt")
+        add_custom_command(TARGET shadowgate POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${CMAKE_SOURCE_DIR}/voice/sg-french.txt" $<TARGET_FILE_DIR:shadowgate>)
+    endif()
     message(STATUS "shadowgate: voice support ON (uses the voice package if it is installed)")
 endif()
 

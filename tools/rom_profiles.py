@@ -51,6 +51,7 @@ PROFILES = {
         "page_a": 0xC92C,
         "page_a_crc": 0x571B150D,
         "code2tile": 0xC712,
+        "huffman": 0xE173,
     },
     "149eca5642642bed5fd98b12d682235c02def342": {
         "region": "FRANCE",
@@ -64,6 +65,7 @@ PROFILES = {
         "page_a": 0xC930,
         "page_a_crc": 0x1DEFA468,
         "code2tile": 0xC716,
+        "huffman": 0xE204,
     },
     "08625db56ba9a2a66e636590c51044c6726c5b26": {
         "region": "GERMANY",
@@ -77,6 +79,7 @@ PROFILES = {
         "page_a": 0xC930,
         "page_a_crc": 0x1DEFA468,
         "code2tile": 0xC716,
+        "huffman": 0xE1D8,
     },
 }
 
@@ -152,6 +155,8 @@ def main():
     print(f"SG_CODE_PRINT_MESSAGE=0x{profile['msg']:04X}")
     print(f"SG_CODE_PRINT_MESSAGE_2=0x{profile['msg_cont']:04X}")
     print(f"SG_TABLE_CODE_TO_TILE=0x{profile['code2tile']:04X}")
+    if "huffman" in profile:
+        print(f"SG_TABLE_HUFFMAN=0x{profile['huffman']:04X}")
 
 
 if __name__ == "__main__":

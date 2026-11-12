@@ -38,12 +38,20 @@
 /* The three voices, chosen by the user from samples on 2026-11-08
  * (p10-narrators). Dungeon Master is the original narrator; Old Man and
  * Woman replaced the earlier Grim and Plain. */
+#if defined(SG_ROM_REGION_FRANCE)
+const SgVoicePreset sg_voice_presets[] = {
+    /* name              sid blend  mix   speed  pitch  pause */
+    { "Narratrice",      30,  -1,  0.0f,  1.00f, 1.00f, 0.6f },  /* ff_siwis */
+    { "Maitre du Donjon",30,  -1,  0.0f,  0.95f, 0.85f, 0.5f },  /* ff_siwis, deeper */
+};
+#else
 const SgVoicePreset sg_voice_presets[] = {
     /* name              sid blend  mix   speed  pitch  pause */
     { "Dungeon Master",  27,  -1,  0.0f,  1.22f, 0.85f, 0.5f },  /* bm_lewis, deeper  */
     { "Old Man",         19,  -1,  0.0f,  1.12f, 0.95f, 0.6f },  /* am_santa, a little deeper */
     { "Woman",            6,  -1,  0.0f,  1.00f, 1.00f, 0.6f },  /* af_nicole as is   */
 };
+#endif
 const int sg_voice_preset_count = (int)(sizeof sg_voice_presets / sizeof sg_voice_presets[0]);
 
 #if defined(SG_HAVE_VOICE) && defined(CYC_WITH_SDL)
@@ -458,10 +466,24 @@ static const SherpaOnnxOfflineTts *load_model(int *sid)
         s_unavailable = true;
         return NULL;
     }
+#if defined(SG_ROM_REGION_FRANCE)
+    char fr_lex[1200], fr_names[1200];
+    join(fr_lex, sizeof fr_lex, s_base, "lexicon-fr.txt");
+    if (!file_exists(fr_lex)) join(fr_lex, sizeof fr_lex, s_voice_dir, "/lexicon-fr.txt");
+    join(fr_names, sizeof fr_names, s_base, "sg-french.txt");
+    if (!file_exists(fr_names)) join(fr_names, sizeof fr_names, s_voice_dir, "/sg-french.txt");
+
+    snprintf(lexicons, sizeof lexicons, "%s%s%s",
+             file_exists(fr_lex) ? fr_lex : "",
+             (file_exists(fr_lex) && file_exists(fr_names)) ? "," : "",
+             file_exists(fr_names) ? fr_names : "");
+    if (!file_exists(fr_lex)) sg_log("voice: lexicon-fr.txt is missing in %s; French voice may skip words", s_voice_dir);
+#else
     /* British first, US fills gaps, ours last: the LAST list wins. */
     snprintf(lexicons, sizeof lexicons, "%s/lexicon-us-en.txt,%s/lexicon-gb-en.txt%s%s",
              s_model_dir, s_model_dir, file_exists(ours) ? "," : "", file_exists(ours) ? ours : "");
     if (!file_exists(ours)) sg_log("voice: sg-names.txt is missing beside the .exe; names will be skipped");
+#endif
 
     *sid = s_preset.sid;
     if (s_preset.blend_sid >= 0) {
@@ -499,9 +521,14 @@ static const SherpaOnnxOfflineTts *load_model(int *sid)
         words_loaded = true;
         char p[1200];
         int total = 0, n;
+#if defined(SG_ROM_REGION_FRANCE)
+        if (file_exists(fr_lex) && (n = load_word_list(fr_lex)) > 0) total += n;
+        if (file_exists(fr_names) && (n = load_word_list(fr_names)) > 0) total += n;
+#else
         join(p, sizeof p, s_model_dir, "/lexicon-us-en.txt"); if ((n = load_word_list(p)) > 0) total += n;
         join(p, sizeof p, s_model_dir, "/lexicon-gb-en.txt"); if ((n = load_word_list(p)) > 0) total += n;
         if ((n = load_word_list(ours)) > 0) total += n;
+#endif
         sg_log("voice: %d dictionary entries", total);
     }
     return tts;

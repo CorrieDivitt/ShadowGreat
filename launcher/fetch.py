@@ -137,6 +137,83 @@ def unpack(item, archive, staging):
     say("@unpack", 1, 1)
 
 
+def ensure_french_lexicon(voice_dir):
+    fr_lex = os.path.join(voice_dir, "lexicon-fr.txt")
+    if os.path.exists(fr_lex) and os.path.getsize(fr_lex) > 1000:
+        return
+    tokens_file = os.path.join(voice_dir, "kokoro-multi-lang-v1_0", "tokens.txt")
+    if not os.path.exists(tokens_file):
+        tokens_file = os.path.join(voice_dir, "tokens.txt")
+    if not os.path.exists(tokens_file):
+        return
+
+    tokens_str = set()
+    try:
+        with open(tokens_file, "r", encoding="utf-8") as f:
+            for line in f:
+                p = line.strip().split()
+                if p:
+                    tokens_str.add(p[0])
+    except Exception:
+        return
+
+    dict_url = "https://raw.githubusercontent.com/open-dict-data/ipa-dict/master/data/fr_FR.txt"
+    try:
+        req = urllib.request.Request(dict_url, headers={"User-Agent": "Shadowgreat-launcher"})
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            lines = resp.read().decode("utf-8").splitlines()
+    except Exception as e:
+        say("could not download French IPA dictionary: %s" % e)
+        return
+
+    import unicodedata
+
+    def strip_accents(s):
+        return "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn")
+
+    out_lines = []
+    seen = set()
+
+    for line in lines:
+        parts = line.strip().split("\t")
+        if len(parts) != 2:
+            continue
+        raw_word = parts[0].strip().lower()
+        if " " in raw_word:
+            continue
+        ipa = parts[1].strip("/[] ")
+        tokens = []
+        i = 0
+        while i < len(ipa):
+            if i + 1 < len(ipa) and ipa[i:i+2] in tokens_str:
+                tokens.append(ipa[i:i+2])
+                i += 2
+            elif ipa[i] in tokens_str:
+                tokens.append(ipa[i])
+                i += 1
+            elif ipa[i] in ("\u0303", "\u02c8", "\u02cc", "\u02d0"):
+                tokens.append(ipa[i])
+                i += 1
+            else:
+                i += 1
+        if not tokens:
+            continue
+        tok_str = " ".join(tokens)
+        for w in (raw_word, strip_accents(raw_word)):
+            if w and w not in seen:
+                seen.add(w)
+                out_lines.append(w + " " + tok_str + "\n")
+
+    tmp_out = fr_lex + ".tmp"
+    try:
+        with open(tmp_out, "w", encoding="utf-8") as f:
+            f.writelines(out_lines)
+        os.replace(tmp_out, fr_lex)
+        say("prepared French voice lexicon (%d words) in %s" % (len(out_lines), fr_lex))
+    except Exception as e:
+        say("could not save French voice lexicon: %s" % e)
+
+
 def install(key, dest, number, count):
     item = ITEMS[key]
     say("@step", number, count, item["name"])
@@ -159,6 +236,8 @@ def install(key, dest, number, count):
         os.replace(os.path.join(staging, name), there)
     shutil.rmtree(staging, ignore_errors=True)
     os.remove(archive)
+    if key == "kokoro":
+        ensure_french_lexicon(target)
     say("installed %s in %s" % (item["name"], target))
 
 

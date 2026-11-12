@@ -91,6 +91,10 @@ static const char *tile_char(uint8_t t)
     if (t == 0xCE) return ";";    /* "...THE STARS; THE THRONE..." (its one use)               */
     if (t == 0xA1) return ".";
     if (t >= 0xB1 && t <= 0xCA) return letters[t - 0xB1];
+    /* Regional accented tiles */
+    if (t == 0xD6 || t == 0xD7 || t == 0xD8) return "E";
+    if (t == 0xD9) return "C";
+    if (t == 0xCB) return "";
     return NULL;
 }
 
@@ -123,6 +127,16 @@ static void put_word(Out *spoken, Out *logged, uint16_t list, unsigned n)
         put(logged, tmp);
         return;
     }
+#ifdef SG_TABLE_HUFFMAN
+    (void)list;
+    unsigned base = n * 16 + 1;
+    for (int i = 0; i < 12; ++i) {
+        if (base + i >= sizeof(s_words)) break;
+        uint8_t c = s_words[base + i];
+        if (c == 0x1F) break;
+        put_code(spoken, logged, c);
+    }
+#else
     Bits b = { (uint16_t)(list + n * SG_WORD_SLOT_BYTES), true, 0, 0 };
     for (int i = 0; i < 12; ++i) {            /* a slot holds at most 12 codes */
         unsigned c = read_bits(&b, 5);
@@ -130,6 +144,7 @@ static void put_word(Out *spoken, Out *logged, uint16_t list, unsigned n)
         if (c == 0x1E) c = read_bits(&b, 5) + 0x20;
         put_code(spoken, logged, c);
     }
+#endif
 }
 
 bool sg_text_decode(uint16_t addr, char *spoken, size_t spoken_size,
@@ -141,6 +156,86 @@ bool sg_text_decode(uint16_t addr, char *spoken, size_t spoken_size,
     Bits b = { addr, false, 0, 0 };
     char tmp[32];
 
+#ifdef SG_TABLE_HUFFMAN
+    for (int count = 0; count < 4000; ++count) {
+        unsigned ed = 0;
+        while (read_bits(&b, 1) == 0) {
+            ed++;
+            if (ed > 64) {
+                put(&l, "{invalid bitstream: stopped}");
+                return false;
+            }
+        }
+        for (int i = 0; i < 3; ++i) {
+            ed = (ed << 1) | read_bits(&b, 1);
+        }
+        if (ed >= 64) {
+            put(&l, "{bad huffman index}");
+            return false;
+        }
+        uint8_t c = cyc_mod_peek((uint16_t)(SG_TABLE_HUFFMAN + ed));
+        if (c == 0x1F) return true;              /* end of message */
+        if (c < 0x1A) { put_code(&s, &l, c); continue; }   /* A-Z */
+        switch (c) {
+        case 0x1A: put(&s, " "); put(&l, " "); break;      /* space */
+        case 0x1D: put(&s, " "); put(&l, " / "); break;    /* new line */
+        case 0x1B:
+        case 0x1C: put(&s, "\f"); put(&l, " // "); break; /* end of page */
+        case 0x20:
+        case 0x21:
+        case 0x24:
+        case 0x25:
+        case 0x26:
+        case 0x27:
+        case 0x28:
+        case 0x29:
+        case 0x2A:
+        case 0x2D:
+        case 0x2E:
+        case 0x2F:
+        case 0x30:
+        case 0x31:
+        case 0x32:
+        case 0x33:
+        case 0x34:
+        case 0x35:
+        case 0x36:
+        case 0x37:
+        case 0x38:
+        case 0x39:
+        case 0x3A:
+            put_code(&s, &l, c);
+            break;
+        case 0x3E: {
+            b.bits_left = 0;
+            unsigned lo = read_bits(&b, 8), hi = read_bits(&b, 8);
+            uint16_t where = (uint16_t)(lo | (hi << 8));
+            unsigned n = cyc_mod_peek(where);
+            snprintf(tmp, sizeof tmp, "{ram %04X=%u}", where, n);
+            put(&l, tmp);
+            put_word(&s, &l, SG_WORD_LIST_A, n);
+            break;
+        }
+        case 0x3F: {
+            b.bits_left = 0;
+            unsigned lo = read_bits(&b, 8), hi = read_bits(&b, 8);
+            uint16_t where = (uint16_t)(lo | (hi << 8));
+            unsigned n = cyc_mod_peek(where);
+            char num_str[16];
+            snprintf(num_str, sizeof num_str, "%u", n);
+            put(&s, num_str);
+            put(&l, num_str);
+            break;
+        }
+        default: {
+            char unk[16];
+            snprintf(unk, sizeof unk, "{%02X}", c);
+            put(&l, unk);
+            break;
+        }
+        }
+    }
+#else
     for (int count = 0; count < 4000; ++count) { /* safety limit */
         unsigned c = read_bits(&b, 5);
         if (c == 0x1F) return true;              /* end of message */
@@ -178,6 +273,7 @@ bool sg_text_decode(uint16_t addr, char *spoken, size_t spoken_size,
         }
         }
     }
+#endif
     put(&l, "{too long: stopped}");
     return false;
 }
