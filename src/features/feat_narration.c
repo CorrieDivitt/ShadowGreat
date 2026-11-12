@@ -63,7 +63,7 @@ static SgScreen s_last_screen;
 
 /* Defaults (also what "Restore defaults" in the menu goes back to) */
 #define DEFAULT_PRESET        0      /* Dungeon Master */
-#define DEFAULT_VOLUME        100
+#define DEFAULT_VOLUME        80
 #define DEFAULT_MUSIC         40
 #define DEFAULT_QUOTE_PAUSE   0.8f
 #define DEFAULT_EXCLAIM_PAUSE 0.6f
