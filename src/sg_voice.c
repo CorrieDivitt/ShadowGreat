@@ -41,8 +41,9 @@
 #if defined(SG_ROM_REGION_FRANCE)
 const SgVoicePreset sg_voice_presets[] = {
     /* name              sid blend  mix   speed  pitch  pause */
-    { "Narratrice",      30,  -1,  0.0f,  1.00f, 1.00f, 0.6f },  /* ff_siwis */
-    { "Maitre du Donjon",30,  -1,  0.0f,  0.95f, 0.85f, 0.5f },  /* ff_siwis, deeper */
+    { "Maitre du Donjon",27,  -1,  0.0f,  1.10f, 0.90f, 0.5f },  /* bm_lewis - deep male narrator */
+    { "Vieil Homme",     19,  -1,  0.0f,  1.05f, 0.95f, 0.6f },  /* am_santa - mature male */
+    { "Narratrice",      30,  -1,  0.0f,  1.00f, 1.00f, 0.6f },  /* ff_siwis - female */
 };
 #else
 const SgVoicePreset sg_voice_presets[] = {
