@@ -78,7 +78,27 @@ Folders find_folders(const LauncherSettings &s)
             : first_of({ exe + "/tools", base + "/Tools" }, is_dir);
     if (f.tools.empty()) f.tools = exe + "/tools";
 
+#ifdef _WIN32
     f.game = !s.game_folder.empty() ? s.game_folder : exe + "/game";
+#else
+    if (!s.game_folder.empty()) {
+        f.game = s.game_folder;
+    } else {
+        const char *appimage = std::getenv("APPIMAGE");
+        if (appimage) {
+            const char *xdg = std::getenv("XDG_DATA_HOME");
+            std::string data_dir;
+            if (xdg && *xdg) data_dir = xdg;
+            else {
+                const char *home = std::getenv("HOME");
+                data_dir = home ? (std::string(home) + "/.local/share") : "/tmp";
+            }
+            f.game = data_dir + "/shadowgreat/game";
+        } else {
+            f.game = exe + "/game";
+        }
+    }
+#endif
 
     auto add = [&f](const char *what) { f.missing += f.missing.empty() ? what : std::string(", ") + what; };
     if (!is_source(f.source))       add("the Shadowgreat source");

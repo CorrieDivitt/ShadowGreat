@@ -30,6 +30,7 @@ launcher.ini
 
 # Screenshots and pictures of the game (they are the game's graphics)
 *.png
+!shadowgreat.png
 *.bmp
 *.gif
 *.jpg
