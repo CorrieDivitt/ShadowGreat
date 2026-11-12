@@ -1,12 +1,12 @@
 # Shadowgreat
 
-**Shadowgate (NES) as a native Windows game, built on your own PC from your own ROM**, with mouse
+**Shadowgate (NES) as a native Windows and Linux/SteamOS game, built on your own PC from your own ROM**, with mouse
 and controller pointing, an optional narrator voice, a torch tracker, and options you can change while you play.
 
 **Version 1.0.0**
 
 Shadowgreat is built with [nesrecomp](https://github.com/mstan/nesrecomp), which turns the NES game's
-code into a native Windows program, and [recomp-ui](https://github.com/mstan/recomp-ui) for its menus.
+code into a native program, and [recomp-ui](https://github.com/mstan/recomp-ui) for its menus.
 
 > **No part of Shadowgate is included here or in the download.** You need your own legally obtained
 > **Shadowgate** `.nes` file (USA, Europe, Sweden, France, or Germany). The launcher checks it and builds the game from it on your PC.
@@ -70,16 +70,22 @@ SHA-256 fingerprint before it's used.
 ## Playing
 
 ### You need
-- Windows 10 (version 1803 or later) or Windows 11, 64-bit.
+- **Windows:** Windows 10 (version 1803 or later) or Windows 11, 64-bit.
+- **Linux / SteamOS:** x86_64 Linux with `clang` or `gcc`, `cmake`, `ninja`, `python3`, `libcurl`, and `SDL2` development headers (on SteamOS, or via `Shadowgreat-<version>-x86_64.AppImage`).
 - Your own **Shadowgate** `.nes` file (USA, Europe, Sweden, France, or Germany). Other versions and hacks are refused.
 - About **3 GB** of free disk space (about 1 GB more with the narrator voice).
 - An internet connection for the first setup (the build tools and the voice). After that, none.
 
 ### Install
+**Windows:**
 1. Download the latest `Shadowgreat-<version>.zip` (for example `Shadowgreat-1.0.0.zip`) from the
    [Releases page](https://github.com/CorrieDivitt/ShadowGreat/releases).
 2. Unzip it to a folder with a **short path**, for example `C:\Games\Shadowgreat`.
 3. Run `ShadowgreatLauncher.exe` and follow the steps from top to bottom.
+
+**Linux / SteamOS (AppImage):**
+1. Download `Shadowgreat-<version>-x86_64.AppImage` and mark it executable (`chmod +x Shadowgreat-*.AppImage`).
+2. Run it and follow the steps in the launcher. Game data and saves are stored in `~/.local/share/shadowgreat/game` and launcher settings in `~/.config/shadowgreat/launcher.ini`.
 
 ### Updating
 Unzip the new version over your Shadowgreat folder (replace the files), run `ShadowgreatLauncher.exe` and press
@@ -213,6 +219,12 @@ cmake --build build-launcher
 
 ```powershell
 python tools\package.py --rom "F:\path\to\Shadowgate (USA).nes"
+```
+
+**Make the Linux / SteamOS AppImage** (from Linux, with `nesrecomp` and `recomp-ui` beside the repo; build on Ubuntu 22.04 or a CI runner on `ubuntu-22.04` so the launcher binary targets an older `glibc` for wide distro compatibility):
+
+```bash
+python3 tools/package_appimage.py
 ```
 
 **Turn on the commit safety check** once after cloning. It refuses ROMs, build output, saves, dumps and

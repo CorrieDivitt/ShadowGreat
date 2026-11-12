@@ -117,6 +117,25 @@ def main():
     # Copy launcher executable
     shutil.copy2(launcher_exe, usr_bin / "ShadowgreatLauncher")
 
+    # Bundle SDL2 so the launcher starts on distros without libsdl2-2.0-0 installed
+    usr_lib = app_dir / "usr" / "lib"
+    usr_lib.mkdir(parents=True, exist_ok=True)
+    sdl_libs = sorted(build_dir.glob("libSDL2-2.0.so*"))
+    if sdl_libs:
+        for lib in sdl_libs:
+            shutil.copy2(lib, usr_lib / lib.name)
+        soname = usr_lib / "libSDL2-2.0.so.0"
+        if not soname.exists():
+            soname.symlink_to(sdl_libs[0].name)
+    else:
+        ldd_out = subprocess.check_output(["ldd", str(launcher_exe)], text=True)
+        for line in ldd_out.splitlines():
+            if "libSDL2-2.0.so.0" in line and "=>" in line:
+                target = line.split("=>", 1)[1].split("(", 1)[0].strip()
+                if target and Path(target).is_file():
+                    shutil.copy2(Path(target).resolve(), usr_lib / "libSDL2-2.0.so.0")
+                break
+
     # Copy assets
     lato_src = recomp_ui_dir / "assets" / "LatoLatin-Regular.ttf"
     for dest in (app_dir / "assets", usr_bin / "assets"):
@@ -149,6 +168,7 @@ set -e
 HERE="$(dirname "$(readlink -f "$0")")"
 export APPDIR="$HERE"
 export PATH="$HERE/usr/bin:$PATH"
+export LD_LIBRARY_PATH="$HERE/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
 export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
 export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
