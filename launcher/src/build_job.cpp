@@ -165,7 +165,11 @@ int do_build(const Job &j, std::string *error)
     set_stage(BuildStage::Compiling, "Compiling the game...");
     rc = run(quote_arg(j.t.cmake) + " --build " + quote_arg(j.f.game), j.f.source, error);
     if (rc == 0 && !file_exists(game_exe(j.f))) {
+#ifdef _WIN32
         set_stage(BuildStage::Failed, "The build finished but shadowgate.exe isn't there. Show the details below.");
+#else
+        set_stage(BuildStage::Failed, "The build finished but shadowgate isn't there. Show the details below.");
+#endif
         return 1;
     }
     finish(rc, *error, why_it_failed("Compiling").c_str(), "Built! Shadowgate is ready to play.");
