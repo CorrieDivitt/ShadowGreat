@@ -166,6 +166,7 @@ void sg_mouse_click_at(int x, int y)
 static void mouse_event(const void *e)
 {
 #if defined(CYC_WITH_SDL)
+    if (cyc_ui_menu_open()) return;
     const SDL_Event *ev = (const SDL_Event *)e;
     if (ev->type == SDL_MOUSEBUTTONDOWN && ev->button.button == SDL_BUTTON_LEFT) {
         int x, y;
@@ -307,6 +308,12 @@ static void hover(const char *box, bool moved)
  * and log when the box under the mouse changes. */
 static void mouse_frame(void)
 {
+    if (cyc_ui_menu_open()) {
+        s_click_pending = false;
+        sg_pointer_x = -1;
+        sg_pointer_y = -1;
+        return;
+    }
     static int prev_x = -1, prev_y = -1;
 #if defined(CYC_WITH_SDL)
     pointer_in_game(&s_x, &s_y);

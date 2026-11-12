@@ -85,6 +85,12 @@ extern int sg_pointer_x, sg_pointer_y;
 #endif
 void sg_narration_print_site(uint16_t addr);
 
+#if defined(CYC_WITH_RECOMP_UI)
+bool cyc_ui_menu_open(void);
+#else
+static inline bool cyc_ui_menu_open(void) { return false; }
+#endif
+
 /* Switch a feature On or Off while the game runs (the in-game menu). */
 void sg_feature_switch(SgFeature *f, bool on);
 
