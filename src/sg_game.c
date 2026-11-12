@@ -26,12 +26,25 @@ const char *sg_screen_name(SgScreen s)
     }
 }
 
+static bool in_variant_list(uint8_t v, const uint8_t *list, size_t n)
+{
+    for (size_t i = 0; i < n; ++i)
+        if (list[i] == v) return true;
+    return false;
+}
+
 static SgScreen classify(uint8_t id, uint8_t variant)
 {
+    static const uint8_t file_select_1c[]  = { SG_FILE_SELECT_1C };
+    static const uint8_t file_options_1c[] = { SG_FILE_OPTIONS_1C };
     switch (id) {
     case 0x10: return SG_SCREEN_TITLE;
     case 0x11:
-        return variant ? SG_SCREEN_FILE_OPTIONS : SG_SCREEN_FILE_SELECT;
+        if (in_variant_list(variant, file_select_1c, sizeof file_select_1c))
+            return SG_SCREEN_FILE_SELECT;
+        if (in_variant_list(variant, file_options_1c, sizeof file_options_1c))
+            return SG_SCREEN_FILE_OPTIONS;
+        return SG_SCREEN_UNKNOWN;   /* never guess between the two */
     case 0x65: return SG_SCREEN_PLAY;
     case 0x6C: return SG_SCREEN_MESSAGE;
     case 0x12: return SG_SCREEN_GAME_OVER;
@@ -55,15 +68,8 @@ void sg_game_update(void)
     sg_game.screen_id    = cyc_mod_peek(SG_RAM_SCREEN_ID);
     sg_game.menu_variant = cyc_mod_peek(SG_RAM_MENU_VARIANT);
 
-    /* $1C is the low byte of the PPU tile draw pointer. On 0x11 screens,
-     * it only distinguishes file options (0xAD USA, 0xAC Sweden, 0xAB/0xAA France)
-     * from file select. Normal tile rendering on file select leaves various tile
-     * row offsets (e.g. 0xB2 USA, 0xB1 Sweden, 0x40/0x00/0xCE France).
-     * Normalize all non-options variants to 0 so sword cursor drawing never resets
-     * settle frames or knocks file select into unknown. */
-    bool is_options = (sg_game.menu_variant == 0xAD || sg_game.menu_variant == 0xAC ||
-                       sg_game.menu_variant == 0xAB || sg_game.menu_variant == 0xAA);
-    uint8_t variant = (sg_game.screen_id == 0x11 && is_options) ? 1 : 0;
+    /* $1C only matters on the 0x11 screens; elsewhere it wanders. */
+    uint8_t variant = sg_game.screen_id == 0x11 ? sg_game.menu_variant : 0;
 
     if (s_pending_frames > 0 &&
         sg_game.screen_id == s_pending_id && variant == s_pending_variant) {

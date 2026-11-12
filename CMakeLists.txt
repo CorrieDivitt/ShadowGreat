@@ -92,6 +92,7 @@ endif()
 nesrecomp_add_cycle_game(shadowgate
     ROM "${SHADOWGATE_ROM}"
     GAME_CONFIG "${_sg_game_toml}"
+    REGION "${_sg_prop_ROM_TIMING}"
     HOST_EXTRAS ${SHADOWGATE_FEATURES}
     ${_sg_options})
 target_include_directories(shadowgate PRIVATE "${CMAKE_SOURCE_DIR}/src"
@@ -104,7 +105,10 @@ target_compile_definitions(shadowgate PRIVATE
     SITE_PAGE_A=${_sg_prop_SITE_PAGE_A}
     SG_CODE_PRINT_MESSAGE=${_sg_prop_SG_CODE_PRINT_MESSAGE}
     SG_CODE_PRINT_MESSAGE_2=${_sg_prop_SG_CODE_PRINT_MESSAGE_2}
-    SG_TABLE_CODE_TO_TILE=${_sg_prop_SG_TABLE_CODE_TO_TILE})
+    SG_TABLE_CODE_TO_TILE=${_sg_prop_SG_TABLE_CODE_TO_TILE}
+    SG_WORD_SLOT_OFFSET=${_sg_prop_SG_WORD_SLOT_OFFSET}
+    SG_FILE_SELECT_1C=${_sg_prop_SG_FILE_SELECT_1C}
+    SG_FILE_OPTIONS_1C=${_sg_prop_SG_FILE_OPTIONS_1C})
 
 if(_sg_prop_SG_TABLE_HUFFMAN)
     target_compile_definitions(shadowgate PRIVATE

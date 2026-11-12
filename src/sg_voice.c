@@ -40,31 +40,31 @@
  * Woman replaced the earlier Grim and Plain. */
 #if defined(SG_ROM_REGION_GERMANY)
 const SgVoicePreset sg_voice_presets[] = {
-    /* name              sid blend  mix   speed  pitch  pause */
-    { "Dungeon Master",  27,  -1,  0.0f,  1.15f, 0.90f, 0.5f },  /* bm_lewis - deep male narrator */
-    { "Alter Mann",      19,  -1,  0.0f,  1.05f, 0.95f, 0.6f },  /* am_santa - mature male */
-    { "Erzählerin",       6,  -1,  0.0f,  1.00f, 1.00f, 0.6f },  /* af_nicole - female */
+    /* name              key               sid blend  mix   speed  pitch  pause */
+    { "Dungeon Master",  "DungeonMaster",  27,  -1,  0.0f,  1.15f, 0.90f, 0.5f },  /* bm_lewis - deep male narrator */
+    { "Alter Mann",      "OldMan",         19,  -1,  0.0f,  1.05f, 0.95f, 0.6f },  /* am_santa - mature male */
+    { "Erzählerin",      "Woman",           6,  -1,  0.0f,  1.00f, 1.00f, 0.6f },  /* af_nicole - female */
 };
 #elif defined(SG_ROM_REGION_SWEDEN)
 const SgVoicePreset sg_voice_presets[] = {
-    /* name              sid blend  mix   speed  pitch  pause */
-    { "Dungeon Master",  27,  -1,  0.0f,  1.12f, 0.95f, 0.5f },  /* bm_lewis - authentic original Dungeon Master */
-    { "Gammal man",      19,  -1,  0.0f,  1.05f, 0.95f, 0.6f },  /* am_santa - mature male */
-    { "Kvinna",           6,  -1,  0.0f,  1.00f, 1.00f, 0.6f },  /* af_nicole - female */
+    /* name              key               sid blend  mix   speed  pitch  pause */
+    { "Dungeon Master",  "DungeonMaster",  27,  -1,  0.0f,  1.12f, 0.95f, 0.5f },  /* bm_lewis - authentic original Dungeon Master */
+    { "Gammal man",      "OldMan",         19,  -1,  0.0f,  1.05f, 0.95f, 0.6f },  /* am_santa - mature male */
+    { "Kvinna",          "Woman",           6,  -1,  0.0f,  1.00f, 1.00f, 0.6f },  /* af_nicole - female */
 };
 #elif defined(SG_ROM_REGION_FRANCE)
 const SgVoicePreset sg_voice_presets[] = {
-    /* name              sid blend  mix   speed  pitch  pause */
-    { "Maitre du Donjon",27,  -1,  0.0f,  1.10f, 0.90f, 0.5f },  /* bm_lewis - deep male narrator */
-    { "Vieil Homme",     19,  -1,  0.0f,  1.05f, 0.95f, 0.6f },  /* am_santa - mature male */
-    { "Narratrice",      30,  -1,  0.0f,  1.00f, 1.00f, 0.6f },  /* ff_siwis - female */
+    /* name              key               sid blend  mix   speed  pitch  pause */
+    { "Maitre du Donjon","DungeonMaster",  27,  -1,  0.0f,  1.10f, 0.90f, 0.5f },  /* bm_lewis - deep male narrator */
+    { "Vieil Homme",     "OldMan",         19,  -1,  0.0f,  1.05f, 0.95f, 0.6f },  /* am_santa - mature male */
+    { "Narratrice",      "Woman",          30,  -1,  0.0f,  1.00f, 1.00f, 0.6f },  /* ff_siwis - female */
 };
 #else
 const SgVoicePreset sg_voice_presets[] = {
-    /* name              sid blend  mix   speed  pitch  pause */
-    { "Dungeon Master",  27,  -1,  0.0f,  1.22f, 0.85f, 0.5f },  /* bm_lewis, deeper  */
-    { "Old Man",         19,  -1,  0.0f,  1.12f, 0.95f, 0.6f },  /* am_santa, a little deeper */
-    { "Woman",            6,  -1,  0.0f,  1.00f, 1.00f, 0.6f },  /* af_nicole as is   */
+    /* name              key               sid blend  mix   speed  pitch  pause */
+    { "Dungeon Master",  "DungeonMaster",  27,  -1,  0.0f,  1.22f, 0.85f, 0.5f },  /* bm_lewis, deeper  */
+    { "Old Man",         "OldMan",         19,  -1,  0.0f,  1.12f, 0.95f, 0.6f },  /* am_santa, a little deeper */
+    { "Woman",           "Woman",           6,  -1,  0.0f,  1.00f, 1.00f, 0.6f },  /* af_nicole as is   */
 };
 #endif
 const int sg_voice_preset_count = (int)(sizeof sg_voice_presets / sizeof sg_voice_presets[0]);
@@ -175,7 +175,11 @@ static unsigned   s_cache_hits, s_cache_misses;
 static bool           s_started;
 static SgVoicePreset  s_preset;               /* the preset wanted now          */
 static int            s_preset_index;
+#if defined(SG_ROM_REGION_USA)
+static int            s_volume = 100;
+#else
 static int            s_volume = 80;
+#endif
 static float          s_music_duck = 0.4f;   /* game sound level while the voice talks */
 static float          s_quote_pause = 0.8f;  /* seconds of quiet after closing a quote  */
 static float          s_exclaim_pause = 0.6f;/* seconds of quiet after "!"              */
@@ -287,6 +291,143 @@ static void report_unknown_words(const char *text)
         w[n] = 0;
         sg_log("voice: unknown word \"%s\" (it will be skipped; add it to sg-names.txt)", w + s);
     }
+}
+
+static size_t utf8_next(const char *s, size_t i, size_t n)
+{
+    if (i >= n) return n;
+    unsigned char c = (unsigned char)s[i];
+    if (c < 0x80) return i + 1;
+    if ((c & 0xE0) == 0xC0 && i + 2 <= n) return i + 2;
+    if ((c & 0xF0) == 0xE0 && i + 3 <= n) return i + 3;
+    if ((c & 0xF8) == 0xF0 && i + 4 <= n) return i + 4;
+    return i + 1;
+}
+
+static size_t lowercase_utf8(const char *src, size_t n, char *dst, size_t dst_cap)
+{
+    size_t o = 0;
+    for (size_t i = 0; i < n && o + 1 < dst_cap; ++i) {
+        unsigned char c = (unsigned char)src[i];
+        if (c >= 'A' && c <= 'Z') {
+            dst[o++] = (char)(c - 'A' + 'a');
+        } else if (c == 0xC3 && i + 1 < n && o + 2 < dst_cap) {
+            unsigned char c2 = (unsigned char)src[i + 1];
+            if (c2 == 0x84 || c2 == 0x85 || c2 == 0x96 || c2 == 0x9C) c2 = (unsigned char)(c2 + 0x20);
+            dst[o++] = (char)c;
+            dst[o++] = (char)c2;
+            ++i;
+        } else {
+            dst[o++] = (char)c;
+        }
+    }
+    dst[o] = 0;
+    return o;
+}
+
+/* Try to split an unknown word into 2 or 3 known words (with optional linking 's'),
+ * or strip a common ending so the stem is spoken instead of skipped. */
+static bool resolve_word(const char *lw, size_t len, char *out, size_t out_cap)
+{
+    if (known_has(fingerprint(lw, len))) return false;
+
+    /* 1. Split into 2 known words (with optional linking 's'). */
+    for (size_t p1 = utf8_next(lw, 0, len); p1 < len; p1 = utf8_next(lw, p1, len)) {
+        if (p1 < 2 || len - p1 < 2) continue;
+        if (known_has(fingerprint(lw, p1)) && known_has(fingerprint(lw + p1, len - p1))) {
+            snprintf(out, out_cap, "%.*s %.*s", (int)p1, lw, (int)(len - p1), lw + p1);
+            return true;
+        }
+        if (lw[p1] == 's' && len - p1 - 1 >= 2 &&
+            known_has(fingerprint(lw, p1)) && known_has(fingerprint(lw + p1 + 1, len - p1 - 1))) {
+            snprintf(out, out_cap, "%.*s %.*s", (int)p1, lw, (int)(len - p1 - 1), lw + p1 + 1);
+            return true;
+        }
+    }
+
+    /* 2. Split into 3 known words. */
+    for (size_t p1 = utf8_next(lw, 0, len); p1 < len; p1 = utf8_next(lw, p1, len)) {
+        if (p1 < 2 || len - p1 < 4) continue;
+        if (!known_has(fingerprint(lw, p1))) continue;
+        for (size_t p2 = utf8_next(lw, p1, len); p2 < len; p2 = utf8_next(lw, p2, len)) {
+            if (p2 - p1 < 2 || len - p2 < 2) continue;
+            if (known_has(fingerprint(lw + p1, p2 - p1)) &&
+                known_has(fingerprint(lw + p2, len - p2))) {
+                snprintf(out, out_cap, "%.*s %.*s %.*s",
+                         (int)p1, lw, (int)(p2 - p1), lw + p1, (int)(len - p2), lw + p2);
+                return true;
+            }
+        }
+    }
+
+    /* 3. Strip a common ending if the stem is known. */
+    static const char *const SUFFIXES[] = {
+#if defined(SG_ROM_REGION_SWEDEN)
+        "arnas", "ernas", "ornas", "heter", "heten", "ande", "ende",
+        "arna", "erna", "orna", "ens", "ets", "het", "ade",
+        "de", "te", "en", "et", "na", "ar", "er", "or", "as", "es",
+        "s", "t", "a", "e"
+#elif defined(SG_ROM_REGION_GERMANY)
+        "ungen", "heit", "keit", "isch", "lich", "ten", "tet", "ung",
+        "en", "er", "es", "em", "st", "te", "e", "n", "s"
+#elif defined(SG_ROM_REGION_FRANCE)
+        "ement", "tion", "ées", "ant", "ent", "és", "ée",
+        "es", "er", "ez", "s", "x", "e"
+#else
+        "ing", "ed", "es", "ly", "s"
+#endif
+    };
+    for (size_t i = 0; i < sizeof SUFFIXES / sizeof SUFFIXES[0]; ++i) {
+        size_t slen = strlen(SUFFIXES[i]);
+        if (len >= slen + 3 && memcmp(lw + len - slen, SUFFIXES[i], slen) == 0 &&
+            known_has(fingerprint(lw, len - slen))) {
+            snprintf(out, out_cap, "%.*s", (int)(len - slen), lw);
+            return true;
+        }
+    }
+    return false;
+}
+
+static char *resolve_unknown_words(char *text)
+{
+    if (!s_known || !text) return text;
+    size_t n = strlen(text), cap = n * 2 + 32, o = 0;
+    char *out = (char *)malloc(cap);
+    if (!out) return text;
+    for (size_t i = 0; i < n;) {
+#if defined(SG_ROM_REGION_FRANCE)
+        if (text[i] == '\'') {
+            if (o + 1 < cap) out[o++] = ' ';
+            ++i;
+            continue;
+        }
+#endif
+        if (!word_char(text[i])) {
+            if (o + 1 < cap) out[o++] = text[i];
+            ++i;
+            continue;
+        }
+        size_t start = i;
+        while (i < n && word_char(text[i])
+#if defined(SG_ROM_REGION_FRANCE)
+               && text[i] != '\''
+#endif
+              ) ++i;
+        size_t wlen = i - start;
+        char lw[64], repl[128];
+        if (wlen > 0 && wlen < sizeof lw) {
+            size_t llen = lowercase_utf8(text + start, wlen, lw, sizeof lw);
+            if (resolve_word(lw, llen, repl, sizeof repl)) {
+                size_t rlen = strlen(repl);
+                if (o + rlen < cap) { memcpy(out + o, repl, rlen); o += rlen; }
+                continue;
+            }
+        }
+        if (o + wlen < cap) { memcpy(out + o, text + start, wlen); o += wlen; }
+    }
+    out[o] = 0;
+    free(text);
+    return out;
 }
 
 /* ---- the text the voice gets ---- */
@@ -766,7 +907,6 @@ static const SherpaOnnxOfflineTts *load_model(int *sid)
     static bool words_loaded;
     if (s_known && !words_loaded) {
         words_loaded = true;
-        char p[1200];
         int total = 0, n;
 #if defined(SG_ROM_REGION_GERMANY)
         if (file_exists(de_lex) && (n = load_word_list(de_lex)) > 0) total += n;
@@ -778,6 +918,7 @@ static const SherpaOnnxOfflineTts *load_model(int *sid)
         if (file_exists(fr_lex) && (n = load_word_list(fr_lex)) > 0) total += n;
         if (file_exists(fr_names) && (n = load_word_list(fr_names)) > 0) total += n;
 #else
+        char p[1200];
         join(p, sizeof p, s_model_dir, "/lexicon-us-en.txt"); if ((n = load_word_list(p)) > 0) total += n;
         join(p, sizeof p, s_model_dir, "/lexicon-gb-en.txt"); if ((n = load_word_list(p)) > 0) total += n;
         if ((n = load_word_list(ours)) > 0) total += n;
@@ -881,6 +1022,7 @@ static int voice_thread(void *unused)
         }
         if (!tts) { free(text); continue; }
 
+        text = resolve_unknown_words(text);
         report_unknown_words(text);
         SherpaOnnxGenerationConfig g;
         memset(&g, 0, sizeof g);

@@ -28,7 +28,7 @@ Its bytes, and anything made from its bytes, are not ours to share.
 
 ## 3. Bring your own ROM
 
-- Use Shadowgate (USA) from your own cartridge or dump.
+- Use a supported Shadowgate release (USA, Europe, Sweden, France, or Germany) from your own cartridge or dump.
 - Keep it outside this folder, for example `F:\Shadowgreat\`, and point the
   build at it. Never copy it into the project, not even temporarily.
 - The supported file has whole-file SHA-1

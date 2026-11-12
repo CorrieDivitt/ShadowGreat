@@ -16,7 +16,8 @@
 
 /* A choosable voice. Chosen in config.ini: NarratorVoice = Dungeon Master */
 typedef struct SgVoicePreset {
-    const char *name;
+    const char *name;   /* display name (may be localized)                      */
+    const char *key;    /* fixed English config.ini key prefix                  */
     int   sid;          /* Kokoro voice number (27 = bm_lewis)                  */
     int   blend_sid;    /* second voice mixed in, or -1                         */
     float blend;        /* how much of the second voice (0.4 = 40 %)           */

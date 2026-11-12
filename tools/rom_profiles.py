@@ -16,6 +16,7 @@ PROFILES = {
     "e7869c683bd93275cde4536cd2ddf37f230dd8d0": {
         "region": "USA",
         "name": "Shadowgate (USA)",
+        "timing": "NTSC",
         "msg": 0xC49E,
         "msg_crc": 0x9B4D6BA3,
         "msg_cont": 0xC494,
@@ -25,10 +26,13 @@ PROFILES = {
         "page_a": 0xC9F9,
         "page_a_crc": 0xE15116D7,
         "code2tile": 0xC7AD,
+        "file_select_1c": [0xB2],
+        "file_options_1c": [0xAD],
     },
     "0efc8ba8a306c423b32853385274208f42626e2e": {
         "region": "EUROPE",
         "name": "Shadowgate (Europe)",
+        "timing": "PAL",
         "msg": 0xC49E,
         "msg_crc": 0x9B4D6BA3,
         "msg_cont": 0xC494,
@@ -38,10 +42,13 @@ PROFILES = {
         "page_a": 0xC9F9,
         "page_a_crc": 0xE15116D7,
         "code2tile": 0xC7AD,
+        "file_select_1c": [0xB2],
+        "file_options_1c": [0xAD],
     },
     "757ab53fbff0adf1c2c2e05a35ab861365021057": {
         "region": "SWEDEN",
         "name": "Shadowgate (Sweden)",
+        "timing": "PAL",
         "msg": 0xC494,
         "msg_crc": 0x04E484DC,
         "msg_cont": 0xC48A,
@@ -52,10 +59,14 @@ PROFILES = {
         "page_a_crc": 0x571B150D,
         "code2tile": 0xC712,
         "huffman": 0xE173,
+        "word_slot_offset": 0,
+        "file_select_1c": [0xB1],
+        "file_options_1c": [0xAC],
     },
     "149eca5642642bed5fd98b12d682235c02def342": {
         "region": "FRANCE",
         "name": "Shadowgate (France)",
+        "timing": "PAL",
         "msg": 0xC494,
         "msg_crc": 0x80AE8A26,
         "msg_cont": 0xC48A,
@@ -66,10 +77,14 @@ PROFILES = {
         "page_a_crc": 0x1DEFA468,
         "code2tile": 0xC716,
         "huffman": 0xE204,
+        "word_slot_offset": 1,
+        "file_select_1c": [0xCE],
+        "file_options_1c": [0xAB, 0xAA],
     },
     "08625db56ba9a2a66e636590c51044c6726c5b26": {
         "region": "GERMANY",
         "name": "Shadowgate (Germany)",
+        "timing": "PAL",
         "msg": 0xC494,
         "msg_crc": 0x80AE8A26,
         "msg_cont": 0xC48A,
@@ -80,6 +95,9 @@ PROFILES = {
         "page_a_crc": 0x1DEFA468,
         "code2tile": 0xC716,
         "huffman": 0xE1D8,
+        "word_slot_offset": 1,
+        "file_select_1c": [0xB1],
+        "file_options_1c": [0xAC],
     },
 }
 
@@ -150,11 +168,15 @@ def main():
     print(f"ROM_REGION={profile['region']}")
     print(f"ROM_NAME={profile['name']}")
     print(f"ROM_SHA1={sha1}")
+    print(f"ROM_TIMING={profile['timing']}")
     print(f"SITE_TEXT_A=0x{profile['text_a']:04X}")
     print(f"SITE_PAGE_A=0x{profile['page_a']:04X}")
     print(f"SG_CODE_PRINT_MESSAGE=0x{profile['msg']:04X}")
     print(f"SG_CODE_PRINT_MESSAGE_2=0x{profile['msg_cont']:04X}")
     print(f"SG_TABLE_CODE_TO_TILE=0x{profile['code2tile']:04X}")
+    print(f"SG_WORD_SLOT_OFFSET={profile.get('word_slot_offset', 0)}")
+    print(f"SG_FILE_SELECT_1C={','.join(f'0x{v:02X}' for v in profile['file_select_1c'])}")
+    print(f"SG_FILE_OPTIONS_1C={','.join(f'0x{v:02X}' for v in profile['file_options_1c'])}")
     if "huffman" in profile:
         print(f"SG_TABLE_HUFFMAN=0x{profile['huffman']:04X}")
 

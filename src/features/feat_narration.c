@@ -63,7 +63,11 @@ static SgScreen s_last_screen;
 
 /* Defaults (also what "Restore defaults" in the menu goes back to) */
 #define DEFAULT_PRESET        0      /* Dungeon Master */
+#if defined(SG_ROM_REGION_USA)
+#define DEFAULT_VOLUME        100
+#else
 #define DEFAULT_VOLUME        80
+#endif
 #define DEFAULT_MUSIC         40
 #define DEFAULT_QUOTE_PAUSE   0.8f
 #define DEFAULT_EXCLAIM_PAUSE 0.6f
@@ -102,14 +106,10 @@ static void tune_reset(void)
 
 static void tune_init(void) { if (!s_tune_ready) tune_reset(); }
 
-/* "Dungeon Master" + "Speed" -> "DungeonMasterSpeed" */
+/* "OldMan" + "Speed" -> "OldManSpeed" (fixed English key regardless of ROM region) */
 static void tune_key(int narrator, int which, char *out, size_t size)
 {
-    size_t o = 0;
-    for (const char *p = sg_voice_presets[narrator].name; *p && o + 1 < size; ++p)
-        if (*p != ' ') out[o++] = *p;
-    out[o] = '\0';
-    snprintf(out + o, size - o, "%s", k_tune_words[which]);
+    snprintf(out, size, "%s%s", sg_voice_presets[narrator].key, k_tune_words[which]);
 }
 
 /* Give the voice the current narrator's own values. */

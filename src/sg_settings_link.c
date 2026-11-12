@@ -59,10 +59,10 @@ static const uint8_t SETTINGS_TILES[WORD_LEN] = {
 };
 #endif
 
-/* The standard Shadowgate letter 'G' glyph (fallback for regional ROMs like Sweden
- * where tile 0xC1 was replaced with a solid filler tile). */
+/* Original 1-bit 'G' glyph drawn for Shadowgreat (fallback for regional ROMs
+ * such as Sweden where tile 0xC1 was replaced with a solid filler tile). */
 static const uint8_t GLYPH_G[8] = {
-    0x7C, 0xE2, 0xE0, 0xEE, 0xE6, 0xE6, 0x7C, 0x00
+    0x3C, 0x66, 0x60, 0x6E, 0x66, 0x66, 0x3E, 0x00
 };
 
 typedef struct {

@@ -9,7 +9,7 @@ Shadowgreat is built with [nesrecomp](https://github.com/mstan/nesrecomp), which
 code into a native Windows program, and [recomp-ui](https://github.com/mstan/recomp-ui) for its menus.
 
 > **No part of Shadowgate is included here or in the download.** You need your own legally obtained
-> **Shadowgate (USA)** `.nes` file. The launcher checks it and builds the game from it on your PC.
+> **Shadowgate** `.nes` file (USA, Europe, Sweden, France, or Germany). The launcher checks it and builds the game from it on your PC.
 > See [LEGAL.md](LEGAL.md).
 
 ---
@@ -55,7 +55,7 @@ code into a native Windows program, and [recomp-ui](https://github.com/mstan/rec
 
 ### The launcher
 One window takes you from your ROM to playing:
-1. **Your ROM:** choose your `.nes` file; it's checked to be Shadowgate (USA).
+1. **Your ROM:** choose your `.nes` file; it's checked to be a supported Shadowgate release (USA, Europe, Sweden, France, or Germany).
 2. **Build the game:** a one-time download of the build tools (about 283 MB), then a build of a few minutes.
 3. **Narrator voice (optional):** *Download voice files*, or *Play without voice*.
 4. **Options:** the same options as the in-game menu, under the same headings (including the narrator's
@@ -71,7 +71,7 @@ SHA-256 fingerprint before it's used.
 
 ### You need
 - Windows 10 (version 1803 or later) or Windows 11, 64-bit.
-- Your own **Shadowgate (USA)** `.nes` file. Other versions and hacks are refused.
+- Your own **Shadowgate** `.nes` file (USA, Europe, Sweden, France, or Germany). Other versions and hacks are refused.
 - About **3 GB** of free disk space (about 1 GB more with the narrator voice).
 - An internet connection for the first setup (the build tools and the voice). After that, none.
 

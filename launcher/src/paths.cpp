@@ -213,7 +213,7 @@ Tools find_tools(const std::string &tools)
     return t;
 }
 
-Voice find_voice(const Folders &f)
+Voice find_voice(const Folders &f, const std::string &rom_region)
 {
     Voice v;
     v.folder = f.game + "/voice";
@@ -224,8 +224,24 @@ Voice find_voice(const Folders &f)
 #endif
     v.model = file_exists(v.folder + "/kokoro-multi-lang-v1_0/model.onnx")
            && file_exists(v.folder + "/kokoro-multi-lang-v1_0/voices.bin");
-    if (!v.dlls)  { v.fetch_items += "sherpa"; v.download_mb += 8; }
-    if (!v.model) { v.fetch_items += v.fetch_items.empty() ? "kokoro" : " kokoro"; v.download_mb += 350; }
+    auto add_item = [&v](const char *item, int mb) {
+        if (!v.fetch_items.empty()) v.fetch_items += ' ';
+        v.fetch_items += item;
+        v.download_mb += mb;
+    };
+    if (!v.dlls)  add_item("sherpa", 8);
+    if (!v.model) add_item("kokoro", 350);
+
+    if (rom_region == "Shadowgate (France)") {
+        v.lexicon = file_exists(v.folder + "/lexicon-fr.txt");
+        if (!v.lexicon) add_item("dict-fr", 6);
+    } else if (rom_region == "Shadowgate (Germany)") {
+        v.lexicon = file_exists(v.folder + "/lexicon-de.txt");
+        if (!v.lexicon) add_item("dict-de", 31);
+    } else if (rom_region == "Shadowgate (Sweden)") {
+        v.lexicon = file_exists(v.folder + "/lexicon-sv.txt");
+        if (!v.lexicon) add_item("dict-sv-mfa dict-sv-ipa", 4);
+    }
     return v;
 }
 

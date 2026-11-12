@@ -133,6 +133,10 @@ static void put_code(Out *spoken, Out *logged, unsigned code)
     }
 }
 
+#ifndef SG_WORD_SLOT_OFFSET
+#define SG_WORD_SLOT_OFFSET 0
+#endif
+
 static void put_word(Out *spoken, Out *logged, uint16_t list, unsigned n)
 {
     if (!s_have_words) {
@@ -143,11 +147,7 @@ static void put_word(Out *spoken, Out *logged, uint16_t list, unsigned n)
     }
 #ifdef SG_TABLE_HUFFMAN
     (void)list;
-#if defined(SG_ROM_REGION_GERMANY)
-    unsigned base = n * 16 + 1;
-#else
-    unsigned base = n * 16;
-#endif
+    unsigned base = n * 16 + SG_WORD_SLOT_OFFSET;
     for (int i = 0; i < 12; ++i) {
         if (base + i >= sizeof(s_words)) break;
         uint8_t c = s_words[base + i];
