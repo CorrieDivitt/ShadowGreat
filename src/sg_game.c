@@ -31,11 +31,7 @@ static SgScreen classify(uint8_t id, uint8_t variant)
     switch (id) {
     case 0x10: return SG_SCREEN_TITLE;
     case 0x11:
-        /* 0xB2 on USA/EUR, 0xB1 on Sweden/SCN, 0x00 on France (and 0x40 during transition) */
-        if (variant == 0xB2 || variant == 0xB1 || variant == 0x40 || variant == 0x00) return SG_SCREEN_FILE_SELECT;
-        /* 0xAD on USA/EUR, 0xAC on Sweden/SCN, 0xAB/0xAA on France */
-        if (variant == 0xAD || variant == 0xAC || variant == 0xAB || variant == 0xAA) return SG_SCREEN_FILE_OPTIONS;
-        return SG_SCREEN_UNKNOWN;   /* never guess between the two */
+        return variant ? SG_SCREEN_FILE_OPTIONS : SG_SCREEN_FILE_SELECT;
     case 0x65: return SG_SCREEN_PLAY;
     case 0x6C: return SG_SCREEN_MESSAGE;
     case 0x12: return SG_SCREEN_GAME_OVER;
@@ -59,8 +55,15 @@ void sg_game_update(void)
     sg_game.screen_id    = cyc_mod_peek(SG_RAM_SCREEN_ID);
     sg_game.menu_variant = cyc_mod_peek(SG_RAM_MENU_VARIANT);
 
-    /* $1C only matters on the 0x11 screens; elsewhere it wanders. */
-    uint8_t variant = sg_game.screen_id == 0x11 ? sg_game.menu_variant : 0;
+    /* $1C is the low byte of the PPU tile draw pointer. On 0x11 screens,
+     * it only distinguishes file options (0xAD USA, 0xAC Sweden, 0xAB/0xAA France)
+     * from file select. Normal tile rendering on file select leaves various tile
+     * row offsets (e.g. 0xB2 USA, 0xB1 Sweden, 0x40/0x00/0xCE France).
+     * Normalize all non-options variants to 0 so sword cursor drawing never resets
+     * settle frames or knocks file select into unknown. */
+    bool is_options = (sg_game.menu_variant == 0xAD || sg_game.menu_variant == 0xAC ||
+                       sg_game.menu_variant == 0xAB || sg_game.menu_variant == 0xAA);
+    uint8_t variant = (sg_game.screen_id == 0x11 && is_options) ? 1 : 0;
 
     if (s_pending_frames > 0 &&
         sg_game.screen_id == s_pending_id && variant == s_pending_variant) {

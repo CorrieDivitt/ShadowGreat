@@ -300,9 +300,12 @@ static bool narration_setting(const char *key, const char *value)
         int n = atoi(value);                  /* 1, 2 or 3 also works */
         if (n >= 1 && n <= sg_voice_preset_count) s_preset = n - 1;
         /* The voices' names before 2026-11-08: Narrator and Plain were
-         * Dungeon Master's voice; Grim was the other deep man, now Old Man. */
-        if (sg_same_word(value, "Narrator") || sg_same_word(value, "Plain")) s_preset = 0;
-        if (sg_same_word(value, "Grim")) s_preset = 1;
+         * Dungeon Master's voice; Grim was the other deep man, now Old Man.
+         * Also alias English names across French/localized presets. */
+        if (sg_same_word(value, "Narrator") || sg_same_word(value, "Plain") ||
+            sg_same_word(value, "Dungeon Master")) s_preset = 0;
+        if (sg_same_word(value, "Grim") || sg_same_word(value, "Old Man")) s_preset = 1;
+        if (sg_same_word(value, "Woman") || sg_same_word(value, "Female")) s_preset = 2;
         return true;
     }
     if (sg_same_word(key, "VoiceVolume")) {
