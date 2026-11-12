@@ -48,7 +48,7 @@ const SgVoicePreset sg_voice_presets[] = {
 #elif defined(SG_ROM_REGION_SWEDEN)
 const SgVoicePreset sg_voice_presets[] = {
     /* name              sid blend  mix   speed  pitch  pause */
-    { "Dungeon Master",  14,  -1,  0.0f,  1.05f, 1.00f, 0.5f },  /* am_fenrir - deep natural male narrator */
+    { "Dungeon Master",  26,  -1,  0.0f,  1.05f, 1.00f, 0.5f },  /* bm_george - clear articulate narrator */
     { "Gammal man",      19,  -1,  0.0f,  1.05f, 0.95f, 0.6f },  /* am_santa - mature male */
     { "Kvinna",           6,  -1,  0.0f,  1.00f, 1.00f, 0.6f },  /* af_nicole - female */
 };

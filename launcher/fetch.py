@@ -335,9 +335,17 @@ def ensure_swedish_lexicon(voice_dir):
 
     tones = ["˥˧", "˥˩", "˧˩", "˩", "\u032a"]
     replacements = [
-        ("ɧ", "ʃ"), ("ɭ", "l"), ("ɵ", "ø"), ("ʉ", "u"), ("ʋ", "v"), ("ʏ", "ɪ"),
-        ("ä", "ɛ"), ("g", "ɡ"), ("²", "")
+        ("ɧ", "ʃ"), ("ɭ", "r l"), ("ʈ", "r t"), ("ɖ", "r d"), ("ɳ", "r n"), ("ʂ", "r s"),
+        ("ɵ", "ø"), ("ʉ", "u"), ("ʋ", "v"), ("ʏ", "ɪ"),
+        ("ä", "ɛ"), ("g", "ɡ"), ("²", ""), ("ʰ", "")
     ]
+    overrides = {
+        "och": ["ɔ"],
+        "en": ["e", "n"],
+        "du": ["d", "u"],
+        "i": ["i"],
+        "det": ["d", "e", "ː"],
+    }
 
     def to_tokens(ipa_str):
         for t in tones:
@@ -353,12 +361,18 @@ def ensure_swedish_lexicon(voice_dir):
             elif ipa_str[i] in tokens_str:
                 toks.append(ipa_str[i])
                 i += 1
-            elif ipa_str[i] in ("\u02c8", "\u02cc", "\u02d0", "ʰ"):
+            elif ipa_str[i] in ("\u02c8", "\u02cc", "\u02d0"):
                 toks.append(ipa_str[i])
                 i += 1
             else:
                 i += 1
-        return toks
+        # Collapse duplicate r
+        collapsed = []
+        for t in toks:
+            if t == "r" and collapsed and collapsed[-1] == "r":
+                continue
+            collapsed.append(t)
+        return collapsed
 
     seen = set()
     out_lines = []
@@ -388,9 +402,12 @@ def ensure_swedish_lexicon(voice_dir):
             w = p[0].strip().lower()
             if " " in w or w in seen:
                 continue
-            toks = []
-            for ph in p[-1].split():
-                toks.extend(to_tokens(ph))
+            if w in overrides:
+                toks = overrides[w]
+            else:
+                toks = []
+                for ph in p[-1].split():
+                    toks.extend(to_tokens(ph))
             if toks:
                 seen.add(w)
                 out_lines.append(w + " " + " ".join(toks) + "\n")

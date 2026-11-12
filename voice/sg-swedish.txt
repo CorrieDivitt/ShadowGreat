@@ -8,34 +8,37 @@
 8 ɔ t a
 9 n i ː ə
 aha a h ɑ ː
-alligatorerna a l ɪ ɡ ɑ ː t ɔ r ɳ a
-anordningar ɑ ː n u ː ɖ n ɪ ŋ a r
+alligatorerna a l ɪ ɡ ɑ ː t ɔ r n a
+anordningar ɑ ː n u ː r d n ɪ ŋ a r
 arbetad a r b e ː t a d
 arvtagaren a r v t ɑ ː ɡ a r ɛ n
 avlägsnaste ɑ ː v l ɛ ː ɡ s n a s t ɛ
 banshee b a n ʃ i ː
-barderna b ɑ ː ɖ ɛ ɳ a
+barderna b ɑ ː r d ɛ r n a
 behemoth b e ː h e ː m ɔ t
 behemothen b e ː h e ː m ɔ t ɛ n
-bestarna b ɛ s t a ɳ a
+bestarna b ɛ s t a r n a
 besten b ɛ s t ɛ n
 blint b l ɪ n t
 brasved b r ɑ ː s v e ː d
 broväg b r u ː v ɛ ː ɡ
-brädorna b r ɛ ː d u ː ɳ a
+brädorna b r ɛ ː d u ː r n a
 bälgen b ɛ l j ɛ n
-cylindern s y l ɪ n d ɛ ɳ
+cylindern s y l ɪ n d ɛ r n
 dekorerat d ɛ k ʊ r e ː r a t
 demonen d ɛ m u ː n ɛ n
+det d e ː
 djupen j u ː p ɛ n
 drakfjäll d r ɑ ː k f j ɛ l
 druidens d r u i ː d ɛ n s
 druidtecken d r u i ː d t ɛ k ɛ n
+du d u
 dugan d u ː ɡ a n
 dugans d u ː ɡ a n s
 ekat e ː k a t
-eldarna ɛ l d a ɳ a
+eldarna ɛ l d a r n a
 elddraken ɛ l d d r ɑ ː k ɛ n
+en e n
 epor e ː p ɔ r
 facklor f a k l u ː r
 fastsatt f a s t s a t
@@ -49,14 +52,14 @@ färjkarlen f ɛ r j k ɑ ː l ɛ n
 förgöras f œ r j ø ː r a s
 förjaga f œ r j ɑ ː ɡ a
 förläning f œ r l ɛ ː n ɪ ŋ
-förtärs f œ r t ɛ ː ʂ
+förtärs f œ r t ɛ ː r s
 förtätas f œ r t ɛ ː t a s
 gallret ɡ a l r ɛ t
 gargoyler ɡ a r ɡ ɔ j l ɛ r
-gargoylerna ɡ a r ɡ ɔ j l ɛ ɳ a
+gargoylerna ɡ a r ɡ ɔ j l ɛ r n a
 gedigna j ɛ d i ː ɡ n a
-genomkorsar j e ː n ɔ m k ɔ ʂ a r
-geresterna j e ː r ɛ s t ɛ ɳ a
+genomkorsar j e ː n ɔ m k ɔ r s a r
+geresterna j e ː r ɛ s t ɛ r n a
 glasbitar ɡ l ɑ ː s b i ː t a r
 gnisslande ɡ n ɪ s l a n d ɛ
 gong ɡ ɔ ŋ
@@ -74,8 +77,10 @@ hmm h m
 huggen h ø ɡ ɛ n
 huggna h ø ɡ n a
 humana h u m ɑ ː n a
+händerna h ɛ n d ɛ r n a
 hästskon h ɛ s t s k u ː n
-höstarna h ø s t a ɳ a
+höstarna h ø s t a r n a
+i i
 igenbommade ɪ j e ː n b ɔ m a d ɛ
 illumina ɪ l u ː m ɪ n a
 ingraverad ɪ n ɡ r a v e ː r a d
@@ -85,7 +90,7 @@ instantum ɪ n s t a n t ø m
 invirad ɪ n v i ː r a d
 iret i ː r ɛ t
 juvelbesatta j ø v e ː l b ɛ s a t a
-järndörr j ɛ ː ɳ d œ r
+järndörr j ɛ ː r n d œ r
 jätteorm j ɛ t ɛ ɔ r m
 kalkstenen k a l k s t e ː n ɛ n
 kalluft k a l l ø f t
@@ -98,7 +103,7 @@ klyftans k l y f t a n s
 klyvas k l y ː v a s
 kopparmynt k ɔ p a r m y ː n t
 kopparmyntet k ɔ p a r m y ː n t ɛ t
-krafternas k r a f t ɛ ɳ a s
+krafternas k r a f t ɛ r n a s
 kungatronen k ø ŋ a t r u ː n ɛ n
 kvasten k v a s t ɛ n
 kvicknar k v ɪ k n a r
@@ -106,22 +111,24 @@ kårar k o ː r a r
 lakmir l a k m i ː r
 lavan l ɑ ː v a n
 ljusblixtar j u ː s b l ɪ k s t a r
-lord l u ː ɖ
+lord l ɔ r d
 lyses l y ː s ɛ s
 lösensumma l ø ː s ɛ n s ø m a
 metallcylinder m ɛ t a l s y l ɪ n d ɛ r
-metershöjd m e ː t ɛ ʂ h ø j d
+metershöjd m e ː t ɛ r s h ø j d
 motari m ʊ t ɑ ː r i
 mumien m u ː m ɪ ɛ n
 människoskalle m ɛ n ɪ ʃ ʊ s k a l ɛ
 mässingsklump m ɛ s ɪ ŋ s k l ø m p
 mörkröda m œ r k r ø ː d a
 nedkalla n e ː d k a l a
+och ɔ
 odjurets u ː d j u ː r ɛ t s
 odöda u ː d ø ː d a
+ord u ː r d
 ormstatyn ɔ r m s t a t y ː n
-ornamenterade u ː ɳ a m ɛ n t e ː r a d ɛ
-ornamentet u ː ɳ a m ɛ n t ɛ t
+ornamenterade u ː r n a m ɛ n t e ː r a d ɛ
+ornamentet u ː r n a m ɛ n t ɛ t
 palatset p a l a t s ɛ t
 pelaren p e ː l a r ɛ n
 pergament p ɛ r ɡ a m ɛ n t
@@ -142,13 +149,13 @@ rustningen r ø s t n ɪ ŋ ɛ n
 sammanfoga s a m a n f u ː ɡ a
 sarkofagen s a r k ʊ f ɑ ː ɡ ɛ n
 sfinx s f ɪ ŋ k s
-shadowgate ʃ a d o w ɡ e ː t
+shadowgate ʃ a d o ʊ ɡ e ː t
 sigillet s ɪ j ɪ l ɛ t
 silverflaska s ɪ l v ɛ r f l a s k a
 silverflaskan s ɪ l v ɛ r f l a s k a n
 silverpil s ɪ l v ɛ r p i ː l
 silveräpplet s ɪ l v ɛ r ɛ p l ɛ t
-sirenerna s ɪ r e ː n ɛ ɳ a
+sirenerna s ɪ r e ː n ɛ r n a
 skallens s k a l ɛ n s
 skeletthand s k ɛ l ɛ t h a n d
 skrapandeljud s k r ɑ ː p a n d ɛ j u ː d
@@ -169,15 +176,15 @@ stalagmiter s t a l a ɡ m i ː t ɛ r
 staven s t ɑ ː v ɛ n
 stenbumling s t e ː n b ø m l ɪ ŋ
 stenkammaren s t e ː n k a m a r ɛ n
-stenpelarna s t e ː n p e ː l a ɳ a
+stenpelarna s t e ː n p e ː l a r n a
 stenplatta s t e ː n p l a t a
 stenplattform s t e ː n p l a t f ɔ r m
 stenskallen s t e ː n s k a l ɛ n
 stenstatyn s t e ː n s t a t y ː n
 stentrappa s t e ː n t r a p a
 stenväggen s t e ː n v ɛ ɡ ɛ n
-stjärnkarta ʃ ɛ ː ɳ k ɑ ː t a
-stjärnljuset ʃ ɛ ː ɳ j u ː s ɛ t
+stjärnkarta ʃ ɛ ː r n k ɑ ː t a
+stjärnljuset ʃ ɛ ː r n j u ː s ɛ t
 stormhaven s t ɔ r m h ɑ ː v ɛ n
 storport s t u ː r p ɔ r t
 stridsvrål s t r i ː d s v r o ː l
@@ -187,7 +194,7 @@ stönanden s t ø ː n a n d ɛ n
 svartbrända s v a r t b r ɛ n d a
 svartkonst s v a r t k ɔ n s t
 svavelångor s v ɑ ː v ɛ l o ː ŋ u ː r
-sönderslitna s ø n d ɛ ʂ l i ː t n a
+sönderslitna s ø n d ɛ r s l i ː t n a
 taggen t a ɡ ɛ n
 talimar t ɑ ː l ɪ m ɑ ː r
 tappre t a p r ɛ
@@ -197,7 +204,7 @@ tillyxad t ɪ l y k s a d
 titanen t ɪ t ɑ ː n ɛ n
 torlin t u ː r l ɪ n
 trollformel t r ɔ l f ɔ r m ɛ l
-trollkarlen t r ɔ l k ɑ ː l ɛ n
+trollkarlen t r ɔ l k ɑ ː r l ɛ n
 tronen t r u ː n ɛ n
 tronhallen t r u ː n h a l ɛ n
 tronrummet t r u ː n r ø m ɛ t
@@ -214,18 +221,18 @@ uthuggen u ː t h ø ɡ ɛ n
 utsiktsplatsen u ː t s ɪ k t s p l a t s ɛ n
 utstöter u ː t s t ø ː t ɛ r
 vallgraven v a l ɡ r ɑ ː v ɛ n
-valvportar v a l v p u ː ʈ a r
+valvportar v a l v p u ː r t a r
 vindpust v ɪ n d p ø s t
 virvelvindar v ɪ r v ɛ l v ɪ n d a r
 välbetänkt v ɛ ː l b ɛ t ɛ ŋ k t
 vätten v ɛ t ɛ n
 vålnaden v o ː l n a d ɛ n
-warlock v ɔ r l ɔ k
-warlocks v ɔ r l ɔ k s
+warlock v ɑ ː r l ɔ k
+warlocks v ɑ ː r l ɔ k s
 yeklum j ɛ k l ø m
 ynklige ɪ ŋ k l ɪ ɡ ɛ
 ädelstenen ɛ ː d ɛ l s t e ː n ɛ n
-älvornas ɛ l v u ː ɳ a s
+älvornas ɛ l v u ː r n a s
 öppnad ø p n a d
 öppnat ø p n a t
 övervinner ø ː v ɛ r v ɪ n ɛ r
