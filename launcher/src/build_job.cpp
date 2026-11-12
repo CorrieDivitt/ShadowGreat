@@ -153,6 +153,7 @@ int do_build(const Job &j, std::string *error)
     // If CMAKE_HOME_DIRECTORY in CMakeCache.txt doesn't match j.f.source, remove it.
     namespace fs = std::filesystem;
     std::string cache_file = j.f.game + "/CMakeCache.txt";
+    bool need_clean = false;
     if (file_exists(cache_file)) {
         bool match = false;
         std::ifstream f(fs::u8path(cache_file));
@@ -166,12 +167,32 @@ int do_build(const Job &j, std::string *error)
                 break;
             }
         }
-        if (!match) {
-            std::error_code ec;
-            fs::remove(fs::u8path(cache_file), ec);
-            fs::remove_all(fs::u8path(j.f.game + "/CMakeFiles"), ec);
-            fs::remove(fs::u8path(j.f.game + "/build.ninja"), ec);
+        if (!match) need_clean = true;
+    }
+    std::string host_cache = j.f.game + "/nesrecomp-host/CMakeCache.txt";
+    if (file_exists(host_cache)) {
+        bool match = false;
+        std::ifstream f(fs::u8path(host_cache));
+        std::string line;
+        while (std::getline(f, line)) {
+            if (line.rfind("CMAKE_HOME_DIRECTORY:INTERNAL=", 0) == 0) {
+                std::string old_source = line.substr(30);
+                while (!old_source.empty() && (old_source.back() == '\r' || old_source.back() == '\n'))
+                    old_source.pop_back();
+                if (old_source == j.f.nesrecomp + "/recompiler") match = true;
+                break;
+            }
         }
+        if (!match) need_clean = true;
+    }
+    if (need_clean) {
+        std::error_code ec;
+        fs::remove(fs::u8path(cache_file), ec);
+        fs::remove_all(fs::u8path(j.f.game + "/CMakeFiles"), ec);
+        fs::remove(fs::u8path(j.f.game + "/build.ninja"), ec);
+        fs::remove_all(fs::u8path(j.f.game + "/nesrecomp-host"), ec);
+        fs::remove_all(fs::u8path(j.f.game + "/recomp-net-build"), ec);
+        fs::remove_all(fs::u8path(j.f.game + "/retcomm-rbengine-build"), ec);
     }
 
     std::string configure = quote_arg(j.t.cmake)
