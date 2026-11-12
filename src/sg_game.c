@@ -31,7 +31,8 @@ static SgScreen classify(uint8_t id, uint8_t variant)
     switch (id) {
     case 0x10: return SG_SCREEN_TITLE;
     case 0x11:
-        if (variant == 0xB2) return SG_SCREEN_FILE_SELECT;
+        /* 0xB2 on USA/EUR, 0x40 on Sweden/SCN */
+        if (variant == 0xB2 || variant == 0x40) return SG_SCREEN_FILE_SELECT;
         if (variant == 0xAD) return SG_SCREEN_FILE_OPTIONS;
         return SG_SCREEN_UNKNOWN;   /* never guess between the two */
     case 0x65: return SG_SCREEN_PLAY;

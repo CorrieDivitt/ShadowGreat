@@ -20,6 +20,7 @@
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
+#include <fstream>
 #include <system_error>
 
 namespace {
@@ -146,6 +147,33 @@ void finish(int rc, const std::string &error, const char *what_failed, const cha
 int do_build(const Job &j, std::string *error)
 {
     set_stage(BuildStage::Preparing, "Preparing: reading your ROM and writing the game's code...");
+
+    // If running from an AppImage (or if the source folder moved), CMakeCache.txt
+    // will have the old ephemeral mount path, which causes CMake to abort.
+    // If CMAKE_HOME_DIRECTORY in CMakeCache.txt doesn't match j.f.source, remove it.
+    namespace fs = std::filesystem;
+    std::string cache_file = j.f.game + "/CMakeCache.txt";
+    if (file_exists(cache_file)) {
+        bool match = false;
+        std::ifstream f(fs::u8path(cache_file));
+        std::string line;
+        while (std::getline(f, line)) {
+            if (line.rfind("CMAKE_HOME_DIRECTORY:INTERNAL=", 0) == 0) {
+                std::string old_source = line.substr(30);
+                while (!old_source.empty() && (old_source.back() == '\r' || old_source.back() == '\n'))
+                    old_source.pop_back();
+                if (old_source == j.f.source) match = true;
+                break;
+            }
+        }
+        if (!match) {
+            std::error_code ec;
+            fs::remove(fs::u8path(cache_file), ec);
+            fs::remove_all(fs::u8path(j.f.game + "/CMakeFiles"), ec);
+            fs::remove(fs::u8path(j.f.game + "/build.ninja"), ec);
+        }
+    }
+
     std::string configure = quote_arg(j.t.cmake)
         + " -S " + quote_arg(j.f.source) + " -B " + quote_arg(j.f.game)
         + " -G Ninja -DCMAKE_BUILD_TYPE=Release"
