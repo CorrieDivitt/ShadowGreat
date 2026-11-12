@@ -162,6 +162,8 @@ exec "$HERE/usr/bin/ShadowgreatLauncher" "$@"
     # Build AppImage with appimagetool
     appimagetool = ensure_appimagetool()
     appimage_out = output_dir / f"Shadowgreat-{version}-x86_64.AppImage"
+    if appimage_out.exists():
+        appimage_out.unlink()
     print(f"Creating {appimage_out}...")
 
     env = os.environ.copy()

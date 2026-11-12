@@ -57,25 +57,38 @@ Folders find_folders(const LauncherSettings &s)
 {
     Folders f;
     std::string exe = exe_folder();
+    const char *appdir_env = std::getenv("APPDIR");
+    std::string appdir = (appdir_env && *appdir_env) ? appdir_env : "";
+
     auto is_source = [](const std::string &d) {
-        return file_exists(d + "/CMakeLists.txt") && file_exists(d + "/shadowgate-map.toml");
+        return !d.empty() && file_exists(d + "/CMakeLists.txt") && file_exists(d + "/shadowgate-map.toml");
     };
     f.source = !s.source_folder.empty() ? s.source_folder
-             : first_of({ exe + "/source", exe + "/..", exe }, is_source);
+             : first_of({ (!appdir.empty() ? appdir + "/source" : ""),
+                          exe + "/source", exe + "/../../source", exe + "/..", exe }, is_source);
     std::string base = f.source.empty() ? exe : parent(f.source);
 
-    auto is_nesrecomp = [](const std::string &d) { return file_exists(d + "/runner/cyc/project.cmake"); };
+    auto is_nesrecomp = [](const std::string &d) {
+        return !d.empty() && file_exists(d + "/runner/cyc/project.cmake");
+    };
     f.nesrecomp = !s.nesrecomp_folder.empty() ? s.nesrecomp_folder
-                : first_of({ exe + "/nesrecomp", base + "/nesrecomp" }, is_nesrecomp);
+                : first_of({ (!appdir.empty() ? appdir + "/nesrecomp" : ""),
+                             exe + "/nesrecomp", exe + "/../../nesrecomp",
+                             base + "/nesrecomp", parent(base) + "/nesrecomp" }, is_nesrecomp);
 
-    auto is_recomp_ui = [](const std::string &d) { return file_exists(d + "/src/third_party/imgui/imgui.cpp"); };
+    auto is_recomp_ui = [](const std::string &d) {
+        return !d.empty() && file_exists(d + "/src/third_party/imgui/imgui.cpp");
+    };
     f.recomp_ui = !s.recomp_ui_folder.empty() ? s.recomp_ui_folder
-                : first_of({ exe + "/recomp-ui", base + "/recomp-ui" }, is_recomp_ui);
+                : first_of({ (!appdir.empty() ? appdir + "/recomp-ui" : ""),
+                             exe + "/recomp-ui", exe + "/../../recomp-ui",
+                             base + "/recomp-ui", parent(base) + "/recomp-ui" }, is_recomp_ui);
 
     // Build tools: an existing folder, or <launcher>/tools for the download.
-    auto is_dir = [](const std::string &d) { return file_exists(d); };
+    auto is_dir = [](const std::string &d) { return !d.empty() && file_exists(d); };
     f.tools = !s.tools_folder.empty() ? s.tools_folder
-            : first_of({ exe + "/tools", base + "/Tools" }, is_dir);
+            : first_of({ (!appdir.empty() ? appdir + "/tools" : ""),
+                         exe + "/tools", exe + "/../../tools", base + "/Tools", parent(base) + "/Tools" }, is_dir);
     if (f.tools.empty()) f.tools = exe + "/tools";
 
 #ifdef _WIN32

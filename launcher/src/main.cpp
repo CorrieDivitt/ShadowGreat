@@ -419,9 +419,15 @@ void draw_options(State &st)
         unsigned long code = 0;
         if (game_closed_at_once(&code)) {
             char text[512];
+#ifdef _WIN32
             std::snprintf(text, sizeof text,
                           "The game closed straight away (exit code 0x%08lX). Its log is %s/shadowgate.log; "
                           "also check Windows Security > Protection history.", code, st.folders.game.c_str());
+#else
+            std::snprintf(text, sizeof text,
+                          "The game closed straight away (exit code 0x%08lX). Its log is %s/shadowgate.log.",
+                          code, st.folders.game.c_str());
+#endif
             st.play_message = text;
         }
     }
@@ -543,7 +549,11 @@ void draw(State &st, SDL_Window *win)
     ImGui::TextUnformatted("Shadowgreat");
     ImGui::SetWindowFontScale(1.0f);
     ImGui::PopStyleColor();
+#ifdef _WIN32
     ImGui::TextColored(kMuted, "Shadowgate for Windows, built on your PC from your own ROM.  Version %s", SG_VERSION);
+#else
+    ImGui::TextColored(kMuted, "Shadowgate for Linux, built on your PC from your own ROM.  Version %s", SG_VERSION);
+#endif
     ImGui::Separator();
     ImGui::Spacing();
 
