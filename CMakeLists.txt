@@ -24,6 +24,33 @@ endif()
 
 include("${NESRECOMP_ROOT}/runner/cyc/project.cmake")
 
+find_package(Python3 3.11 REQUIRED COMPONENTS Interpreter)
+
+# Detect ROM region and generate game.toml with corresponding hook sites
+set(_sg_gen "${CMAKE_BINARY_DIR}/generated")
+file(MAKE_DIRECTORY "${_sg_gen}")
+set(_sg_game_toml "${_sg_gen}/game.toml")
+
+execute_process(
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tools/rom_profiles.py"
+            "${SHADOWGATE_ROM}" --write-toml "${_sg_game_toml}"
+    OUTPUT_VARIABLE _sg_rom_profile_out
+    RESULT_VARIABLE _sg_rom_profile_rc
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+if(NOT _sg_rom_profile_rc EQUAL 0)
+    message(FATAL_ERROR "Could not recognize ROM '${SHADOWGATE_ROM}': ${_sg_rom_profile_out}")
+endif()
+
+string(REPLACE "\n" ";" _sg_profile_lines "${_sg_rom_profile_out}")
+foreach(_sg_line IN LISTS _sg_profile_lines)
+    if(_sg_line MATCHES "^([^=]+)=(.*)$")
+        set(_sg_prop_${CMAKE_MATCH_1} "${CMAKE_MATCH_2}")
+    endif()
+endforeach()
+message(STATUS "shadowgate: recognized ROM as ${_sg_prop_ROM_NAME} (region: ${_sg_prop_ROM_REGION})")
+
 # The mouse hand cursor (feat_hand.c) is drawn with the game's own hand
 # tiles, read here from YOUR ROM into the build folder (never the project).
 # Where they are is recorded in shadowgate-map.toml [hand_cursor].
@@ -32,7 +59,6 @@ file(READ "${SHADOWGATE_ROM}" _sg_prg_banks OFFSET 4 LIMIT 1 HEX)
 math(EXPR _sg_hand_offset "16 + 0x${_sg_prg_banks} * 16384 + ${SG_HAND_CHR_OFFSET}")
 file(READ "${SHADOWGATE_ROM}" _sg_hand_hex OFFSET ${_sg_hand_offset} LIMIT 64 HEX)
 string(REGEX REPLACE "([0-9a-f][0-9a-f])" "0x\\1," _sg_hand_bytes "${_sg_hand_hex}")
-set(_sg_gen "${CMAKE_BINARY_DIR}/generated")
 file(WRITE "${_sg_gen}/sg_hand_tiles.h.new"
     "/* GENERATED at build time from your ROM: the hand cursor's 4 tiles. */\n"
     "#define SG_HAND_CHR_BYTES { ${_sg_hand_bytes} }\n")
@@ -65,13 +91,20 @@ endif()
 
 nesrecomp_add_cycle_game(shadowgate
     ROM "${SHADOWGATE_ROM}"
-    GAME_CONFIG "${CMAKE_SOURCE_DIR}/game.toml"
+    GAME_CONFIG "${_sg_game_toml}"
     HOST_EXTRAS ${SHADOWGATE_FEATURES}
     ${_sg_options})
 target_include_directories(shadowgate PRIVATE "${CMAKE_SOURCE_DIR}/src"
     "${CMAKE_BINARY_DIR}/generated"
     "${NESRECOMP_ROOT}/runner/include")
-target_compile_definitions(shadowgate PRIVATE SG_VERSION="${SG_VERSION}")
+target_compile_definitions(shadowgate PRIVATE
+    SG_VERSION="${SG_VERSION}"
+    SG_ROM_REGION_${_sg_prop_ROM_REGION}=1
+    SITE_TEXT_A=${_sg_prop_SITE_TEXT_A}
+    SITE_PAGE_A=${_sg_prop_SITE_PAGE_A}
+    SG_CODE_PRINT_MESSAGE=${_sg_prop_SG_CODE_PRINT_MESSAGE}
+    SG_CODE_PRINT_MESSAGE_2=${_sg_prop_SG_CODE_PRINT_MESSAGE_2}
+    SG_TABLE_CODE_TO_TILE=${_sg_prop_SG_TABLE_CODE_TO_TILE})
 
 # ---- the narrator's voice (sg_voice.c) ----
 # The voice is an optional add-on: sherpa-onnx's DLLs and the Kokoro model go

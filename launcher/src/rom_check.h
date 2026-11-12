@@ -6,6 +6,7 @@ extern "C" {
 #endif
 typedef struct {
     bool ok;
+    char region_name[64];
     char message[256];   /* what to tell the player */
     char sha1_body[41];  /* SHA-1 without the 16-byte iNES header ("" if not read) */
 } RomCheck;

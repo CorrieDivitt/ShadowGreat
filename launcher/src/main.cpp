@@ -96,7 +96,7 @@ std::string pick_rom_file(SDL_Window *win)
     ofn.lpstrFilter = L"NES ROM (*.nes)\0*.nes\0All files (*.*)\0*.*\0";
     ofn.lpstrFile = file;
     ofn.nMaxFile = 1024;
-    ofn.lpstrTitle = L"Choose your Shadowgate (USA) .nes file";
+    ofn.lpstrTitle = L"Choose your Shadowgate .nes file";
     ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
     if (!GetOpenFileNameW(&ofn)) return std::string();
     char utf8[4096];
@@ -557,7 +557,7 @@ void draw(State &st, SDL_Window *win)
         }
     }
     if (st.checked) ImGui::TextColored(st.check.ok ? kGood : kBad, "%s", st.check.message);
-    else ImGui::TextColored(kMuted, "Choose your legally obtained Shadowgate (USA) .nes file.");
+    else ImGui::TextColored(kMuted, "Choose your legally obtained Shadowgate .nes file (USA, Europe, Sweden, France, Germany).");
     ImGui::Unindent();
     ImGui::Spacing();
 

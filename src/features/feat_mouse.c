@@ -62,8 +62,12 @@ static int         s_press_frames;       /* frames left to hold them */
 #define RAM_PAD_PRESSED     0x00F5
 #define HOOK_TEXT_A         "shadowgate.mouse.text-a"
 #define HOOK_PAGE_A         "shadowgate.mouse.page-a"
+#ifndef SITE_TEXT_A
 #define SITE_TEXT_A         0xC7F4
+#endif
+#ifndef SITE_PAGE_A
 #define SITE_PAGE_A         0xC9F9
+#endif
 #define CLICK_KEEP_FRAMES   60      /* a saved click is dropped after ~1 s */
 
 static bool     s_msg_click;        /* a message-box click waiting for the game */

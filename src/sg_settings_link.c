@@ -57,7 +57,8 @@ static const Place PLACES[] = {
     /* below FILE 3 / NEW; FILE 1 is at (112,120) */
     { SG_SCREEN_FILE_SELECT,  112, 176, 14, 15, { 0x5A, 0x59, 0xB4, 0x9F } },  /* F I L E */
     /* below NO; SAVE? is at (112,112) */
-    { SG_SCREEN_SAVE_CONFIRM, 112, 168, 14, 14, { 0xB6, 0xF6, 0x5D, 0x9F } },  /* S A V E */
+    { SG_SCREEN_SAVE_CONFIRM, 112, 168, 14, 14, { 0xB6, 0xF6, 0x5D, 0x9F } },  /* S A V E (USA/Europe) */
+    { SG_SCREEN_SAVE_CONFIRM, 112, 168, 14, 14, { 0xB6, 0xFD, 0xF6, 0x9D } },  /* S P A R (Sweden) */
 };
 
 /* Does the screen show its word with the tiles we expect? */
@@ -77,7 +78,7 @@ static const Place *place_now(void)
 {
     if (!SG_LINK_AVAILABLE || !sg_feature_mouse.enabled || sg_game.busy) return NULL;
     for (size_t i = 0; i < sizeof PLACES / sizeof PLACES[0]; ++i)
-        if (PLACES[i].screen == sg_game.screen) return &PLACES[i];
+        if (PLACES[i].screen == sg_game.screen && letters_match(&PLACES[i])) return &PLACES[i];
     return NULL;
 }
 
