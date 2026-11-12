@@ -100,7 +100,7 @@ static const char *tile_char(uint8_t t)
 #elif defined(SG_ROM_REGION_SWEDEN)
     if (t == 0xD6) return "Å";
     if (t == 0xD7) return "Ä";
-    if (t == 0xD8) return "Ö";
+    if (t == 0xD8 || t == 0xD9) return "Ö";
 #elif defined(SG_ROM_REGION_FRANCE)
     if (t == 0xD6 || t == 0xD7 || t == 0xD8) return "E";
     if (t == 0xD9) return "C";

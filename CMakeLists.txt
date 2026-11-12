@@ -134,6 +134,11 @@ if(NOT NESRECOMP_HEADLESS)
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
                 "${CMAKE_SOURCE_DIR}/voice/sg-german.txt" $<TARGET_FILE_DIR:shadowgate>)
     endif()
+    if(EXISTS "${CMAKE_SOURCE_DIR}/voice/sg-swedish.txt")
+        add_custom_command(TARGET shadowgate POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${CMAKE_SOURCE_DIR}/voice/sg-swedish.txt" $<TARGET_FILE_DIR:shadowgate>)
+    endif()
     message(STATUS "shadowgate: voice support ON (uses the voice package if it is installed)")
 endif()
 

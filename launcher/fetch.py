@@ -313,6 +313,130 @@ def ensure_german_lexicon(voice_dir):
         say("could not save German voice lexicon: %s" % e)
 
 
+def ensure_swedish_lexicon(voice_dir):
+    sv_lex = os.path.join(voice_dir, "lexicon-sv.txt")
+    if os.path.exists(sv_lex) and os.path.getsize(sv_lex) > 1000:
+        return
+    tokens_file = os.path.join(voice_dir, "kokoro-multi-lang-v1_0", "tokens.txt")
+    if not os.path.exists(tokens_file):
+        tokens_file = os.path.join(voice_dir, "tokens.txt")
+    if not os.path.exists(tokens_file):
+        return
+
+    tokens_str = set()
+    try:
+        with open(tokens_file, "r", encoding="utf-8") as f:
+            for line in f:
+                p = line.strip().split()
+                if p:
+                    tokens_str.add(p[0])
+    except Exception:
+        return
+
+    tones = ["˥˧", "˥˩", "˧˩", "˩", "\u032a"]
+    replacements = [
+        ("ɧ", "ʃ"), ("ɭ", "l"), ("ɵ", "ø"), ("ʉ", "u"), ("ʋ", "v"), ("ʏ", "ɪ"),
+        ("ä", "ɛ"), ("g", "ɡ"), ("²", "")
+    ]
+
+    def to_tokens(ipa_str):
+        for t in tones:
+            ipa_str = ipa_str.replace(t, "")
+        for a, b in replacements:
+            ipa_str = ipa_str.replace(a, b)
+        toks = []
+        i = 0
+        while i < len(ipa_str):
+            if i + 1 < len(ipa_str) and ipa_str[i:i+2] in tokens_str:
+                toks.append(ipa_str[i:i+2])
+                i += 2
+            elif ipa_str[i] in tokens_str:
+                toks.append(ipa_str[i])
+                i += 1
+            elif ipa_str[i] in ("\u02c8", "\u02cc", "\u02d0", "ʰ"):
+                toks.append(ipa_str[i])
+                i += 1
+            else:
+                i += 1
+        return toks
+
+    seen = set()
+    out_lines = []
+
+    mfa_cache = os.path.join(voice_dir, ".sv_mfa.txt")
+    lines = None
+    if os.path.exists(mfa_cache):
+        try:
+            with open(mfa_cache, "r", encoding="utf-8") as f:
+                lines = f.read().splitlines()
+        except Exception:
+            lines = None
+
+    if lines is None:
+        dict_url = "https://huggingface.co/MontrealCorpusTools/swedish_mfa/resolve/main/dictionary/swedish_mfa.dict"
+        try:
+            req = urllib.request.Request(dict_url, headers={"User-Agent": "Shadowgreat-launcher"})
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                lines = resp.read().decode("utf-8").splitlines()
+        except Exception as e:
+            say("could not download Swedish MFA dictionary: %s" % e)
+            lines = []
+
+    for line in lines:
+        p = line.strip().split("\t")
+        if len(p) >= 2 and not p[0].startswith("<") and not p[0].startswith("["):
+            w = p[0].strip().lower()
+            if " " in w or w in seen:
+                continue
+            toks = []
+            for ph in p[-1].split():
+                toks.extend(to_tokens(ph))
+            if toks:
+                seen.add(w)
+                out_lines.append(w + " " + " ".join(toks) + "\n")
+
+    raw_cache = os.path.join(voice_dir, ".sv_raw.txt")
+    raw_lines = None
+    if os.path.exists(raw_cache):
+        try:
+            with open(raw_cache, "r", encoding="utf-8") as f:
+                raw_lines = f.read().splitlines()
+        except Exception:
+            raw_lines = None
+
+    if raw_lines is None:
+        dict_url = "https://raw.githubusercontent.com/open-dict-data/ipa-dict/master/data/sv.txt"
+        try:
+            req = urllib.request.Request(dict_url, headers={"User-Agent": "Shadowgreat-launcher"})
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                raw_lines = resp.read().decode("utf-8").splitlines()
+        except Exception as e:
+            raw_lines = []
+
+    for line in raw_lines:
+        p = line.strip().split("\t")
+        if len(p) == 2:
+            w = p[0].strip().lower()
+            if " " in w or w in seen:
+                continue
+            toks = to_tokens(p[1].strip("/[] "))
+            if toks:
+                seen.add(w)
+                out_lines.append(w + " " + " ".join(toks) + "\n")
+
+    if not out_lines:
+        return
+
+    tmp_out = sv_lex + ".tmp"
+    try:
+        with open(tmp_out, "w", encoding="utf-8") as f:
+            f.writelines(out_lines)
+        os.replace(tmp_out, sv_lex)
+        say("prepared Swedish voice lexicon (%d words) in %s" % (len(out_lines), sv_lex))
+    except Exception as e:
+        say("could not save Swedish voice lexicon: %s" % e)
+
+
 def install(key, dest, number, count):
     item = ITEMS[key]
     say("@step", number, count, item["name"])
@@ -338,6 +462,7 @@ def install(key, dest, number, count):
     if key == "kokoro":
         ensure_french_lexicon(target)
         ensure_german_lexicon(target)
+        ensure_swedish_lexicon(target)
     say("installed %s in %s" % (item["name"], target))
 
 
