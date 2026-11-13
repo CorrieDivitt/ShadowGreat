@@ -6,20 +6,72 @@
 /* [hitboxes]: game pixels, edges included */
 const SgHitbox sg_hitboxes[] = {
     { SG_SCREEN_PLAY,           "SCENE",  16,  32, 128, 144 },
+#if defined(SG_ROM_REGION_GERMANY)
+    { SG_SCREEN_PLAY,           "MOVE",  23, 158,  80, 169 },
+#else
     { SG_SCREEN_PLAY,           "MOVE",  31, 159,  73, 169 },
+#endif
     { SG_SCREEN_PLAY,           "MAP",  32, 176,  72, 216 },
+#if defined(SG_ROM_REGION_GERMANY)
+    { SG_SCREEN_PLAY,           "LOOK",  87, 158, 171, 168 },
+#else
     { SG_SCREEN_PLAY,           "LOOK",  94, 165, 139, 180 },
+#endif
+#if defined(SG_ROM_REGION_GERMANY)
+    { SG_SCREEN_PLAY,           "OPEN",  87, 169, 171, 176 },
+#else
     { SG_SCREEN_PLAY,           "OPEN",  94, 181, 139, 196 },
+#endif
+#if defined(SG_ROM_REGION_GERMANY)
+    { SG_SCREEN_PLAY,           "USE",  87, 177, 171, 184 },
+#else
     { SG_SCREEN_PLAY,           "USE",  94, 197, 139, 212 },
+#endif
+#if defined(SG_ROM_REGION_GERMANY)
+    { SG_SCREEN_PLAY,           "LEAVE",  87, 185, 171, 192 },
+#else
     { SG_SCREEN_PLAY,           "LEAVE",  94, 213, 139, 225 },
+#endif
+#if defined(SG_ROM_REGION_GERMANY)
+    { SG_SCREEN_PLAY,           "TAKE",  87, 193, 171, 199 },
+#else
     { SG_SCREEN_PLAY,           "TAKE", 140, 165, 184, 180 },
+#endif
+#if defined(SG_ROM_REGION_GERMANY)
+    { SG_SCREEN_PLAY,           "CLOSE",  87, 200, 171, 208 },
+#else
     { SG_SCREEN_PLAY,           "CLOSE", 140, 181, 184, 196 },
+#endif
+#if defined(SG_ROM_REGION_GERMANY)
+    { SG_SCREEN_PLAY,           "HIT",  87, 209, 171, 216 },
+#else
     { SG_SCREEN_PLAY,           "HIT", 140, 197, 184, 212 },
+#endif
+#if defined(SG_ROM_REGION_GERMANY)
+    { SG_SCREEN_PLAY,           "SPEAK",  87, 217, 171, 225 },
+#else
     { SG_SCREEN_PLAY,           "SPEAK", 140, 213, 184, 225 },
+#endif
+#if defined(SG_ROM_REGION_GERMANY)
+    { SG_SCREEN_PLAY,           "UP", 182, 166, 201, 180 },
+#else
     { SG_SCREEN_PLAY,           "UP", 190, 166, 209, 180 },
+#endif
+#if defined(SG_ROM_REGION_GERMANY)
+    { SG_SCREEN_PLAY,           "DOWN", 182, 181, 201, 194 },
+#else
     { SG_SCREEN_PLAY,           "DOWN", 190, 181, 209, 194 },
+#endif
+#if defined(SG_ROM_REGION_GERMANY)
+    { SG_SCREEN_PLAY,           "SELF", 182, 197, 225, 210 },
+#else
     { SG_SCREEN_PLAY,           "SELF", 190, 197, 233, 210 },
+#endif
+#if defined(SG_ROM_REGION_GERMANY)
+    { SG_SCREEN_PLAY,           "SAVE", 182, 211, 225, 225 },
+#else
     { SG_SCREEN_PLAY,           "SAVE", 190, 211, 233, 225 },
+#endif
     { SG_SCREEN_PLAY,           "SLOT_1", 151,  39, 230,  49 },
     { SG_SCREEN_PLAY,           "SLOT_2", 151,  50, 230,  65 },
     { SG_SCREEN_PLAY,           "SLOT_3", 151,  66, 230,  81 },
@@ -46,19 +98,71 @@ const int sg_hitbox_count = (int)(sizeof sg_hitboxes / sizeof sg_hitboxes[0]);
 
 /* [buttons.play]: cursor X/Y ($AB/$AC), $AD (-1 = leave alone), $AF */
 const SgButton sg_buttons[] = {
+#if defined(SG_ROM_REGION_GERMANY)
+    { "LOOK", 0x5B, 0xA4, 0x74, 0x00 },
+#else
     { "LOOK", 0x63, 0xAC, 0x74, 0x00 },
+#endif
+#if defined(SG_ROM_REGION_GERMANY)
+    { "OPEN", 0x5B, 0xAC, 0x78, 0x01 },
+#else
     { "OPEN", 0x63, 0xBC, 0x78, 0x01 },
+#endif
+#if defined(SG_ROM_REGION_GERMANY)
+    { "USE", 0x5B, 0xB4, 0x7C, 0x02 },
+#else
     { "USE", 0x63, 0xCC, 0x7C, 0x02 },
+#endif
+#if defined(SG_ROM_REGION_GERMANY)
+    { "LEAVE", 0x5B, 0xBC, 0x80, 0x03 },
+#else
     { "LEAVE", 0x63, 0xDC, 0x80, 0x03 },
+#endif
+#if defined(SG_ROM_REGION_GERMANY)
+    { "TAKE", 0x5B, 0xC4, 0x84, 0x04 },
+#else
     { "TAKE", 0x93, 0xAC, 0x84, 0x04 },
+#endif
+#if defined(SG_ROM_REGION_GERMANY)
+    { "CLOSE", 0x5B, 0xCC, 0x88, 0x05 },
+#else
     { "CLOSE", 0x93, 0xBC, 0x88, 0x05 },
+#endif
+#if defined(SG_ROM_REGION_GERMANY)
+    { "HIT", 0x5B, 0xD4, 0x8C, 0x06 },
+#else
     { "HIT", 0x93, 0xCC, 0x8C, 0x06 },
+#endif
+#if defined(SG_ROM_REGION_GERMANY)
+    { "SPEAK", 0x5B, 0xDC, 0x90, 0x07 },
+#else
     { "SPEAK", 0x93, 0xDC, 0x90, 0x07 },
+#endif
+#if defined(SG_ROM_REGION_GERMANY)
+    { "MOVE", 0x1B, 0xA4, 0x94, 0x13 },
+#else
     { "MOVE", 0x23, 0xA4, 0x94, 0x13 },
+#endif
+#if defined(SG_ROM_REGION_GERMANY)
+    { "UP", 0xBB, 0xAC, 0xA0, 0x08 },
+#else
     { "UP", 0xC3, 0xAC, 0xA0, 0x08 },
+#endif
+#if defined(SG_ROM_REGION_GERMANY)
+    { "DOWN", 0xBB, 0xBC, 0xA4, 0x09 },
+#else
     { "DOWN", 0xC3, 0xBC, 0xA4, 0x09 },
+#endif
+#if defined(SG_ROM_REGION_GERMANY)
+    { "SELF", 0xBB, 0xCC,   -1, 0x0A },
+#else
     { "SELF", 0xC3, 0xCC,   -1, 0x0A },
+#endif
+#if defined(SG_ROM_REGION_GERMANY)
+    { "SAVE", 0xBB, 0xDC,   -1, 0x0B },
+#else
     { "SAVE", 0xC3, 0xDC,   -1, 0x0B },
+#endif
     { "SLOT_1", 0x9B, 0x2C, 0xA2, 0x0C },
     { "SLOT_2", 0x9B, 0x3C, 0xA6, 0x0D },
     { "SLOT_3", 0x9B, 0x4C, 0xAA, 0x0E },

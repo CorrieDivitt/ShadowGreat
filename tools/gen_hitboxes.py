@@ -10,6 +10,9 @@ nothing from the game itself):
   [buttons.play]   -> what to write to select a play-screen button
   [screens.*]      -> each menu's choice byte; a choice's value is its
                       position in that screen's `choices` list (0, 1, 2)
+  [regions.<NAME>] -> a ROM whose play screen is laid out differently: only
+                      the entries that change, written as
+                      #if defined(SG_ROM_REGION_<NAME>) ... #else ... #endif
 """
 import pathlib, tomllib
 
@@ -36,17 +39,42 @@ def main():
         "/* [hitboxes]: game pixels, edges included */",
         "const SgHitbox sg_hitboxes[] = {",
     ]
+    regions = data.get("regions", {})
+
+    def variants(kind, table, name, base):
+        """[(region or None, value)]: each region's override, then the base."""
+        found = [(reg, r[kind][table][name]) for reg, r in regions.items()
+                 if name in r.get(kind, {}).get(table, {})]
+        return found + [(None, base)]
+
+    def emit(found, line):
+        if len(found) == 1:
+            out.extend(line(found[0][1]))
+            return
+        for i, (reg, value) in enumerate(found):
+            out.append(("#if" if i == 0 else "#elif") + f" defined(SG_ROM_REGION_{reg})" if reg else "#else")
+            out.extend(line(value))
+        out.append("#endif")
+
+    def hitbox_lines(screen, name):
+        return lambda rects: [f'    {{ {screen + ",":<25} "{name}", {l:3}, {t:3}, {r:3}, {b:3} }},'
+                              for l, t, r, b in rects]
+
     for table, screen in SCREENS.items():
         for name, rects in data["hitboxes"][table].items():
-            for l, t, r, b in rects:
-                out.append(f'    {{ {screen + ",":<25} "{name}", {l:3}, {t:3}, {r:3}, {b:3} }},')
+            emit(variants("hitboxes", table, name, rects), hitbox_lines(screen, name))
     out += ["};", "const int sg_hitbox_count = (int)(sizeof sg_hitboxes / sizeof sg_hitboxes[0]);", ""]
 
     out += ["/* [buttons.play]: cursor X/Y ($AB/$AC), $AD (-1 = leave alone), $AF */",
             "const SgButton sg_buttons[] = {"]
+    def button_line(name):
+        def line(b):
+            x, y = b["snap"]
+            return [f'    {{ "{name}", 0x{x:02X}, 0x{y:02X}, {("0x%02X" % b["ad"]) if "ad" in b else "  -1"}, 0x{b["af"]:02X} }},']
+        return line
+
     for name, b in data["buttons"]["play"].items():
-        x, y = b["snap"]
-        out.append(f'    {{ "{name}", 0x{x:02X}, 0x{y:02X}, {("0x%02X" % b["ad"]) if "ad" in b else "  -1"}, 0x{b["af"]:02X} }},')
+        emit(variants("buttons", "play", name, b), button_line(name))
     out += ["};", "const int sg_button_count = (int)(sizeof sg_buttons / sizeof sg_buttons[0]);", ""]
 
     out += ["/* [screens.*]: menu choices; value = position in the choices list */",
@@ -70,6 +98,26 @@ def main():
         missing = names - known
         if missing:
             raise SystemExit(f"[hitboxes.{table}] has no action for: {sorted(missing)}")
+
+    # A region may only change things that exist, and in every layout each
+    # play button's snap point must lie inside its own box.
+    for reg, r in regions.items():
+        for kind, base in (("hitboxes", data["hitboxes"]), ("buttons", data["buttons"])):
+            for table, entries in r.get(kind, {}).items():
+                extra = set(entries) - set(base[table])
+                if extra:
+                    raise SystemExit(f"[regions.{reg}.{kind}.{table}] has unknown names: {sorted(extra)}")
+    for reg in [None] + list(regions):
+        def pick(kind, table, name, base):
+            return variants(kind, table, name, base)[0][1] if reg else base
+        for name, b in data["buttons"]["play"].items():
+            if reg and name not in regions[reg].get("buttons", {}).get("play", {}) \
+                   and name not in regions[reg].get("hitboxes", {}).get("play", {}):
+                continue
+            x, y = pick("buttons", "play", name, b)["snap"]
+            rects = pick("hitboxes", "play", name, data["hitboxes"]["play"][name])
+            if not any(l <= x <= r and t <= y <= bt for l, t, r, bt in rects):
+                raise SystemExit(f"{reg or 'base'}: {name} snap point ({x}, {y}) is outside its box {rects}")
 
     (ROOT / "src" / "sg_hitboxes.c").write_text("\n".join(out), encoding="utf-8")
     print("wrote src/sg_hitboxes.c")
