@@ -57,28 +57,61 @@ Folders find_folders(const LauncherSettings &s)
 {
     Folders f;
     std::string exe = exe_folder();
+    const char *appdir_env = std::getenv("APPDIR");
+    std::string appdir = (appdir_env && *appdir_env) ? appdir_env : "";
+
     auto is_source = [](const std::string &d) {
-        return file_exists(d + "/CMakeLists.txt") && file_exists(d + "/shadowgate-map.toml");
+        return !d.empty() && file_exists(d + "/CMakeLists.txt") && file_exists(d + "/shadowgate-map.toml");
     };
     f.source = !s.source_folder.empty() ? s.source_folder
-             : first_of({ exe + "/source", exe + "/..", exe }, is_source);
+             : first_of({ (!appdir.empty() ? appdir + "/source" : ""),
+                          exe + "/source", exe + "/../../source", exe + "/..", exe }, is_source);
     std::string base = f.source.empty() ? exe : parent(f.source);
 
-    auto is_nesrecomp = [](const std::string &d) { return file_exists(d + "/runner/cyc/project.cmake"); };
+    auto is_nesrecomp = [](const std::string &d) {
+        return !d.empty() && file_exists(d + "/runner/cyc/project.cmake");
+    };
     f.nesrecomp = !s.nesrecomp_folder.empty() ? s.nesrecomp_folder
-                : first_of({ exe + "/nesrecomp", base + "/nesrecomp" }, is_nesrecomp);
+                : first_of({ (!appdir.empty() ? appdir + "/nesrecomp" : ""),
+                             exe + "/nesrecomp", exe + "/../../nesrecomp",
+                             base + "/nesrecomp", parent(base) + "/nesrecomp" }, is_nesrecomp);
 
-    auto is_recomp_ui = [](const std::string &d) { return file_exists(d + "/src/third_party/imgui/imgui.cpp"); };
+    auto is_recomp_ui = [](const std::string &d) {
+        return !d.empty() && file_exists(d + "/src/third_party/imgui/imgui.cpp");
+    };
     f.recomp_ui = !s.recomp_ui_folder.empty() ? s.recomp_ui_folder
-                : first_of({ exe + "/recomp-ui", base + "/recomp-ui" }, is_recomp_ui);
+                : first_of({ (!appdir.empty() ? appdir + "/recomp-ui" : ""),
+                             exe + "/recomp-ui", exe + "/../../recomp-ui",
+                             base + "/recomp-ui", parent(base) + "/recomp-ui" }, is_recomp_ui);
 
     // Build tools: an existing folder, or <launcher>/tools for the download.
-    auto is_dir = [](const std::string &d) { return file_exists(d); };
+    auto is_dir = [](const std::string &d) { return !d.empty() && file_exists(d); };
     f.tools = !s.tools_folder.empty() ? s.tools_folder
-            : first_of({ exe + "/tools", base + "/Tools" }, is_dir);
+            : first_of({ (!appdir.empty() ? appdir + "/tools" : ""),
+                         exe + "/tools", exe + "/../../tools", base + "/Tools", parent(base) + "/Tools" }, is_dir);
     if (f.tools.empty()) f.tools = exe + "/tools";
 
+#ifdef _WIN32
     f.game = !s.game_folder.empty() ? s.game_folder : exe + "/game";
+#else
+    if (!s.game_folder.empty()) {
+        f.game = s.game_folder;
+    } else {
+        const char *appimage = std::getenv("APPIMAGE");
+        if (appimage) {
+            const char *xdg = std::getenv("XDG_DATA_HOME");
+            std::string data_dir;
+            if (xdg && *xdg) data_dir = xdg;
+            else {
+                const char *home = std::getenv("HOME");
+                data_dir = home ? (std::string(home) + "/.local/share") : "/tmp";
+            }
+            f.game = data_dir + "/shadowgreat/game";
+        } else {
+            f.game = exe + "/game";
+        }
+    }
+#endif
 
     auto add = [&f](const char *what) { f.missing += f.missing.empty() ? what : std::string(", ") + what; };
     if (!is_source(f.source))       add("the Shadowgreat source");
@@ -111,7 +144,20 @@ static std::string on_path(const char *program)
     WideCharToMultiByte(CP_UTF8, 0, out, -1, utf8, sizeof utf8, nullptr, nullptr);
     return S(P(utf8));
 #else
-    (void)program;
+    const char *p = std::getenv("PATH");
+    if (!p) return std::string();
+    std::string path_str(p);
+    size_t start = 0;
+    while (start < path_str.size()) {
+        size_t end = path_str.find(':', start);
+        if (end == std::string::npos) end = path_str.size();
+        std::string dir = path_str.substr(start, end - start);
+        if (!dir.empty()) {
+            std::string full = dir + "/" + program;
+            if (file_exists(full)) return S(P(full));
+        }
+        start = end + 1;
+    }
     return std::string();
 #endif
 }
@@ -119,6 +165,7 @@ static std::string on_path(const char *program)
 Tools find_tools(const std::string &tools)
 {
     Tools t;
+#ifdef _WIN32
     t.clang = find_in(tools, "llvm-mingw", "bin/clang.exe");
     t.clangxx = find_in(tools, "llvm-mingw", "bin/clang++.exe");
     t.ninja = file_exists(tools + "/ninja/ninja.exe") ? tools + "/ninja/ninja.exe"
@@ -126,8 +173,29 @@ Tools find_tools(const std::string &tools)
     t.sdl2_dir = find_in(tools, "SDL2-", "x86_64-w64-mingw32/lib/cmake/SDL2");
     t.cmake = find_in(tools, "cmake", "bin/cmake.exe");
     if (t.cmake.empty()) t.cmake = on_path("cmake.exe");
-    // Always the launcher's own Python (nesrecomp needs 3.11 or newer).
     if (file_exists(tools + "/python/python.exe")) t.python = tools + "/python/python.exe";
+#else
+    t.clang = find_in(tools, "llvm", "bin/clang");
+    if (t.clang.empty()) t.clang = on_path("clang");
+    if (t.clang.empty()) t.clang = on_path("gcc");
+
+    t.clangxx = find_in(tools, "llvm", "bin/clang++");
+    if (t.clangxx.empty()) t.clangxx = on_path("clang++");
+    if (t.clangxx.empty()) t.clangxx = on_path("g++");
+
+    t.ninja = file_exists(tools + "/ninja/ninja") ? tools + "/ninja/ninja"
+            : file_exists(tools + "/ninja") ? tools + "/ninja" : std::string();
+    if (t.ninja.empty()) t.ninja = on_path("ninja");
+    if (t.ninja.empty()) t.ninja = on_path("ninja-build");
+
+    t.cmake = find_in(tools, "cmake", "bin/cmake");
+    if (t.cmake.empty()) t.cmake = on_path("cmake");
+
+    if (file_exists(tools + "/python/bin/python3")) t.python = tools + "/python/bin/python3";
+    if (t.python.empty()) t.python = on_path("python3");
+
+    t.sdl2_dir = find_in(tools, "SDL2-", "lib/cmake/SDL2");
+#endif
 
     // Download sizes in MB, matching fetch.py.
     auto add = [&t](const char *what, const char *item, int mb) {
@@ -138,21 +206,47 @@ Tools find_tools(const std::string &tools)
     if (t.python.empty()) { add("Python", nullptr, 22); t.need_python = true; }
     if (t.clang.empty() || t.clangxx.empty()) add("the compiler (llvm-mingw)", "compiler", 191);
     if (t.ninja.empty())    add("Ninja", "ninja", 1);
+#ifdef _WIN32
     if (t.sdl2_dir.empty()) add("SDL2", "sdl2", 16);
+#endif
     if (t.cmake.empty())    add("CMake", "cmake", 54);
     return t;
 }
 
-Voice find_voice(const Folders &f)
+Voice find_voice(const Folders &f, const std::string &rom_region)
 {
     Voice v;
     v.folder = f.game + "/voice";
+#ifdef _WIN32
     v.dlls = file_exists(v.folder + "/sherpa-onnx-c-api.dll") && file_exists(v.folder + "/onnxruntime.dll");
+#else
+    v.dlls = file_exists(v.folder + "/libsherpa-onnx-c-api.so") && file_exists(v.folder + "/libonnxruntime.so");
+#endif
     v.model = file_exists(v.folder + "/kokoro-multi-lang-v1_0/model.onnx")
            && file_exists(v.folder + "/kokoro-multi-lang-v1_0/voices.bin");
-    if (!v.dlls)  { v.fetch_items += "sherpa"; v.download_mb += 8; }
-    if (!v.model) { v.fetch_items += v.fetch_items.empty() ? "kokoro" : " kokoro"; v.download_mb += 350; }
+    auto add_item = [&v](const char *item, int mb) {
+        if (!v.fetch_items.empty()) v.fetch_items += ' ';
+        v.fetch_items += item;
+        v.download_mb += mb;
+    };
+    if (!v.dlls)  add_item("sherpa", 8);
+    if (!v.model) add_item("kokoro", 350);
+
+    if (rom_region == "Shadowgate (France)") {
+        v.lexicon = file_exists(v.folder + "/lexicon-fr.txt");
+        if (!v.lexicon) add_item("dict-fr", 6);
+    } else if (rom_region == "Shadowgate (Germany)") {
+        v.lexicon = file_exists(v.folder + "/lexicon-de.txt");
+        if (!v.lexicon) add_item("dict-de", 31);
+    } else if (rom_region == "Shadowgate (Sweden)") {
+        v.lexicon = file_exists(v.folder + "/lexicon-sv.txt");
+        if (!v.lexicon) add_item("dict-sv-mfa dict-sv-ipa", 4);
+    }
     return v;
 }
 
+#ifdef _WIN32
 std::string game_exe(const Folders &f) { return f.game + "/shadowgate.exe"; }
+#else
+std::string game_exe(const Folders &f) { return f.game + "/shadowgate"; }
+#endif

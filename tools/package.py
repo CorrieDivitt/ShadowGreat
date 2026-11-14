@@ -174,13 +174,13 @@ README = """Shadowgreat %s - Shadowgate (NES) for Windows, built on your PC from
 ================================================================================
 
 This contains NO part of Shadowgate. You need your own legally obtained
-Shadowgate (USA) .nes file; the launcher checks it and builds the game from
-it on your PC.
+Shadowgate .nes file (USA, Europe, Sweden, France, or Germany); the
+launcher checks it and builds the game from it on your PC.
 
 How to play
   1. Unzip this folder somewhere with a short path, e.g. C:\\Games\\Shadowgreat
   2. Run ShadowgreatLauncher.exe
-  3. Choose your Shadowgate (USA) .nes file
+  3. Choose your Shadowgate .nes file
   4. Download the build tools (one time, about 283 MB) and build the game
      (a few minutes, one time)
   5. Optional: download the narrator voice (about 358 MB), or play without it

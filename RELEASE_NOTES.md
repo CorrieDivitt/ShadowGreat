@@ -3,7 +3,7 @@
 ## 1.0.0
 
 The first release: Shadowgate (NES) as a native Windows game, built on your own PC from your own
-legally obtained **Shadowgate (USA)** `.nes` file. No part of the game is included in the download.
+legally obtained **Shadowgate** `.nes` file (USA, Europe, Sweden, France, or Germany). No part of the game is included in the download.
 
 ### Features
 - **Mouse control.** Left click selects verbs, objects, doors and inventory items; right click is B.

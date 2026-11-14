@@ -109,7 +109,7 @@ static void draw_hand(uint32_t *out, int width, int height, int x0, int tip_x, i
 
 static void hand_draw(uint32_t *buf, int width, int height, int x0)
 {
-    if (!sg_feature_mouse.enabled || !s_mouse_mode) return;   /* the game's own hand */
+    if (!sg_feature_mouse.enabled || !s_mouse_mode || cyc_ui_menu_open()) return;   /* the game's own hand or menu open */
     erase_game_hand(buf, width, x0);
     if (sg_pointer_x >= 0) draw_hand(buf, width, height, x0, sg_pointer_x, sg_pointer_y);
 }
@@ -117,6 +117,10 @@ static void hand_draw(uint32_t *buf, int width, int height, int x0)
 static void hand_frame(void)
 {
     if (!sg_feature_mouse.enabled) return;
+    if (cyc_ui_menu_open()) {
+        show_windows_pointer(true);
+        return;
+    }
     int x = sg_pointer_x, y = sg_pointer_y;
     if (x >= 0 && (x != s_prev_x || y != s_prev_y) && !s_mouse_mode) {
         s_mouse_mode = true;

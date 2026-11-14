@@ -91,6 +91,24 @@ static const char *tile_char(uint8_t t)
     if (t == 0xCE) return ";";    /* "...THE STARS; THE THRONE..." (its one use)               */
     if (t == 0xA1) return ".";
     if (t >= 0xB1 && t <= 0xCA) return letters[t - 0xB1];
+    /* Regional accented tiles */
+#if defined(SG_ROM_REGION_GERMANY)
+    if (t == 0xD6) return "Ä";
+    if (t == 0xD7) return "Ö";
+    if (t == 0xD8) return "Ü";
+    if (t == 0xD9) return "ß";
+#elif defined(SG_ROM_REGION_SWEDEN)
+    if (t == 0xD6) return "Å";
+    if (t == 0xD7) return "Ä";
+    if (t == 0xD8 || t == 0xD9) return "Ö";
+#elif defined(SG_ROM_REGION_FRANCE)
+    if (t == 0xD6 || t == 0xD7 || t == 0xD8) return "E";
+    if (t == 0xD9) return "C";
+#else
+    if (t == 0xD6 || t == 0xD7 || t == 0xD8) return "E";
+    if (t == 0xD9) return "C";
+#endif
+    if (t == 0xCB) return "";
     return NULL;
 }
 
@@ -115,6 +133,10 @@ static void put_code(Out *spoken, Out *logged, unsigned code)
     }
 }
 
+#ifndef SG_WORD_SLOT_OFFSET
+#define SG_WORD_SLOT_OFFSET 0
+#endif
+
 static void put_word(Out *spoken, Out *logged, uint16_t list, unsigned n)
 {
     if (!s_have_words) {
@@ -123,6 +145,16 @@ static void put_word(Out *spoken, Out *logged, uint16_t list, unsigned n)
         put(logged, tmp);
         return;
     }
+#ifdef SG_TABLE_HUFFMAN
+    (void)list;
+    unsigned base = n * 16 + SG_WORD_SLOT_OFFSET;
+    for (int i = 0; i < 12; ++i) {
+        if (base + i >= sizeof(s_words)) break;
+        uint8_t c = s_words[base + i];
+        if (c == 0x1F) break;
+        put_code(spoken, logged, c);
+    }
+#else
     Bits b = { (uint16_t)(list + n * SG_WORD_SLOT_BYTES), true, 0, 0 };
     for (int i = 0; i < 12; ++i) {            /* a slot holds at most 12 codes */
         unsigned c = read_bits(&b, 5);
@@ -130,6 +162,7 @@ static void put_word(Out *spoken, Out *logged, uint16_t list, unsigned n)
         if (c == 0x1E) c = read_bits(&b, 5) + 0x20;
         put_code(spoken, logged, c);
     }
+#endif
 }
 
 bool sg_text_decode(uint16_t addr, char *spoken, size_t spoken_size,
@@ -141,6 +174,65 @@ bool sg_text_decode(uint16_t addr, char *spoken, size_t spoken_size,
     Bits b = { addr, false, 0, 0 };
     char tmp[32];
 
+#ifdef SG_TABLE_HUFFMAN
+    for (int count = 0; count < 4000; ++count) {
+        unsigned ed = 0;
+        while (read_bits(&b, 1) == 0) {
+            ed++;
+            if (ed > 64) {
+                put(&l, "{invalid bitstream: stopped}");
+                return false;
+            }
+        }
+        for (int i = 0; i < 3; ++i) {
+            ed = (ed << 1) | read_bits(&b, 1);
+        }
+        if (ed >= 64) {
+            put(&l, "{bad huffman index}");
+            return false;
+        }
+        uint8_t c = cyc_mod_peek((uint16_t)(SG_TABLE_HUFFMAN + ed));
+        if (c == 0x1F) return true;              /* end of message */
+        if (c < 0x1A) { put_code(&s, &l, c); continue; }   /* A-Z */
+        switch (c) {
+        case 0x1A: put(&s, " "); put(&l, " "); break;      /* space */
+        case 0x1D: put(&s, " "); put(&l, " / "); break;    /* new line */
+        case 0x1B:
+        case 0x1C: put(&s, "\f"); put(&l, " // "); break; /* end of page */
+        case 0x3E: {
+            b.bits_left = 0;
+            unsigned lo = read_bits(&b, 8), hi = read_bits(&b, 8);
+            uint16_t where = (uint16_t)(lo | (hi << 8));
+            unsigned n = cyc_mod_peek(where);
+            snprintf(tmp, sizeof tmp, "{ram %04X=%u}", where, n);
+            put(&l, tmp);
+            put_word(&s, &l, SG_WORD_LIST_A, n);
+            break;
+        }
+        case 0x3F: {
+            b.bits_left = 0;
+            unsigned lo = read_bits(&b, 8), hi = read_bits(&b, 8);
+            uint16_t where = (uint16_t)(lo | (hi << 8));
+            unsigned n = cyc_mod_peek(where);
+            char num_str[16];
+            snprintf(num_str, sizeof num_str, "%u", n);
+            put(&s, num_str);
+            put(&l, num_str);
+            break;
+        }
+        default: {
+            if (c < 0x3E) {
+                put_code(&s, &l, c);
+            } else {
+                char unk[16];
+                snprintf(unk, sizeof unk, "{%02X}", c);
+                put(&l, unk);
+            }
+            break;
+        }
+        }
+    }
+#else
     for (int count = 0; count < 4000; ++count) { /* safety limit */
         unsigned c = read_bits(&b, 5);
         if (c == 0x1F) return true;              /* end of message */
@@ -178,6 +270,7 @@ bool sg_text_decode(uint16_t addr, char *spoken, size_t spoken_size,
         }
         }
     }
+#endif
     put(&l, "{too long: stopped}");
     return false;
 }

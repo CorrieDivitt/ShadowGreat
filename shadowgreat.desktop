@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Shadowgreat
+GenericName=Adventure Game
+Comment=Shadowgate (NES) native enhanced PC port
+Exec=ShadowgreatLauncher
+Icon=shadowgreat
+Categories=Game;AdventureGame;
+Terminal=false
+StartupNotify=true

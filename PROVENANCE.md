@@ -17,6 +17,8 @@ Add a line whenever a new fact or source is used.
 | [TCRF: Shadowgate (NES)](https://www.tcrf.net/Shadowgate_(NES)) | Message-debug Game Genie codes (message index + library 0-2); decoded by us to the patch site `$A277` | Unverified |
 | [mstan/nesrecomp](https://github.com/mstan/nesrecomp) | Recompiler and runtime (dependency, not copied) | PolyForm Noncommercial 1.0.0 |
 | [troyedwardsjr/z2rs](https://github.com/troyedwardsjr/z2rs) | Ideas for this policy, the commit check and this file | No code copied |
+| [open-dict-data/ipa-dict](https://github.com/open-dict-data/ipa-dict) | French (`fr_FR.txt`), German (`de.txt`), and Swedish (`sv.txt`) IPA pronunciation dictionaries (downloaded at runtime by `fetch.py`, pinned to commit `972cd67dd5f96bc5660e28070cde26e3928abcd7`) | MIT |
+| [MontrealCorpusTools/swedish_mfa](https://huggingface.co/MontrealCorpusTools/swedish_mfa) | Swedish MFA pronunciation dictionary (`swedish_mfa.dict`, downloaded at runtime by `fetch.py`, pinned to commit `fdc6edcd905a0c89075f93e408cdd4b2294adf11`) | CC-BY-4.0 |
 
 ## Our own observations (Mesen 2, user's own ROM)
 

@@ -63,7 +63,11 @@ static SgScreen s_last_screen;
 
 /* Defaults (also what "Restore defaults" in the menu goes back to) */
 #define DEFAULT_PRESET        0      /* Dungeon Master */
-#define DEFAULT_VOLUME        100
+#if defined(SG_ROM_REGION_USA) || defined(SG_ROM_REGION_EUROPE)
+#define DEFAULT_VOLUME        100   /* same English voices as USA */
+#else
+#define DEFAULT_VOLUME        80
+#endif
 #define DEFAULT_MUSIC         40
 #define DEFAULT_QUOTE_PAUSE   0.8f
 #define DEFAULT_EXCLAIM_PAUSE 0.6f
@@ -102,14 +106,10 @@ static void tune_reset(void)
 
 static void tune_init(void) { if (!s_tune_ready) tune_reset(); }
 
-/* "Dungeon Master" + "Speed" -> "DungeonMasterSpeed" */
+/* "OldMan" + "Speed" -> "OldManSpeed" (fixed English key regardless of ROM region) */
 static void tune_key(int narrator, int which, char *out, size_t size)
 {
-    size_t o = 0;
-    for (const char *p = sg_voice_presets[narrator].name; *p && o + 1 < size; ++p)
-        if (*p != ' ') out[o++] = *p;
-    out[o] = '\0';
-    snprintf(out + o, size - o, "%s", k_tune_words[which]);
+    snprintf(out, size, "%s%s", sg_voice_presets[narrator].key, k_tune_words[which]);
 }
 
 /* Give the voice the current narrator's own values. */
@@ -300,9 +300,15 @@ static bool narration_setting(const char *key, const char *value)
         int n = atoi(value);                  /* 1, 2 or 3 also works */
         if (n >= 1 && n <= sg_voice_preset_count) s_preset = n - 1;
         /* The voices' names before 2026-11-08: Narrator and Plain were
-         * Dungeon Master's voice; Grim was the other deep man, now Old Man. */
-        if (sg_same_word(value, "Narrator") || sg_same_word(value, "Plain")) s_preset = 0;
-        if (sg_same_word(value, "Grim")) s_preset = 1;
+         * Dungeon Master's voice; Grim was the other deep man, now Old Man.
+         * Also alias English names across French/localized presets. */
+        if (sg_same_word(value, "Narrator") || sg_same_word(value, "Plain") ||
+            sg_same_word(value, "Dungeon Master")) s_preset = 0;
+        if (sg_same_word(value, "Grim") || sg_same_word(value, "Old Man") ||
+            sg_same_word(value, "Alter Mann") || sg_same_word(value, "Gammal man")) s_preset = 1;
+        if (sg_same_word(value, "Woman") || sg_same_word(value, "Female") ||
+            sg_same_word(value, "Erzählerin") || sg_same_word(value, "Narratrice") ||
+            sg_same_word(value, "Kvinna")) s_preset = 2;
         return true;
     }
     if (sg_same_word(key, "VoiceVolume")) {

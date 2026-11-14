@@ -182,18 +182,161 @@ bool start_program(const std::string &exe, const std::string &arguments, const s
     return true;
 }
 
-#else   // not Windows: only so the code can be checked elsewhere
+#else   // POSIX / Linux / SteamOS
 
-void prepend_to_path(const std::string &) {}
-void cancel_process() { s_cancelled = true; }
-int run_process(const std::string &, const std::string &, const std::function<void(const std::string &)> &,
-                std::string *error)
+#include <SDL.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <signal.h>
+#include <fcntl.h>
+#include <cstdlib>
+#include <cstring>
+#include <cerrno>
+
+static std::mutex s_posix_proc_lock;
+static pid_t s_posix_child_pid = 0;
+
+void cancel_process()
 {
-    if (error) *error = "the launcher only runs programs on Windows";
+    s_cancelled = true;
+    std::lock_guard<std::mutex> g(s_posix_proc_lock);
+    if (s_posix_child_pid > 0) {
+        kill(-s_posix_child_pid, SIGTERM);
+    }
+}
+
+void prepend_to_path(const std::string &folders)
+{
+    const char *old = std::getenv("PATH");
+    std::string now = folders;
+    for (char &c : now) if (c == ';') c = ':';
+    if (old && *old) now += std::string(":") + old;
+    setenv("PATH", now.c_str(), 1);
+}
+
+int run_process(const std::string &command_line, const std::string &work_folder,
+                const std::function<void(const std::string &)> &on_line, std::string *error)
+{
+    if (s_cancelled) return -2;
+    int pipefd[2];
+    if (pipe(pipefd) != 0) {
+        if (error) *error = strerror(errno);
+        return -1;
+    }
+
+    pid_t pid = fork();
+    if (pid < 0) {
+        if (error) *error = strerror(errno);
+        close(pipefd[0]);
+        close(pipefd[1]);
+        return -1;
+    }
+
+    if (pid == 0) {
+        setpgid(0, 0);
+        if (!work_folder.empty()) {
+            if (chdir(work_folder.c_str()) != 0) {
+                _exit(127);
+            }
+        }
+        close(pipefd[0]);
+        dup2(pipefd[1], STDOUT_FILENO);
+        dup2(pipefd[1], STDERR_FILENO);
+        close(pipefd[1]);
+
+        int devnull = open("/dev/null", O_RDONLY);
+        if (devnull >= 0) {
+            dup2(devnull, STDIN_FILENO);
+            close(devnull);
+        }
+
+        execl("/bin/sh", "sh", "-c", command_line.c_str(), (char *)nullptr);
+        _exit(127);
+    }
+
+    close(pipefd[1]);
+    {
+        std::lock_guard<std::mutex> g(s_posix_proc_lock);
+        s_posix_child_pid = pid;
+    }
+    if (s_cancelled) {
+        kill(-pid, SIGTERM);
+    }
+
+    std::string pending;
+    char buf[4096];
+    ssize_t n;
+    while ((n = read(pipefd[0], buf, sizeof(buf))) > 0) {
+        pending.append(buf, (size_t)n);
+        size_t at;
+        while ((at = pending.find('\n')) != std::string::npos) {
+            std::string line = pending.substr(0, at);
+            if (!line.empty() && line.back() == '\r') line.pop_back();
+            on_line(line);
+            pending.erase(0, at + 1);
+        }
+    }
+    if (!pending.empty()) on_line(pending);
+    close(pipefd[0]);
+
+    int status = 0;
+    waitpid(pid, &status, 0);
+    {
+        std::lock_guard<std::mutex> g(s_posix_proc_lock);
+        s_posix_child_pid = 0;
+    }
+
+    if (s_cancelled) return -2;
+    if (WIFEXITED(status)) return WEXITSTATUS(status);
+    if (WIFSIGNALED(status)) return 128 + WTERMSIG(status);
     return -1;
 }
-bool start_program(const std::string &, const std::string &, const std::string &) { return false; }
-bool game_running() { return false; }
-bool game_closed_at_once(unsigned long *) { return false; }
+
+static pid_t s_game_pid = 0;
+static Uint32 s_game_started = 0;
+static bool s_closed_at_once = false;
+static unsigned long s_exit_code = 0;
+
+bool game_running()
+{
+    if (s_game_pid <= 0) return false;
+    int status = 0;
+    pid_t res = waitpid(s_game_pid, &status, WNOHANG);
+    if (res == 0) return true;
+    if (WIFEXITED(status)) s_exit_code = (unsigned long)WEXITSTATUS(status);
+    else if (WIFSIGNALED(status)) s_exit_code = (unsigned long)(128 + WTERMSIG(status));
+    else s_exit_code = 1;
+    s_closed_at_once = (SDL_GetTicks() - s_game_started < 5000);
+    s_game_pid = 0;
+    return false;
+}
+
+bool game_closed_at_once(unsigned long *exit_code)
+{
+    if (!s_closed_at_once) return false;
+    s_closed_at_once = false;
+    if (exit_code) *exit_code = s_exit_code;
+    return true;
+}
+
+bool start_program(const std::string &exe, const std::string &arguments, const std::string &work_folder)
+{
+    pid_t pid = fork();
+    if (pid < 0) return false;
+    if (pid == 0) {
+        if (!work_folder.empty()) {
+            if (chdir(work_folder.c_str()) != 0) _exit(127);
+        }
+        std::string cmd = quote_arg(exe);
+        if (!arguments.empty()) cmd += " " + arguments;
+        execl("/bin/sh", "sh", "-c", cmd.c_str(), (char *)nullptr);
+        _exit(127);
+    }
+    s_game_pid = pid;
+    s_game_started = SDL_GetTicks();
+    s_closed_at_once = false;
+    return true;
+}
 
 #endif

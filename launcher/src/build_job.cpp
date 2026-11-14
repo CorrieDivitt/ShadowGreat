@@ -20,6 +20,7 @@
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
+#include <fstream>
 #include <system_error>
 
 namespace {
@@ -146,13 +147,61 @@ void finish(int rc, const std::string &error, const char *what_failed, const cha
 int do_build(const Job &j, std::string *error)
 {
     set_stage(BuildStage::Preparing, "Preparing: reading your ROM and writing the game's code...");
+
+    // If running from an AppImage (or if the source folder moved), CMakeCache.txt
+    // will have the old ephemeral mount path, which causes CMake to abort.
+    // If CMAKE_HOME_DIRECTORY in CMakeCache.txt doesn't match j.f.source, remove it.
+    namespace fs = std::filesystem;
+    std::string cache_file = j.f.game + "/CMakeCache.txt";
+    bool need_clean = false;
+    if (file_exists(cache_file)) {
+        bool match = false;
+        std::ifstream f(fs::u8path(cache_file));
+        std::string line;
+        while (std::getline(f, line)) {
+            if (line.rfind("CMAKE_HOME_DIRECTORY:INTERNAL=", 0) == 0) {
+                std::string old_source = line.substr(30);
+                while (!old_source.empty() && (old_source.back() == '\r' || old_source.back() == '\n'))
+                    old_source.pop_back();
+                if (old_source == j.f.source) match = true;
+                break;
+            }
+        }
+        if (!match) need_clean = true;
+    }
+    std::string host_cache = j.f.game + "/nesrecomp-host/CMakeCache.txt";
+    if (file_exists(host_cache)) {
+        bool match = false;
+        std::ifstream f(fs::u8path(host_cache));
+        std::string line;
+        while (std::getline(f, line)) {
+            if (line.rfind("CMAKE_HOME_DIRECTORY:INTERNAL=", 0) == 0) {
+                std::string old_source = line.substr(30);
+                while (!old_source.empty() && (old_source.back() == '\r' || old_source.back() == '\n'))
+                    old_source.pop_back();
+                if (old_source == j.f.nesrecomp + "/recompiler") match = true;
+                break;
+            }
+        }
+        if (!match) need_clean = true;
+    }
+    if (need_clean) {
+        std::error_code ec;
+        fs::remove(fs::u8path(cache_file), ec);
+        fs::remove_all(fs::u8path(j.f.game + "/CMakeFiles"), ec);
+        fs::remove(fs::u8path(j.f.game + "/build.ninja"), ec);
+        fs::remove_all(fs::u8path(j.f.game + "/nesrecomp-host"), ec);
+        fs::remove_all(fs::u8path(j.f.game + "/recomp-net-build"), ec);
+        fs::remove_all(fs::u8path(j.f.game + "/retcomm-rbengine-build"), ec);
+    }
+
     std::string configure = quote_arg(j.t.cmake)
         + " -S " + quote_arg(j.f.source) + " -B " + quote_arg(j.f.game)
         + " -G Ninja -DCMAKE_BUILD_TYPE=Release"
         + " " + quote_arg("-DCMAKE_C_COMPILER=" + j.t.clang)
         + " " + quote_arg("-DCMAKE_CXX_COMPILER=" + j.t.clangxx)
         + " " + quote_arg("-DCMAKE_MAKE_PROGRAM=" + j.t.ninja)
-        + " " + quote_arg("-DSDL2_DIR=" + j.t.sdl2_dir)
+        + (!j.t.sdl2_dir.empty() ? " " + quote_arg("-DSDL2_DIR=" + j.t.sdl2_dir) : "")
         + " " + quote_arg("-DPython3_EXECUTABLE=" + j.t.python)
         + " " + quote_arg("-DNESRECOMP_ROOT=" + j.f.nesrecomp)
         + " " + quote_arg("-DNESRECOMP_RECOMP_UI=" + j.f.recomp_ui)
@@ -165,7 +214,11 @@ int do_build(const Job &j, std::string *error)
     set_stage(BuildStage::Compiling, "Compiling the game...");
     rc = run(quote_arg(j.t.cmake) + " --build " + quote_arg(j.f.game), j.f.source, error);
     if (rc == 0 && !file_exists(game_exe(j.f))) {
+#ifdef _WIN32
         set_stage(BuildStage::Failed, "The build finished but shadowgate.exe isn't there. Show the details below.");
+#else
+        set_stage(BuildStage::Failed, "The build finished but shadowgate isn't there. Show the details below.");
+#endif
         return 1;
     }
     finish(rc, *error, why_it_failed("Compiling").c_str(), "Built! Shadowgate is ready to play.");

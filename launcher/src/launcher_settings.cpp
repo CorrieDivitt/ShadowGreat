@@ -4,15 +4,41 @@
 
 #include <SDL.h>
 #include <cstdio>
+#include <cstdlib>
+#include <filesystem>
+#include <system_error>
 
 static std::string ini_path()
 {
+#ifdef _WIN32
     std::string path = "launcher.ini";
     if (char *base = SDL_GetBasePath()) {
         path = std::string(base) + "launcher.ini";
         SDL_free(base);
     }
     return path;
+#else
+    const char *appimage = std::getenv("APPIMAGE");
+    if (appimage) {
+        const char *xdg_config = std::getenv("XDG_CONFIG_HOME");
+        std::string dir;
+        if (xdg_config && *xdg_config) dir = xdg_config;
+        else {
+            const char *home = std::getenv("HOME");
+            dir = home ? (std::string(home) + "/.config") : "/tmp";
+        }
+        dir += "/shadowgreat";
+        std::error_code ec;
+        std::filesystem::create_directories(std::filesystem::u8path(dir), ec);
+        return dir + "/launcher.ini";
+    }
+    std::string path = "launcher.ini";
+    if (char *base = SDL_GetBasePath()) {
+        path = std::string(base) + "launcher.ini";
+        SDL_free(base);
+    }
+    return path;
+#endif
 }
 
 static std::string trim(const std::string &s)

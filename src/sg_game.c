@@ -26,13 +26,24 @@ const char *sg_screen_name(SgScreen s)
     }
 }
 
+static bool in_variant_list(uint8_t v, const uint8_t *list, size_t n)
+{
+    for (size_t i = 0; i < n; ++i)
+        if (list[i] == v) return true;
+    return false;
+}
+
 static SgScreen classify(uint8_t id, uint8_t variant)
 {
+    static const uint8_t file_select_1c[]  = { SG_FILE_SELECT_1C };
+    static const uint8_t file_options_1c[] = { SG_FILE_OPTIONS_1C };
     switch (id) {
     case 0x10: return SG_SCREEN_TITLE;
     case 0x11:
-        if (variant == 0xB2) return SG_SCREEN_FILE_SELECT;
-        if (variant == 0xAD) return SG_SCREEN_FILE_OPTIONS;
+        if (in_variant_list(variant, file_select_1c, sizeof file_select_1c))
+            return SG_SCREEN_FILE_SELECT;
+        if (in_variant_list(variant, file_options_1c, sizeof file_options_1c))
+            return SG_SCREEN_FILE_OPTIONS;
         return SG_SCREEN_UNKNOWN;   /* never guess between the two */
     case 0x65: return SG_SCREEN_PLAY;
     case 0x6C: return SG_SCREEN_MESSAGE;

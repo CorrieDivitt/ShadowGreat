@@ -3,7 +3,9 @@
 #include "imgui_internal.h"
 #include <algorithm>
 #include <cfloat>
+
 static float sg_menu_scale = 1.0f;
+
 // The menu is laid out for a window of about 830 x 730. Draw it into a
 // smaller pretend window and let the renderer enlarge it, so it fills about
 // 70 % of the real window's height. Mouse positions arrive in real window

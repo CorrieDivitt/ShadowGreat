@@ -38,12 +38,35 @@
 /* The three voices, chosen by the user from samples on 2026-11-08
  * (p10-narrators). Dungeon Master is the original narrator; Old Man and
  * Woman replaced the earlier Grim and Plain. */
+#if defined(SG_ROM_REGION_GERMANY)
 const SgVoicePreset sg_voice_presets[] = {
-    /* name              sid blend  mix   speed  pitch  pause */
-    { "Dungeon Master",  27,  -1,  0.0f,  1.22f, 0.85f, 0.5f },  /* bm_lewis, deeper  */
-    { "Old Man",         19,  -1,  0.0f,  1.12f, 0.95f, 0.6f },  /* am_santa, a little deeper */
-    { "Woman",            6,  -1,  0.0f,  1.00f, 1.00f, 0.6f },  /* af_nicole as is   */
+    /* name              key               sid blend  mix   speed  pitch  pause */
+    { "Dungeon Master",  "DungeonMaster",  27,  -1,  0.0f,  1.15f, 0.90f, 0.5f },  /* bm_lewis - deep male narrator */
+    { "Alter Mann",      "OldMan",         19,  -1,  0.0f,  1.05f, 0.95f, 0.6f },  /* am_santa - mature male */
+    { "Erzählerin",      "Woman",           6,  -1,  0.0f,  1.00f, 1.00f, 0.6f },  /* af_nicole - female */
 };
+#elif defined(SG_ROM_REGION_SWEDEN)
+const SgVoicePreset sg_voice_presets[] = {
+    /* name              key               sid blend  mix   speed  pitch  pause */
+    { "Dungeon Master",  "DungeonMaster",  27,  -1,  0.0f,  1.12f, 0.95f, 0.5f },  /* bm_lewis - authentic original Dungeon Master */
+    { "Gammal man",      "OldMan",         19,  -1,  0.0f,  1.05f, 0.95f, 0.6f },  /* am_santa - mature male */
+    { "Kvinna",          "Woman",           6,  -1,  0.0f,  1.00f, 1.00f, 0.6f },  /* af_nicole - female */
+};
+#elif defined(SG_ROM_REGION_FRANCE)
+const SgVoicePreset sg_voice_presets[] = {
+    /* name              key               sid blend  mix   speed  pitch  pause */
+    { "Maitre du Donjon","DungeonMaster",  27,  -1,  0.0f,  1.10f, 0.90f, 0.5f },  /* bm_lewis - deep male narrator */
+    { "Vieil Homme",     "OldMan",         19,  -1,  0.0f,  1.05f, 0.95f, 0.6f },  /* am_santa - mature male */
+    { "Narratrice",      "Woman",          30,  -1,  0.0f,  1.00f, 1.00f, 0.6f },  /* ff_siwis - female */
+};
+#else
+const SgVoicePreset sg_voice_presets[] = {
+    /* name              key               sid blend  mix   speed  pitch  pause */
+    { "Dungeon Master",  "DungeonMaster",  27,  -1,  0.0f,  1.22f, 0.85f, 0.5f },  /* bm_lewis, deeper  */
+    { "Old Man",         "OldMan",         19,  -1,  0.0f,  1.12f, 0.95f, 0.6f },  /* am_santa, a little deeper */
+    { "Woman",           "Woman",           6,  -1,  0.0f,  1.00f, 1.00f, 0.6f },  /* af_nicole as is   */
+};
+#endif
 const int sg_voice_preset_count = (int)(sizeof sg_voice_presets / sizeof sg_voice_presets[0]);
 
 #if defined(SG_HAVE_VOICE) && defined(CYC_WITH_SDL)
@@ -152,7 +175,11 @@ static unsigned   s_cache_hits, s_cache_misses;
 static bool           s_started;
 static SgVoicePreset  s_preset;               /* the preset wanted now          */
 static int            s_preset_index;
+#if defined(SG_ROM_REGION_USA)
+static int            s_volume = 100;
+#else
 static int            s_volume = 80;
+#endif
 static float          s_music_duck = 0.4f;   /* game sound level while the voice talks */
 static float          s_quote_pause = 0.8f;  /* seconds of quiet after closing a quote  */
 static float          s_exclaim_pause = 0.6f;/* seconds of quiet after "!"              */
@@ -229,7 +256,7 @@ static int load_word_list(const char *path)
 
 static bool word_char(char c)
 {
-    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '\'';
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '\'' || (unsigned char)c >= 0x80;
 }
 
 static void report_unknown_words(const char *text)
@@ -244,8 +271,16 @@ static void report_unknown_words(const char *text)
         size_t s = 0;
         while (s < n && w[s] == '\'') ++s;
         if (s >= n) continue;
-        for (size_t i = s; i < n; ++i)
-            if (w[i] >= 'A' && w[i] <= 'Z') w[i] = (char)(w[i] - 'A' + 'a');
+        for (size_t i = s; i < n; ++i) {
+            if (w[i] >= 'A' && w[i] <= 'Z') {
+                w[i] = (char)(w[i] - 'A' + 'a');
+            } else if ((unsigned char)w[i] == 0xC3 && i + 1 < n) {
+                if ((unsigned char)w[i + 1] == 0x84) w[i + 1] = (char)0xA4;
+                else if ((unsigned char)w[i + 1] == 0x85) w[i + 1] = (char)0xA5;
+                else if ((unsigned char)w[i + 1] == 0x96) w[i + 1] = (char)0xB6;
+                else if ((unsigned char)w[i + 1] == 0x9C) w[i + 1] = (char)0xBC;
+            }
+        }
         uint64_t h = fingerprint(w + s, n - s);
         if (known_has(h)) continue;
         bool seen = false;
@@ -258,6 +293,145 @@ static void report_unknown_words(const char *text)
     }
 }
 
+static size_t lowercase_utf8(const char *src, size_t n, char *dst, size_t dst_cap)
+{
+    size_t o = 0;
+    for (size_t i = 0; i < n && o + 1 < dst_cap; ++i) {
+        unsigned char c = (unsigned char)src[i];
+        if (c >= 'A' && c <= 'Z') {
+            dst[o++] = (char)(c - 'A' + 'a');
+        } else if (c == 0xC3 && i + 1 < n && o + 2 < dst_cap) {
+            unsigned char c2 = (unsigned char)src[i + 1];
+            if (c2 == 0x84 || c2 == 0x85 || c2 == 0x96 || c2 == 0x9C) c2 = (unsigned char)(c2 + 0x20);
+            dst[o++] = (char)c;
+            dst[o++] = (char)c2;
+            ++i;
+        } else {
+            dst[o++] = (char)c;
+        }
+    }
+    dst[o] = 0;
+    return o;
+}
+
+/* Step back one UTF-8 character from i (i > 0). */
+static size_t utf8_prev(const char *s, size_t i)
+{
+    if (i == 0) return 0;
+    --i;
+    while (i > 0 && ((unsigned char)s[i] & 0xC0) == 0x80) --i;
+    return i;
+}
+
+/* Try to split an unknown word into 2 or 3 known words (with optional linking 's'),
+ * or strip a common ending so the stem is spoken instead of skipped.
+ * Splits try the longest first part first (and, for 3 parts, the longest
+ * middle part next), so "pärmen" is "pärm en" rather than "pär men" and
+ * "dichwiederkennen" is "dich wieder kennen" rather than "dich wied erkennen". */
+static bool resolve_word(const char *lw, size_t len, char *out, size_t out_cap)
+{
+    if (known_has(fingerprint(lw, len))) return false;
+
+    /* 1. Split into 2 known words (with optional linking 's'). */
+    for (size_t p1 = utf8_prev(lw, len); p1 > 0; p1 = utf8_prev(lw, p1)) {
+        if (p1 < 2 || len - p1 < 2) continue;
+        if (!known_has(fingerprint(lw, p1))) continue;
+        if (known_has(fingerprint(lw + p1, len - p1))) {
+            snprintf(out, out_cap, "%.*s %.*s", (int)p1, lw, (int)(len - p1), lw + p1);
+            return true;
+        }
+        if (lw[p1] == 's' && len - p1 - 1 >= 2 &&
+            known_has(fingerprint(lw + p1 + 1, len - p1 - 1))) {
+            snprintf(out, out_cap, "%.*s %.*s", (int)p1, lw, (int)(len - p1 - 1), lw + p1 + 1);
+            return true;
+        }
+    }
+
+    /* 2. Split into 3 known words. */
+    for (size_t p1 = utf8_prev(lw, len); p1 > 0; p1 = utf8_prev(lw, p1)) {
+        if (p1 < 2 || len - p1 < 4) continue;
+        if (!known_has(fingerprint(lw, p1))) continue;
+        for (size_t p2 = utf8_prev(lw, len); p2 > p1; p2 = utf8_prev(lw, p2)) {
+            if (p2 - p1 < 2 || len - p2 < 2) continue;
+            if (known_has(fingerprint(lw + p1, p2 - p1)) &&
+                known_has(fingerprint(lw + p2, len - p2))) {
+                snprintf(out, out_cap, "%.*s %.*s %.*s",
+                         (int)p1, lw, (int)(p2 - p1), lw + p1, (int)(len - p2), lw + p2);
+                return true;
+            }
+        }
+    }
+
+    /* 3. Strip a common ending if the stem is known. */
+    static const char *const SUFFIXES[] = {
+#if defined(SG_ROM_REGION_SWEDEN)
+        "arnas", "ernas", "ornas", "heter", "heten", "ande", "ende",
+        "arna", "erna", "orna", "ens", "ets", "het", "ade",
+        "de", "te", "en", "et", "na", "ar", "er", "or", "as", "es",
+        "s", "t", "a", "e"
+#elif defined(SG_ROM_REGION_GERMANY)
+        "ungen", "heit", "keit", "isch", "lich", "ten", "tet", "ung",
+        "en", "er", "es", "em", "st", "te", "e", "n", "s"
+#elif defined(SG_ROM_REGION_FRANCE)
+        "ement", "tion", "ées", "ant", "ent", "és", "ée",
+        "es", "er", "ez", "s", "x", "e"
+#else
+        "ing", "ed", "es", "ly", "s"
+#endif
+    };
+    for (size_t i = 0; i < sizeof SUFFIXES / sizeof SUFFIXES[0]; ++i) {
+        size_t slen = strlen(SUFFIXES[i]);
+        if (len >= slen + 3 && memcmp(lw + len - slen, SUFFIXES[i], slen) == 0 &&
+            known_has(fingerprint(lw, len - slen))) {
+            snprintf(out, out_cap, "%.*s", (int)(len - slen), lw);
+            return true;
+        }
+    }
+    return false;
+}
+
+static char *resolve_unknown_words(char *text)
+{
+    if (!s_known || !text) return text;
+    size_t n = strlen(text), cap = n * 2 + 32, o = 0;
+    char *out = (char *)malloc(cap);
+    if (!out) return text;
+    for (size_t i = 0; i < n;) {
+#if defined(SG_ROM_REGION_FRANCE)
+        if (text[i] == '\'') {
+            if (o + 1 < cap) out[o++] = ' ';
+            ++i;
+            continue;
+        }
+#endif
+        if (!word_char(text[i])) {
+            if (o + 1 < cap) out[o++] = text[i];
+            ++i;
+            continue;
+        }
+        size_t start = i;
+        while (i < n && word_char(text[i])
+#if defined(SG_ROM_REGION_FRANCE)
+               && text[i] != '\''
+#endif
+              ) ++i;
+        size_t wlen = i - start;
+        char lw[64], repl[128];
+        if (wlen > 0 && wlen < sizeof lw) {
+            size_t llen = lowercase_utf8(text + start, wlen, lw, sizeof lw);
+            if (resolve_word(lw, llen, repl, sizeof repl)) {
+                size_t rlen = strlen(repl);
+                if (o + rlen < cap) { memcpy(out + o, repl, rlen); o += rlen; }
+                continue;
+            }
+        }
+        if (o + wlen < cap) { memcpy(out + o, text + start, wlen); o += wlen; }
+    }
+    out[o] = 0;
+    free(text);
+    return out;
+}
+
 /* ---- the text the voice gets ---- */
 /* Marks we put in the text for the voice thread: a longer pause here. */
 #define MARK_QUOTE_PAUSE   '\x01'   /* after the closing quote of spoken dialogue */
@@ -266,6 +440,196 @@ static void report_unknown_words(const char *text)
 /* Words the dictionaries say the wrong way in one place in the game. The
  * replacement is a made-up spelling with its own line in sg-names.txt.
  * Whole words only; the game's text is in capitals. */
+#if defined(SG_ROM_REGION_GERMANY)
+static const struct { const char *from, *to; } PHRASE_FIXES[] = {
+    { "ABERDIE",       "ABER DIE" },
+    { "ABERNICHTS",    "ABER NICHTS" },
+    { "ANDAS",         "AN DAS" },
+    { "ANDERENSEITE",  "ANDEREN SEITE" },
+    { "ARTZAUBERWORT", "ART ZAUBERWORT" },
+    { "AUGENZUAMMEN",  "AUGEN ZUSAMMEN" },
+    { "AUSSOLIDEM",    "AUS SOLIDEM" },
+    { "BESSERVERBRINGEN", "BESSER VERBRINGEN" },
+    { "BRÜCKELEICHT",  "BRÜCKE LEICHT" },
+    { "DALÖST",        "DA LÖST" },
+    { "DASBILD",       "DAS BILD" },
+    { "DASGROLLEN",    "DAS GROLLEN" },
+    { "DASLICHT",      "DAS LICHT" },
+    { "DAßDU",         "DAß DU" },
+    { "DEINEKRÄFTE",   "DEINE KRÄFTE" },
+    { "DEINEMGEWICHT", "DEINEM GEWICHT" },
+    { "DEMFEIND",      "DEM FEIND" },
+    { "DENWEG",        "DEN WEG" },
+    { "DERFACKEL",     "DER FACKEL" },
+    { "DERSIEG",       "DER SIEG" },
+    { "DERZWÖLF",      "DER ZWÖLF" },
+    { "DICHDEN",       "DICH DEN" },
+    { "DICHSCHON",     "DICH SCHON" },
+    { "DIEHAND",       "DIE HAND" },
+    { "DIESICH",       "DIE SICH" },
+    { "DIRAUF",        "DIR AUF" },
+    { "DIRDEN",        "DIR DEN" },
+    { "DUDAS",         "DU DAS" },
+    { "DUDIE",         "DU DIE" },
+    { "DURCHSCHLAGENBETHMOTH", "DURCHSCHLAGEN BETHMOTH" },
+    { "DÄMONVERSPERRT","DÄMON VERSPERRT" },
+    { "EINENDURCHLÖCHERTEN", "EINEN DURCHLÖCHERTEN" },
+    { "EINFACHWUNDERBAR", "EINFACH WUNDERBAR" },
+    { "EINHEXENBESEN", "EIN HEXENBESEN" },
+    { "EINKLEINES",    "EIN KLEINES" },
+    { "EINMAGISCHES",  "EIN MAGISCHES" },
+    { "ERHÄLST",       "ERHÄLTST" },
+    { "ESINS",         "ES INS" },
+    { "ETWASFEHLT",    "ETWAS FEHLT" },
+    { "FACKELHÄLST",   "FACKEL HÄLTST" },
+    { "FACKELHÄLTST",  "FACKEL HÄLTST" },
+    { "FÜRCHTESR",     "FÜRCHTEST" },
+    { "GEHTDA",        "GEHT DA" },
+    { "GERADZU",       "GERADEZU" },
+    { "GERÄUSCHZERPLATZEN", "GERÄUSCH ZERPLATZEN" },
+    { "GEWISSERMAßENDIE", "GEWISSERMAßEN DIE" },
+    { "GLÄNZTALS",     "GLÄNZT ALS" },
+    { "GRABWERDEN",    "GRAB WERDEN" },
+    { "GÜCKWUNSCH",    "GLÜCKWUNSCH" },
+    { "HERSCHT",       "HERRSCHT" },
+    { "HERZAN",        "HERZ AN" },
+    { "HILFEEE",       "HILFE" },
+    { "HOLZFÜR",       "HOLZ FÜR" },
+    { "HÖHLESTEIGT",   "HÖHLE STEIGT" },
+    { "HÄLST",         "HÄLTST" },
+    { "IRGENWIE",      "IRGENDWIE" },
+    { "ISTEIN",        "IST EIN" },
+    { "KLEINESZAHNRAD","KLEINES ZAHNRAD" },
+    { "LICHTSTRAHLSCHEINT", "LICHTSTRAHL SCHEINT" },
+    { "LUFTAUS",       "LUFT AUS" },
+    { "MAULWEIT",      "MAUL WEIT" },
+    { "MITEINEM",      "MIT EINEM" },
+    { "MITUNGLAUBLICHER", "MIT UNGLAUBLICHER" },
+    { "NAHEAN",        "NAHE AN" },
+    { "NICHTSMEHR",    "NICHTS MEHR" },
+    { "NICHTUND",      "NICHT UND" },
+    { "PLATINHORNHERAUFZUBESCHÖREN", "PLATINHORN HERAUFZUBESCHWÖREN" },
+    { "PLÖZLICH",      "PLÖTZLICH" },
+    { "SCHRECKNICHT",  "SCHRECK NICHT" },
+    { "SECHSSTRAHLIGERSTERN", "SECHSSTRAHLIGER STERN" },
+    { "SICHÜBER",      "SICH ÜBER" },
+    { "SIEHTNUR",      "SIEHT NUR" },
+    { "SIEHTZIEMLICH", "SIEHT ZIEMLICH" },
+    { "SOSCHMAL",      "SO SCHMAL" },
+    { "SPRINGENDICH",  "SPRINGEN DICH" },
+    { "TALISMANN",     "TALISMAN" },
+    { "TROPT",         "TROPFT" },
+    { "UNDBILDET",     "UND BILDET" },
+    { "UNDVERBIRGT",   "UND VERBIRGT" },
+    { "UNTERNEBMEN",   "UNTERNEHMEN" },
+    { "VERGITTERTEFENSTER", "VERGITTERTE FENSTER" },
+    { "VERWEHTIM",     "VERWEHT IM" },
+    { "VORDEINEN",     "VOR DEINEN" },
+    { "WIEDEREINEN",   "WIEDER EINEN" },
+    { "WIEEINE",       "WIE EINE" },
+    { "WIEVERSTEINERT","WIE VERSTEINERT" },
+    { "WINDETSICH",    "WINDET SICH" },
+    { "WIRSTAUCH",     "WIRST AUCH" },
+    { "ZAUBERFACKELNACH", "ZAUBERFACKEL NACH" },
+    { "ZAUBERHAFTEATMOSPHÄRE", "ZAUBERHAFTE ATMOSPHÄRE" },
+    { "ZAUBERSPRÜCHEGEGEN", "ZAUBERSPRÜCHE GEGEN" },
+    { "ZOMBI",         "ZOMBIE" },
+    { "ZUDIR",         "ZU DIR" },
+    { "ZUHÄLST",       "ZU HÄLTST" },
+    { "ZUHÄLTST",      "ZU HÄLTST" },
+    { "ZUVIEL",        "ZU VIEL" },
+    { "UNHEILSTIFTERIST", "UNHEILSTIFTER IST" },
+    { "NÄMLICHDU",     "NÄMLICH DU" },
+    { "100 BEINE",     "HUNDERT BEINE" },
+};
+#elif defined(SG_ROM_REGION_SWEDEN)
+static const struct { const char *from, *to; } PHRASE_FIXES[] = {
+    { "ATTDE",              "ATT DE" },
+    { "ATTPIRRA",           "ATT PIRRA" },
+    { "ATTRÖRA",            "ATT RÖRA" },
+    { "ATTVARA",            "ATT VARA" },
+    { "ARVTAGARENTILL",     "ARVTAGAREN TILL" },
+    { "AVUNDERBAR",         "AV UNDERBAR" },
+    { "AVVÅLDSAMMA",        "AV VÅLDSAMMA" },
+    { "BLIDIN",             "BLI DIN" },
+    { "DETDU",              "DET DU" },
+    { "DIGATT",             "DIG ATT" },
+    { "DIGPÅ",              "DIG PÅ" },
+    { "DUBRUKAR",           "DU BRUKAR" },
+    { "DUDÖR",              "DU DÖR" },
+    { "DUKOMMER",           "DU KOMMER" },
+    { "DUSKALL",            "DU SKALL" },
+    { "DUUTAN",             "DU UTAN" },
+    { "DÖRINOM",            "DÖR INOM" },
+    { "ELDENSÅ",            "ELDEN SÅ" },
+    { "ENLITEN",            "EN LITEN" },
+    { "ETTRINGFORMAT",       "ETT RINGFORMAT" },
+    { "ETTÖGONBLICK",        "ETT ÖGONBLICK" },
+    { "FRAMFÖRDIG",         "FRAMFÖR DIG" },
+    { "FRÅNDE",             "FRÅN DE" },
+    { "FRÅNHANS",           "FRÅN HANS" },
+    { "FRÅNPLATTFORMEN",     "FRÅN PLATTFORMEN" },
+    { "FÅKALLA",            "FÅ KALLA" },
+    { "FÖRALLTID",          "FÖR ALLTID" },
+    { "GLADAÖVER",          "GLADA ÖVER" },
+    { "HETTAATT",           "HETTA ATT" },
+    { "HÄRÄR",              "HÄR ÄR" },
+    { "HÖLLNÅGOT",          "HÖLL NÅGOT" },
+    { "IASKAN",             "I ASKAN" },
+    { "ISTEN",              "I STEN" },
+    { "KLIPPANOCH",         "KLIPPAN OCH" },
+    { "KUNGLIGASTADEN",     "KUNGLIGA STADEN" },
+    { "KÄNNERLUKTEN",       "KÄNNER LUKTEN" },
+    { "LITENTRONSAL",       "LITEN TRONSAL" },
+    { "LJUSETMYCKET",       "LJUSET MYCKET" },
+    { "LUNGORNAFYLLS",      "LUNGORNA FYLLS" },
+    { "MENDEN",             "MEN DEN" },
+    { "OCHDÖLJER",          "OCH DÖLJER" },
+    { "OCHSVÄR",            "OCH SVÄR" },
+    { "OCHTRÄNGER",         "OCH TRÄNGER" },
+    { "OSSALLA",            "OSS ALLA" },
+    { "PILPÅ",              "PIL PÅ" },
+    { "PLÖTSLIGTPÅ",        "PLÖTSLIGT PÅ" },
+    { "RÄDDATOCH",          "RÄDDAT OCH" },
+    { "SADEDET",            "SADE DET" },
+    { "SIGILLÄR",           "SIGILL ÄR" },
+    { "SIGPLÖTSLIGT",       "SIG PLÖTSLIGT" },
+    { "SIGSIGILLET",        "SIG SIGILLET" },
+    { "SJUNKERNER",         "SJUNKER NER" },
+    { "SKRIKBLI",           "SKRIK BLI" },
+    { "SLÅRSNABBT",         "SLÅR SNABBT" },
+    { "SMÄRTAOCH",          "SMÄRTA OCH" },
+    { "SOMBEHÖVS",          "SOM BEHÖVS" },
+    { "SOMHÅLLS",           "SOM HÅLLS" },
+    { "SPEGELNFINNS",       "SPEGELN FINNS" },
+    { "SPEGELNFLYGER",      "SPEGELN FLYGER" },
+    { "SPEGLAROCH",         "SPEGLAR OCH" },
+    { "STRIDSVRÅLOCH",      "STRIDSVRÅL OCH" },
+    { "STÅRETT",            "STÅR ETT" },
+    { "SVETTENRINNER",      "SVETTEN RINNER" },
+    { "TILLKNÄNA",          "TILL KNÄNA" },
+    { "TILLSIST",           "TILL SIST" },
+    { "UPPDIG",             "UPP DIG" },
+    { "VADDU",              "VAD DU" },
+    { "VOREINTE",           "VORE INTE" },
+    { "VÄLDIGAGRANITBLOCK", "VÄLDIGA GRANITBLOCK" },
+    { "ÄRDET",              "ÄR DET" },
+    { "ÄRHAN",              "ÄR HAN" },
+    { "ÄRVÄRDIG",           "ÄR VÄRDIG" },
+    { "ÖDESTÅR",            "ÖDE STÅR" },
+    { "ALLDLES",            "ALLDELES" },
+    { "DOKUM.",             "DOKUMENT" },
+    { "DOKUM",              "DOKUMENT" },
+    { "ELDGAFFL",           "ELDGAFFEL" },
+    { "SKRIVBRD",           "SKRIVBORD" },
+    { "TROLLFORM",          "TROLLFORMEL" },
+    { "VARULVN",            "VARULVEN" },
+    { "KOPPMYNT",           "KOPPARMYNT" },
+    { "STORMYNT",           "STORT MYNT" },
+    { "EKARI",              "EKAR I" },
+    { "100",                "HUNDRA" },
+};
+#else
 static const struct { const char *from, *to; } PHRASE_FIXES[] = {
     /* "winds" as in a winding path (sg-names: wynds). The game also says
      * "THE SWIRLING WINDS", which stays as it is. Found by scanning every
@@ -290,9 +654,10 @@ static const struct { const char *from, *to; } PHRASE_FIXES[] = {
     { "WAS READ",      "WAS REDD" },        /* THE ... WAS READ */
     { "NOT LIVE",      "NOT LIVV" },        /* TARKUS WILL NOT LIVE TO SEE THE RISING SUN */
 };
-#define PHRASE_FIXES_VERSION 3         /* bump when the list changes (memory key) */
+#endif
+#define PHRASE_FIXES_VERSION 4         /* bump when the list changes (memory key) */
 
-static bool letter(char c) { return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '\''; }
+static bool letter(char c) { return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '\'' || (unsigned char)c >= 0x80; }
 
 static char *fix_phrases(const char *in)
 {
@@ -349,6 +714,15 @@ static char *clean_text(const char *raw)
     }
     while (o && out[o - 1] == ' ') --o;
     out[o] = 0;
+    /* Lowercase UTF-8 umlauts for TTS lexicon matching */
+    for (size_t i = 0; i + 1 < o; ++i) {
+        if ((unsigned char)out[i] == 0xC3) {
+            if ((unsigned char)out[i + 1] == 0x84) out[i + 1] = (char)0xA4;      /* Ä -> ä */
+            else if ((unsigned char)out[i + 1] == 0x85) out[i + 1] = (char)0xA5; /* Å -> å */
+            else if ((unsigned char)out[i + 1] == 0x96) out[i + 1] = (char)0xB6; /* Ö -> ö */
+            else if ((unsigned char)out[i + 1] == 0x9C) out[i + 1] = (char)0xBC; /* Ü -> ü */
+        }
+    }
     free(in);
     return out;
 }
@@ -458,10 +832,48 @@ static const SherpaOnnxOfflineTts *load_model(int *sid)
         s_unavailable = true;
         return NULL;
     }
+#if defined(SG_ROM_REGION_GERMANY)
+    char de_lex[1200], de_names[1200];
+    join(de_lex, sizeof de_lex, s_base, "lexicon-de.txt");
+    if (!file_exists(de_lex)) join(de_lex, sizeof de_lex, s_voice_dir, "/lexicon-de.txt");
+    join(de_names, sizeof de_names, s_base, "sg-german.txt");
+    if (!file_exists(de_names)) join(de_names, sizeof de_names, s_voice_dir, "/sg-german.txt");
+
+    snprintf(lexicons, sizeof lexicons, "%s%s%s",
+             file_exists(de_lex) ? de_lex : "",
+             (file_exists(de_lex) && file_exists(de_names)) ? "," : "",
+             file_exists(de_names) ? de_names : "");
+    if (!file_exists(de_lex)) sg_log("voice: lexicon-de.txt is missing in %s; German voice may skip words", s_voice_dir);
+#elif defined(SG_ROM_REGION_SWEDEN)
+    char sv_lex[1200], sv_names[1200];
+    join(sv_lex, sizeof sv_lex, s_base, "lexicon-sv.txt");
+    if (!file_exists(sv_lex)) join(sv_lex, sizeof sv_lex, s_voice_dir, "/lexicon-sv.txt");
+    join(sv_names, sizeof sv_names, s_base, "sg-swedish.txt");
+    if (!file_exists(sv_names)) join(sv_names, sizeof sv_names, s_voice_dir, "/sg-swedish.txt");
+
+    snprintf(lexicons, sizeof lexicons, "%s%s%s",
+             file_exists(sv_lex) ? sv_lex : "",
+             (file_exists(sv_lex) && file_exists(sv_names)) ? "," : "",
+             file_exists(sv_names) ? sv_names : "");
+    if (!file_exists(sv_lex)) sg_log("voice: lexicon-sv.txt is missing in %s; Swedish voice may skip words", s_voice_dir);
+#elif defined(SG_ROM_REGION_FRANCE)
+    char fr_lex[1200], fr_names[1200];
+    join(fr_lex, sizeof fr_lex, s_base, "lexicon-fr.txt");
+    if (!file_exists(fr_lex)) join(fr_lex, sizeof fr_lex, s_voice_dir, "/lexicon-fr.txt");
+    join(fr_names, sizeof fr_names, s_base, "sg-french.txt");
+    if (!file_exists(fr_names)) join(fr_names, sizeof fr_names, s_voice_dir, "/sg-french.txt");
+
+    snprintf(lexicons, sizeof lexicons, "%s%s%s",
+             file_exists(fr_lex) ? fr_lex : "",
+             (file_exists(fr_lex) && file_exists(fr_names)) ? "," : "",
+             file_exists(fr_names) ? fr_names : "");
+    if (!file_exists(fr_lex)) sg_log("voice: lexicon-fr.txt is missing in %s; French voice may skip words", s_voice_dir);
+#else
     /* British first, US fills gaps, ours last: the LAST list wins. */
     snprintf(lexicons, sizeof lexicons, "%s/lexicon-us-en.txt,%s/lexicon-gb-en.txt%s%s",
              s_model_dir, s_model_dir, file_exists(ours) ? "," : "", file_exists(ours) ? ours : "");
     if (!file_exists(ours)) sg_log("voice: sg-names.txt is missing beside the .exe; names will be skipped");
+#endif
 
     *sid = s_preset.sid;
     if (s_preset.blend_sid >= 0) {
@@ -497,11 +909,22 @@ static const SherpaOnnxOfflineTts *load_model(int *sid)
     static bool words_loaded;
     if (s_known && !words_loaded) {
         words_loaded = true;
-        char p[1200];
         int total = 0, n;
+#if defined(SG_ROM_REGION_GERMANY)
+        if (file_exists(de_lex) && (n = load_word_list(de_lex)) > 0) total += n;
+        if (file_exists(de_names) && (n = load_word_list(de_names)) > 0) total += n;
+#elif defined(SG_ROM_REGION_SWEDEN)
+        if (file_exists(sv_lex) && (n = load_word_list(sv_lex)) > 0) total += n;
+        if (file_exists(sv_names) && (n = load_word_list(sv_names)) > 0) total += n;
+#elif defined(SG_ROM_REGION_FRANCE)
+        if (file_exists(fr_lex) && (n = load_word_list(fr_lex)) > 0) total += n;
+        if (file_exists(fr_names) && (n = load_word_list(fr_names)) > 0) total += n;
+#else
+        char p[1200];
         join(p, sizeof p, s_model_dir, "/lexicon-us-en.txt"); if ((n = load_word_list(p)) > 0) total += n;
         join(p, sizeof p, s_model_dir, "/lexicon-gb-en.txt"); if ((n = load_word_list(p)) > 0) total += n;
         if ((n = load_word_list(ours)) > 0) total += n;
+#endif
         sg_log("voice: %d dictionary entries", total);
     }
     return tts;
@@ -601,6 +1024,7 @@ static int voice_thread(void *unused)
         }
         if (!tts) { free(text); continue; }
 
+        text = resolve_unknown_words(text);
         report_unknown_words(text);
         SherpaOnnxGenerationConfig g;
         memset(&g, 0, sizeof g);
@@ -629,7 +1053,7 @@ static int voice_thread(void *unused)
                 char kind = *mark;
                 if (*mark) *mark++ = 0;
                 bool words = false;
-                for (const char *c = piece; *c; ++c) if (*c != ' ') words = true;
+                for (const char *c = piece; *c; ++c) if (word_char(*c) && *c != '\'') words = true;
                 SDL_LockMutex(s_lock);
                 size_t piece_start = s_pcm_len;
                 SDL_UnlockMutex(s_lock);
@@ -644,7 +1068,7 @@ static int voice_thread(void *unused)
                 }
                 bool more = false;            /* no pause at a page end: the game waits there anyway */
                 for (const char *c = mark; kind && *c; ++c)
-                    if (*c != ' ' && *c != MARK_QUOTE_PAUSE && *c != MARK_EXCLAIM_PAUSE) more = true;
+                    if (word_char(*c) && *c != '\'') more = true;
                 if (words && more)
                     pad_pause(&job, piece_start, kind == MARK_QUOTE_PAUSE ? s_quote_pause : s_exclaim_pause);
                 piece = kind ? mark : NULL;

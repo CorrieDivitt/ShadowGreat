@@ -64,6 +64,11 @@ if(WIN32)
   enable_language(RC)
   target_sources(ShadowgreatLauncher PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/generated/launcher.rc)
   set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/generated/launcher.rc PROPERTIES OBJECT_DEPENDS ${SG_MANIFEST})
+else()
+  find_package(CURL REQUIRED)
+  target_link_libraries(ShadowgreatLauncher PRIVATE CURL::libcurl)
+  target_sources(ShadowgreatLauncher PRIVATE ${RECOMP_UI_DIR}/src/third_party/tinyfiledialogs.c)
+  target_include_directories(ShadowgreatLauncher PRIVATE ${RECOMP_UI_DIR}/src/third_party)
 endif()
 
 # Everything the launcher needs goes beside it.

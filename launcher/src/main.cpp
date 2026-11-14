@@ -32,6 +32,8 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <commdlg.h>
+#else
+#include "tinyfiledialogs.h"
 #endif
 
 namespace {
@@ -96,7 +98,7 @@ std::string pick_rom_file(SDL_Window *win)
     ofn.lpstrFilter = L"NES ROM (*.nes)\0*.nes\0All files (*.*)\0*.*\0";
     ofn.lpstrFile = file;
     ofn.nMaxFile = 1024;
-    ofn.lpstrTitle = L"Choose your Shadowgate (USA) .nes file";
+    ofn.lpstrTitle = L"Choose your Shadowgate .nes file";
     ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
     if (!GetOpenFileNameW(&ofn)) return std::string();
     char utf8[4096];
@@ -104,7 +106,16 @@ std::string pick_rom_file(SDL_Window *win)
     return std::string(utf8);
 #else
     (void)win;
-    return std::string();
+    const char *filter_patterns[] = { "*.nes" };
+    const char *file = tinyfd_openFileDialog(
+        "Choose your Shadowgate .nes file",
+        "",
+        1,
+        filter_patterns,
+        "NES ROM (*.nes)",
+        0
+    );
+    return file ? std::string(file) : std::string();
 #endif
 }
 
@@ -145,7 +156,7 @@ void look_around(State &st)
 {
     st.folders = find_folders(st.settings);
     st.tools = find_tools(st.folders.tools);
-    st.voice = find_voice(st.folders);
+    st.voice = find_voice(st.folders, st.check.ok ? st.check.region_name : "");
     st.built = file_exists(game_exe(st.folders));
     if (!game_running()) st.options = game_options_read(config_path(st));
 }
@@ -219,11 +230,12 @@ void draw_job_result(State &st, const BuildProgress &p, JobKind kind)
     }
 }
 
-// The game was built by another version of Shadowgreat (an update was
-// unzipped over this one): it must be built again before playing.
+// The game was built by another version of Shadowgreat or for a different ROM:
+// it must be built again before playing.
 bool needs_rebuild(const State &st)
 {
-    return st.built && st.settings.built_version != SG_VERSION;
+    return st.built && (st.settings.built_version != SG_VERSION ||
+                        (st.check.ok && st.settings.built_rom_sha1 != st.check.sha1_body));
 }
 
 void draw_build(State &st, bool rom_ok)
@@ -284,7 +296,9 @@ bool remove_voice(const Voice &v)
     std::error_code ec;
     bool ok = true;
     for (const char *dll : { "onnxruntime.dll", "onnxruntime_providers_shared.dll",
-                             "sherpa-onnx-c-api.dll", "sherpa-onnx-cxx-api.dll" }) {
+                             "sherpa-onnx-c-api.dll", "sherpa-onnx-cxx-api.dll",
+                             "libonnxruntime.so", "libsherpa-onnx-c-api.so", "libsherpa-onnx-cxx-api.so",
+                             "lexicon-fr.txt", "lexicon-de.txt", "lexicon-sv.txt" }) {
         fs::path f = fs::u8path(v.folder + "/" + dll);
         if (fs::exists(f, ec) && !fs::remove(f, ec)) ok = false;
     }
@@ -341,18 +355,19 @@ void draw_voice(State &st)
 // A job just ended: remember a build, and look again at what's installed.
 void job_ended(State &st)
 {
+    static bool s_was_running = false;
     BuildProgress p = build_progress();
     bool running = build_running();
-    if (p.stage == st.last_stage) return;
-    if (!running) {
-        if (p.kind == JobKind::Build && p.stage == BuildStage::Finished) {
-            st.settings.built_rom_sha1 = st.check.sha1_body;
-            st.settings.built_version = SG_VERSION;
-            launcher_settings_save(st.settings);
-        }
-        if (p.stage == BuildStage::Failed) st.show_details = true;
-        look_around(st);
+    if (running) { s_was_running = true; return; }
+    if (!s_was_running && p.stage == st.last_stage) return;
+    s_was_running = false;
+    if (p.kind == JobKind::Build && p.stage == BuildStage::Finished) {
+        st.settings.built_rom_sha1 = st.check.sha1_body;
+        st.settings.built_version = SG_VERSION;
+        launcher_settings_save(st.settings);
     }
+    if (p.stage == BuildStage::Failed) st.show_details = true;
+    look_around(st);
     st.last_stage = p.stage;
 }
 
@@ -408,9 +423,15 @@ void draw_options(State &st)
         unsigned long code = 0;
         if (game_closed_at_once(&code)) {
             char text[512];
+#ifdef _WIN32
             std::snprintf(text, sizeof text,
                           "The game closed straight away (exit code 0x%08lX). Its log is %s/shadowgate.log; "
                           "also check Windows Security > Protection history.", code, st.folders.game.c_str());
+#else
+            std::snprintf(text, sizeof text,
+                          "The game closed straight away (exit code 0x%08lX). Its log is %s/shadowgate.log.",
+                          code, st.folders.game.c_str());
+#endif
             st.play_message = text;
         }
     }
@@ -532,7 +553,11 @@ void draw(State &st, SDL_Window *win)
     ImGui::TextUnformatted("Shadowgreat");
     ImGui::SetWindowFontScale(1.0f);
     ImGui::PopStyleColor();
+#ifdef _WIN32
     ImGui::TextColored(kMuted, "Shadowgate for Windows, built on your PC from your own ROM.  Version %s", SG_VERSION);
+#else
+    ImGui::TextColored(kMuted, "Shadowgate for Linux, built on your PC from your own ROM.  Version %s", SG_VERSION);
+#endif
     ImGui::Separator();
     ImGui::Spacing();
 
@@ -553,11 +578,12 @@ void draw(State &st, SDL_Window *win)
         if (!path.empty()) {
             st.settings.rom_path = path;
             check_rom(st);
+            look_around(st);
             launcher_settings_save(st.settings);
         }
     }
     if (st.checked) ImGui::TextColored(st.check.ok ? kGood : kBad, "%s", st.check.message);
-    else ImGui::TextColored(kMuted, "Choose your legally obtained Shadowgate (USA) .nes file.");
+    else ImGui::TextColored(kMuted, "Choose your legally obtained Shadowgate .nes file (USA, Europe, Sweden, France, Germany).");
     ImGui::Unindent();
     ImGui::Spacing();
 
