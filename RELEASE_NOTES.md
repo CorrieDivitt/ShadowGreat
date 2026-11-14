@@ -1,9 +1,49 @@
 # Shadowgreat release notes
 
+## 1.1.0
+
+Shadowgreat now plays every European release of Shadowgate, with the narrator speaking their
+languages, and builds on Linux and SteamOS too. Thanks to **Mabec-games** for contributing most of
+this release (#2).
+
+### New
+- **Four more versions of the game.** Besides Shadowgate (USA), the launcher now accepts your own
+  **Europe**, **Sweden**, **France** and **Germany** `.nes` files. It recognises which one you chose
+  and builds the game for it, with the right 50 Hz timing for the European versions. Picking a
+  different version later asks for a Rebuild.
+- **The narrator speaks Swedish, German and French.** For those versions the launcher downloads a
+  pronunciation list for the game's language (4 to 31 MB, checked against a fixed SHA-256 fingerprint).
+  The narrators have names in the game's language, and long or run-together words are split into
+  words the voice knows, so very few get skipped.
+- **Mouse control for every version**, including the German one's different verb layout (#3), and a
+  clickable **INSTÄLLNINGAR** line on the Swedish file and save screens.
+- **Linux and SteamOS.** The launcher and the game now build and run on Linux, with game data in
+  `~/.local/share/shadowgreat` and settings in `~/.config/shadowgreat`. An AppImage can be made with
+  `tools/package_appimage.py`.
+
+### Changed
+- The narrator's default volume is 80 for the Swedish, German and French versions (100 for USA and
+  Europe, as before).
+- The mouse and the game's hand are ignored while the in-game menu is open, so clicks there no longer
+  reach the game.
+- `tools/package.py` checks the package against every ROM version you give it (`--rom` more than once).
+
+### Updating from 1.0.0
+Unzip 1.1.0 over your 1.0.0 folder, start the launcher and press **Rebuild**. Your saves, settings,
+build tools and voice are kept. If you play one of the new versions with the narrator on, the
+launcher downloads that language's pronunciation list once.
+
+### Known issues
+- The launcher isn't code-signed, so Windows Defender or SmartScreen may warn about it.
+- The Swedish and German narrators use English voices, so they have an accent, and a few names and
+  sound effects are still skipped. German has had less play-testing than the other versions; reports
+  from German speakers are welcome.
+- The first word of a line can occasionally sound a little odd; that's the voice model.
+
 ## 1.0.0
 
 The first release: Shadowgate (NES) as a native Windows game, built on your own PC from your own
-legally obtained **Shadowgate** `.nes` file (USA, Europe, Sweden, France, or Germany). No part of the game is included in the download.
+legally obtained **Shadowgate (USA)** `.nes` file. No part of the game is included in the download.
 
 ### Features
 - **Mouse control.** Left click selects verbs, objects, doors and inventory items; right click is B.

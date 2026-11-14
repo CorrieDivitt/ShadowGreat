@@ -3,7 +3,7 @@
 **Shadowgate (NES) as a native Windows and Linux/SteamOS game, built on your own PC from your own ROM**, with mouse
 and controller pointing, an optional narrator voice, a torch tracker, and options you can change while you play.
 
-**Version 1.0.0**
+**Version 1.1.0**
 
 Shadowgreat is built with [nesrecomp](https://github.com/mstan/nesrecomp), which turns the NES game's
 code into a native program, and [recomp-ui](https://github.com/mstan/recomp-ui) for its menus.
@@ -78,7 +78,7 @@ SHA-256 fingerprint before it's used.
 
 ### Install
 **Windows:**
-1. Download the latest `Shadowgreat-<version>.zip` (for example `Shadowgreat-1.0.0.zip`) from the
+1. Download the latest `Shadowgreat-<version>.zip` (for example `Shadowgreat-1.1.0.zip`) from the
    [Releases page](https://github.com/CorrieDivitt/ShadowGreat/releases).
 2. Unzip it to a folder with a **short path**, for example `C:\Games\Shadowgreat`.
 3. Run `ShadowgreatLauncher.exe` and follow the steps from top to bottom.

@@ -1,6 +1,6 @@
 """package.py - make the Shadowgreat zip to share.
 
-    python tools\\package.py --rom "F:\\Shadowgreat\\Shadowgate (USA).nes"
+    python tools\\package.py --rom "F:\\Shadowgreat\\Shadowgate (USA).nes" [--rom <another version> ...]
 
 Puts together dist\\Shadowgreat\\ and dist\\Shadowgreat-<version>.zip (the version
 is in the VERSION file):
@@ -16,8 +16,10 @@ Only files tracked by git are taken, so build folders, saves, logs, config
 files and ROMs can't get in. Then every file is checked against YOUR ROM:
 the package is refused if any file contains a run of 32 bytes or more from
 the ROM (also when written out as hex numbers in a text file), has a ROM
-file name, or starts like a ROM. The ROM is only read for the check; nothing
-from it is written anywhere.
+file name, or starts like a ROM. Give --rom once for each supported version
+you have (USA, Europe, Sweden, France, Germany): every file is checked
+against each of them. The ROMs are only read for the check; nothing from
+them is written anywhere.
 
 The build tools and the narrator voice are not in the zip: the launcher
 downloads them from their own projects on the player's PC.
@@ -143,7 +145,7 @@ def check_package(folder, rom_path):
     if whole[:4] != b"NES\x1a":
         fail("%s doesn't look like a .nes file." % rom_path)
     rom = whole[16:]
-    print("Checking every file against your ROM (%d bytes)..." % len(rom))
+    print("Checking every file against %s (%d bytes)..." % (os.path.basename(rom_path), len(rom)))
     keys = rom_keys(rom)
     problems, checked = [], 0
     for base, _, names in os.walk(folder):
@@ -214,7 +216,8 @@ Versions in this package:
 
 def main():
     ap = argparse.ArgumentParser(description="Make the Shadowgreat zip to share.")
-    ap.add_argument("--rom", required=True, help="your Shadowgate (USA) .nes, used only for the check")
+    ap.add_argument("--rom", required=True, action="append",
+                    help="your Shadowgate .nes, used only for the check; give it once per version you have")
     ap.add_argument("--nesrecomp", default=os.path.join(os.path.dirname(ROOT), "nesrecomp"))
     ap.add_argument("--recomp-ui", default=os.path.join(os.path.dirname(ROOT), "recomp-ui"))
     ap.add_argument("--launcher", default=os.path.join(ROOT, "build-launcher"),
@@ -284,7 +287,8 @@ def main():
     with open(os.path.join(out, "README.txt"), "w", encoding="utf-8", newline="\r\n") as f:
         f.write(README % (version, "\n".join(versions)))
 
-    check_package(out, args.rom)
+    for rom_path in args.rom:
+        check_package(out, rom_path)
 
     zip_path = os.path.join(dist, "Shadowgreat-%s.zip" % version)
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
