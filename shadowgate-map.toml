@@ -702,6 +702,53 @@ END      = [[100, 141, 134, 152]]
 YES      = [[125, 135, 154, 147]]
 NO       = [[125, 148, 154, 160]]
 
+# ------------------------------------------------------- per-ROM layouts
+# A ROM whose play screen is laid out differently lists only what changes;
+# everything else comes from [hitboxes] and [buttons.play] above.
+# tools/gen_hitboxes.py turns each into an #if SG_ROM_REGION_<NAME> block.
+
+[regions.GERMANY]
+# The German ROM puts all eight verbs in one column. Its snap table (the
+# game's own, 2 bytes per hotspot at $A441 in bank 13) gives the snap points:
+# verbs X 91, Y 164-220; UP/DOWN/SELF/SAVE X 187; MOVE X 27. Its navigation
+# table (4 bytes per hotspot at $A475) runs verb 0 -> 7 from top to bottom,
+# which confirms the hotspot numbers. The map's exit thresholds are the same
+# as USA (X $48, Y $B0), so MAP keeps its box. Checked 2026-11-13.
+# $AD is assumed to be the same as USA (it follows the command number, not
+# the layout); to be confirmed by a German playtest.
+
+[regions.GERMANY.hitboxes.play]
+# Measured by the user in Paint: verbs and MOVE 2026-11-12, UP/DOWN/SELF/SAVE
+# 2026-11-13 (the USA boxes moved 8 pixels left, as their snap points 195 -> 187).
+MOVE     = [[23, 158, 80, 169]]
+LOOK     = [[87, 158, 171, 168]]
+OPEN     = [[87, 169, 171, 176]]
+USE      = [[87, 177, 171, 184]]
+LEAVE    = [[87, 185, 171, 192]]
+TAKE     = [[87, 193, 171, 199]]
+CLOSE    = [[87, 200, 171, 208]]
+HIT      = [[87, 209, 171, 216]]
+SPEAK    = [[87, 217, 171, 225]]
+UP       = [[182, 166, 201, 180]]
+DOWN     = [[182, 181, 201, 194]]
+SELF     = [[182, 197, 225, 210]]
+SAVE     = [[182, 211, 225, 225]]
+
+[regions.GERMANY.buttons.play]
+LOOK  = { snap = [0x5B, 0xA4], ad = 0x74, af = 0x00, command = 0x00 }
+OPEN  = { snap = [0x5B, 0xAC], ad = 0x78, af = 0x01, command = 0x01 }
+USE   = { snap = [0x5B, 0xB4], ad = 0x7C, af = 0x02, command = 0x02 }
+LEAVE = { snap = [0x5B, 0xBC], ad = 0x80, af = 0x03, command = 0x03 }
+TAKE  = { snap = [0x5B, 0xC4], ad = 0x84, af = 0x04, command = 0x04 }
+CLOSE = { snap = [0x5B, 0xCC], ad = 0x88, af = 0x05, command = 0x05 }
+HIT   = { snap = [0x5B, 0xD4], ad = 0x8C, af = 0x06, command = 0x06 }
+SPEAK = { snap = [0x5B, 0xDC], ad = 0x90, af = 0x07, command = 0x07 }
+MOVE  = { snap = [0x1B, 0xA4], ad = 0x94, af = 0x13, command = 0x08 }
+UP    = { snap = [0xBB, 0xAC], ad = 0xA0, af = 0x08 }
+DOWN  = { snap = [0xBB, 0xBC], ad = 0xA4, af = 0x09 }
+SELF  = { snap = [0xBB, 0xCC], af = 0x0A }
+SAVE  = { snap = [0xBB, 0xDC], af = 0x0B }
+
 [text.not_narration]
 # Messages the printer draws that are NOT the narration box (the voice skips them).
 inventory_heading = 0xBE00   # $BE00-$BEFF: "GOODS" / "SPELL" / "KEY 1" / "TORCH" inventory headings (seen at $BE08 and $BE0D). Narration is only spoken once $E5 = $6C (box up)
