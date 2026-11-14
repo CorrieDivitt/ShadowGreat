@@ -71,7 +71,7 @@ SHA-256 fingerprint before it's used.
 
 ### You need
 - **Windows:** Windows 10 (version 1803 or later) or Windows 11, 64-bit.
-- **Linux / SteamOS:** x86_64 Linux with `clang` or `gcc`, `cmake`, `ninja`, `python3`, `libcurl`, and `SDL2` development headers (on SteamOS, or via `Shadowgreat-<version>-x86_64.AppImage`).
+- **Linux / SteamOS:** x86_64 Linux with `git`, `clang` or `gcc`, `cmake`, `ninja`, Python **3.11 or newer**, and the `libcurl` and `SDL2` development headers. There is no ready-made Linux download yet; see *Linux / SteamOS* below.
 - Your own **Shadowgate** `.nes` file (USA, Europe, Sweden, France, or Germany). Other versions and hacks are refused.
 - About **3 GB** of free disk space (about 1 GB more with the narrator voice).
 - An internet connection for the first setup (the build tools and the voice). After that, none.
@@ -83,9 +83,29 @@ SHA-256 fingerprint before it's used.
 2. Unzip it to a folder with a **short path**, for example `C:\Games\Shadowgreat`.
 3. Run `ShadowgreatLauncher.exe` and follow the steps from top to bottom.
 
-**Linux / SteamOS (AppImage):**
-1. Download `Shadowgreat-<version>-x86_64.AppImage` and mark it executable (`chmod +x Shadowgreat-*.AppImage`).
-2. Run it and follow the steps in the launcher. Game data and saves are stored in `~/.local/share/shadowgreat/game` and launcher settings in `~/.config/shadowgreat/launcher.ini`.
+**Linux / SteamOS (build from source, for now):**
+There is no Linux download on the Releases page yet, so build the launcher yourself; it then builds the
+game from your ROM just as on Windows.
+1. Install the tools. On Debian or Ubuntu:
+   `sudo apt install git cmake ninja-build clang python3 libsdl2-dev libcurl4-openssl-dev`
+   (Python must be 3.11 or newer; Ubuntu 22.04's is too old). On SteamOS these aren't installed by
+   default and its system folders are read-only, so use a container such as Distrobox.
+2. Get the three projects side by side and build the launcher:
+   ```bash
+   mkdir Shadowgreat && cd Shadowgreat
+   git clone https://github.com/CorrieDivitt/ShadowGreat
+   git clone --recurse-submodules https://github.com/mstan/nesrecomp
+   git clone https://github.com/mstan/recomp-ui
+   cmake -S ShadowGreat/launcher -B ShadowGreat/build-launcher -G Ninja -DCMAKE_BUILD_TYPE=Release \
+         -DRECOMP_UI_DIR="$PWD/recomp-ui"
+   cmake --build ShadowGreat/build-launcher
+   ```
+3. Run `ShadowGreat/build-launcher/ShadowgreatLauncher` and follow the steps. It uses the compiler,
+   CMake and Ninja you installed (it doesn't download build tools on Linux); the narrator voice is
+   downloaded as on Windows. The game is built in `ShadowGreat/build-launcher/game`.
+
+To update, run `git pull` in each of the three folders, build the launcher again (step 2's last
+command) and press **Rebuild** in the launcher.
 
 ### Updating
 Unzip the new version over your Shadowgreat folder (replace the files), run `ShadowgreatLauncher.exe` and press

@@ -17,9 +17,9 @@ this release (#2).
   words the voice knows, so very few get skipped.
 - **Mouse control for every version**, including the German one's different verb layout (#3), and a
   clickable **INSTÄLLNINGAR** line on the Swedish file and save screens.
-- **Linux and SteamOS.** The launcher and the game now build and run on Linux, with game data in
-  `~/.local/share/shadowgreat` and settings in `~/.config/shadowgreat`. An AppImage can be made with
-  `tools/package_appimage.py`.
+- **Linux and SteamOS.** The launcher and the game now build and run on Linux. There's no Linux
+  download yet: for now, build the launcher from source (see *Install* in the README); it then builds
+  the game from your ROM as on Windows.
 
 ### Changed
 - The narrator's default volume is 80 for the Swedish, German and French versions (100 for USA and
@@ -27,6 +27,14 @@ this release (#2).
 - The mouse and the game's hand are ignored while the in-game menu is open, so clicks there no longer
   reach the game.
 - `tools/package.py` checks the package against every ROM version you give it (`--rom` more than once).
+
+### Install
+- **Windows:** download `Shadowgreat-1.1.0.zip` below, unzip it to a short path (for example
+  `C:\Games\Shadowgreat`), run `ShadowgreatLauncher.exe` and follow the steps. Needs Windows 10 (1803
+  or later) or 11, 64-bit, about 3 GB of free disk space (about 1 GB more with the voice), and an
+  internet connection for the first setup.
+- **Linux / SteamOS:** build the launcher from source for now; the steps are under *Install* in the
+  README.
 
 ### Updating from 1.0.0
 Unzip 1.1.0 over your 1.0.0 folder, start the launcher and press **Rebuild**. Your saves, settings,
