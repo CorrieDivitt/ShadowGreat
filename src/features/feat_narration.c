@@ -63,8 +63,8 @@ static SgScreen s_last_screen;
 
 /* Defaults (also what "Restore defaults" in the menu goes back to) */
 #define DEFAULT_PRESET        0      /* Dungeon Master */
-#if defined(SG_ROM_REGION_USA)
-#define DEFAULT_VOLUME        100
+#if defined(SG_ROM_REGION_USA) || defined(SG_ROM_REGION_EUROPE)
+#define DEFAULT_VOLUME        100   /* same English voices as USA */
 #else
 #define DEFAULT_VOLUME        80
 #endif

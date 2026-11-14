@@ -293,17 +293,6 @@ static void report_unknown_words(const char *text)
     }
 }
 
-static size_t utf8_next(const char *s, size_t i, size_t n)
-{
-    if (i >= n) return n;
-    unsigned char c = (unsigned char)s[i];
-    if (c < 0x80) return i + 1;
-    if ((c & 0xE0) == 0xC0 && i + 2 <= n) return i + 2;
-    if ((c & 0xF0) == 0xE0 && i + 3 <= n) return i + 3;
-    if ((c & 0xF8) == 0xF0 && i + 4 <= n) return i + 4;
-    return i + 1;
-}
-
 static size_t lowercase_utf8(const char *src, size_t n, char *dst, size_t dst_cap)
 {
     size_t o = 0;
@@ -325,31 +314,44 @@ static size_t lowercase_utf8(const char *src, size_t n, char *dst, size_t dst_ca
     return o;
 }
 
+/* Step back one UTF-8 character from i (i > 0). */
+static size_t utf8_prev(const char *s, size_t i)
+{
+    if (i == 0) return 0;
+    --i;
+    while (i > 0 && ((unsigned char)s[i] & 0xC0) == 0x80) --i;
+    return i;
+}
+
 /* Try to split an unknown word into 2 or 3 known words (with optional linking 's'),
- * or strip a common ending so the stem is spoken instead of skipped. */
+ * or strip a common ending so the stem is spoken instead of skipped.
+ * Splits try the longest first part first (and, for 3 parts, the longest
+ * middle part next), so "pärmen" is "pärm en" rather than "pär men" and
+ * "dichwiederkennen" is "dich wieder kennen" rather than "dich wied erkennen". */
 static bool resolve_word(const char *lw, size_t len, char *out, size_t out_cap)
 {
     if (known_has(fingerprint(lw, len))) return false;
 
     /* 1. Split into 2 known words (with optional linking 's'). */
-    for (size_t p1 = utf8_next(lw, 0, len); p1 < len; p1 = utf8_next(lw, p1, len)) {
+    for (size_t p1 = utf8_prev(lw, len); p1 > 0; p1 = utf8_prev(lw, p1)) {
         if (p1 < 2 || len - p1 < 2) continue;
-        if (known_has(fingerprint(lw, p1)) && known_has(fingerprint(lw + p1, len - p1))) {
+        if (!known_has(fingerprint(lw, p1))) continue;
+        if (known_has(fingerprint(lw + p1, len - p1))) {
             snprintf(out, out_cap, "%.*s %.*s", (int)p1, lw, (int)(len - p1), lw + p1);
             return true;
         }
         if (lw[p1] == 's' && len - p1 - 1 >= 2 &&
-            known_has(fingerprint(lw, p1)) && known_has(fingerprint(lw + p1 + 1, len - p1 - 1))) {
+            known_has(fingerprint(lw + p1 + 1, len - p1 - 1))) {
             snprintf(out, out_cap, "%.*s %.*s", (int)p1, lw, (int)(len - p1 - 1), lw + p1 + 1);
             return true;
         }
     }
 
     /* 2. Split into 3 known words. */
-    for (size_t p1 = utf8_next(lw, 0, len); p1 < len; p1 = utf8_next(lw, p1, len)) {
+    for (size_t p1 = utf8_prev(lw, len); p1 > 0; p1 = utf8_prev(lw, p1)) {
         if (p1 < 2 || len - p1 < 4) continue;
         if (!known_has(fingerprint(lw, p1))) continue;
-        for (size_t p2 = utf8_next(lw, p1, len); p2 < len; p2 = utf8_next(lw, p2, len)) {
+        for (size_t p2 = utf8_prev(lw, len); p2 > p1; p2 = utf8_prev(lw, p2)) {
             if (p2 - p1 < 2 || len - p2 < 2) continue;
             if (known_has(fingerprint(lw + p1, p2 - p1)) &&
                 known_has(fingerprint(lw + p2, len - p2))) {
